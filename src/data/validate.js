@@ -5,7 +5,8 @@ import { ROOMS } from './rooms.js';
 import { PLOTS } from './crops.js';
 import { FPSPOT } from './fpspots.js';
 import { LOT, BUNKER, BUNKER_INNER } from '../config/dimensions.js';
-import { bunkerRoomsTotal } from './areas.js';
+import { bunkerRoomsTotal, bunkerRoomAreas, AREA_LABELS } from './areas.js';
+import { BOM } from './bom.js';
 
 const LEVELS = ['s', 'u', 'a'];
 /* Camada do rótulo = grupo da cena que o contém (ver main.js): superfície, subsolo, telhados, casa, engenho, sobrado. */
@@ -74,6 +75,17 @@ function checkBunkerTiling(problems) {
     );
 }
 
+/* O memorial do bunker deve citar as áreas que a geometria realmente tem (m², arredondado). */
+function checkBunkerAreaText(problems) {
+  const chapter = BOM.find((c) => c.t.includes('Quadro de áreas'));
+  const text = chapter ? JSON.stringify(chapter.items) : '';
+  const areas = bunkerRoomAreas();
+  Object.entries(AREA_LABELS).forEach(([room, label]) => {
+    const expected = label + ' ' + Math.round(areas[room]);
+    if (!text.includes(expected)) problems.push('memorial do bunker: esperado "' + expected + '"');
+  });
+}
+
 function checkPlots(problems) {
   PLOTS.forEach((p) => {
     const area = (p.x2 - p.x1) * (p.z2 - p.z1);
@@ -97,6 +109,7 @@ export function validateData() {
   checkLabels(problems);
   checkRooms(problems);
   checkBunkerTiling(problems);
+  checkBunkerAreaText(problems);
   checkPlots(problems);
   checkSpots(problems);
   return problems;

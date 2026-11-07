@@ -1,4 +1,4 @@
-/* Lista de materiais e memorial técnico (capítulos 01–23). */
+/* Lista de materiais e memorial técnico (capítulos 01–09 e 13–25). */
 
 export const BOM = [
   {
@@ -320,7 +320,7 @@ export const BOM = [
       ['Filtragem', 'Pré-filtro G4, carvão ativado e HEPA H14 de 99,995%.'],
       [
         'Emergência',
-        'Quatro velas de clorato (600 L de O₂ cada) e depuradores de cal sodada para 7 pessoas. Hidroponia de 131 m² (12 prateleiras), despensa de 90 dias (66 m²) e oficina maker (98 m²) com CNC, impressoras 3D e torno.',
+        'Quatro velas de clorato (600 L de O₂ cada) e depuradores de cal sodada para 7 pessoas. Hidroponia de 117 m² (12 prateleiras), despensa de 90 dias (53 m²) e oficina maker (102 m²) com CNC, impressoras 3D e torno.',
       ],
     ],
   },
@@ -480,13 +480,13 @@ export const BOM = [
       ['Estrada de cascalho', '148 m de eixo × 5 m · 740 m²'],
       [
         'Bunker',
-        '1 nível de 40 × 35 m = 1.400 m². Mestre 116, pais 75, irmã 58, sobrinha 47, convidado 44, estar 199, despensa 53, cinema 96, hidroponia 117, oficina 102 m², datacenter 100, laboratórios 65, sala limpa 50, suporte 73 m²',
+        '1 nível de 40 × 35 m = 1.400 m². Mestre 116, pais 75, irmã 63, sobrinha 53, convidado 50, estar 199, despensa 53, cinema 96, hidroponia 117, oficina 102 m², datacenter 100, laboratórios 65, sala limpa 50, suporte 73 m²',
       ],
       ['Fosso do subsolo', '24 × 31 m · 744 m² · 110 m'],
     ],
   },
   {
-    t: '21 · Cronograma de implantação',
+    t: '25 · Cronograma de implantação',
     tag: '6 meses',
     items: [
       ['Mês 1', 'Aquisição e restauração do engenho.'],

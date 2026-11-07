@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sítio Vale do Café 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+<div id="app">
+  <header class="brand">
+    <h1>Sítio <em>Vale do Café.</em></h1>
+    <p>Complexo autossuficiente Phylippus · 100 × 150 m · Vale do Café, RJ</p>
+  </header>
+
+  <main id="stage">
+    <div id="gl" title="Arraste para girar. Pinça ou roda do mouse para aproximar."></div>
+    <svg id="leaders" aria-hidden="true"></svg>
+    <div id="labels"></div>
+    <section class="info" id="info" aria-live="polite">
+      <span class="tag" id="info-tag">Setor</span>
+      <h2 id="info-title"></h2>
+      <p id="info-text"></p>
+    </section>
+  </main>
+
+  <aside class="panel" id="panel" aria-label="Controles da maquete">
+    <div class="sec sectors">
+      <h3>Setores <span class="dot" title="Sistema estável"></span></h3>
+      <div class="grid2" id="sector-grid"></div>
+    </div>
+    <div class="sec">
+      <h3>Corte &amp; física</h3>
+      <div class="row">
+        <div class="top"><label for="s-xray">Abertura do corte</label><output id="o-xray">0%</output></div>
+        <input id="s-xray" type="range" min="0" max="100" value="0">
+      </div>
+      <div class="row">
+        <div class="top"><label for="s-speed">Velocidade do mundo</label><output id="o-speed">100%</output></div>
+        <input id="s-speed" type="range" min="0" max="500" value="100">
+      </div>
+      <div class="row">
+        <div class="top"><label for="s-sun">Sol · hora do dia</label><output id="o-sun">Padrão</output></div>
+        <input id="s-sun" type="range" min="5" max="19" step="0.25" value="5">
+      </div>
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
+        <button class="btn sw" data-season="jun" aria-pressed="false">Inverno</button>
+        <button class="btn sw" data-season="set" aria-pressed="true">Equinócio</button>
+        <button class="btn sw" data-season="dez" aria-pressed="false">Verão</button>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Água</h3>
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
+        <button class="btn sw" data-flavour="cristal" aria-pressed="true"><i style="background:#2bb3e6"></i>Cristal</button>
+        <button class="btn sw" data-flavour="lagoa" aria-pressed="false"><i style="background:#2fbf8a"></i>Lagoa</button>
+        <button class="btn sw" data-flavour="sinestesia" aria-pressed="false"><i style="background:#b06be0"></i>Sinest.</button>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>Ferramentas</h3>
+      <div class="grid2">
+        <button class="btn center" id="b-labels" aria-pressed="true">Legendas: on</button>
+        <button class="btn center" id="b-reset">Centralizar</button>
+        <button class="btn solid desk-only" id="b-bom">Lista BOM</button>
+        <button class="btn center desk-only" id="b-aura">Aura OS</button>
+      </div>
+    </div>
+  </aside>
+
+  <nav class="dock" aria-label="Atalhos">
+    <div class="chips" id="chips"></div>
+    <div class="actions">
+      <button class="btn" id="d-up" aria-label="Subir maquete">↑ Subir</button>
+      <button class="btn" id="d-down" aria-label="Descer maquete">↓ Descer</button>
+      <button class="btn" id="d-panel" aria-expanded="false">Painel</button>
+      <button class="btn" id="d-bom">BOM</button>
+      <button class="btn" id="d-aura">Aura</button>
+    </div>
+  </nav>
+
+  <button class="fpbtn" id="fp-btn" type="button" aria-pressed="false">🕹️ 1ª Pessoa (Orbwalk)</button>
+  <div class="compass" id="compass" title="Norte"><i id="compass-n"></i><b>N</b><em class="cw"><u class="cl">L</u><u class="co">O</u></em></div>
+  <div id="fp-ui" hidden>
+    <div class="fp-chips" id="fp-chips">
+      <button class="btn" data-fpeye="1.7" aria-pressed="true">Em pé</button>
+      <button class="btn" data-fpeye="1.1" aria-pressed="false">Sentado</button>
+      <span class="sep"></span>
+      <button class="btn" data-fplvl="ground" aria-pressed="true">Térreo (casa)</button>
+      <button class="btn" data-fplvl="attic" aria-pressed="false">2º andar (casa)</button>
+      <button class="btn" data-fplvl="under" aria-pressed="false">Bunker (corredor)</button>
+      <button class="btn" data-fplvl="under2" aria-pressed="false">Suíte cyberpunk</button>
+      <button class="btn" data-fplvl="gate" aria-pressed="false">Porteira</button>
+    </div>
+    <div id="fp-joy" role="application" aria-label="Joystick: frente, trás e lateral"><div id="fp-knob"></div></div>
+    <div class="fp-hud" id="fp-hud">—</div>
+    <p class="fp-hint">Joystick: andar · arraste a tela: olhar · WASD e setas no teclado</p>
+  </div>
+
+  <section class="drawer" id="bom" hidden aria-labelledby="bom-t">
+    <header>
+      <div><h2 id="bom-t">BOM e inventário mestre</h2><p>Memorial descritivo · Vale do Café (RJ)</p></div>
+      <button class="xbtn" data-close="bom" aria-label="Fechar">×</button>
+    </header>
+    <div class="body" id="bom-body"></div>
+  </section>
+
+  <section class="drawer" id="aura" hidden aria-labelledby="aura-t">
+    <header>
+      <div><h2 id="aura-t">Aura OS v5.55</h2><p>Datacenter · −8,0 m</p></div>
+      <button class="xbtn" data-close="aura" aria-label="Fechar">×</button>
+    </header>
+    <div class="body">
+      <div class="log" id="aura-log">
+        <div class="msg"><b>Aura · 0,4 ms</b>Olá, Phylippus. O inventário BOM está sincronizado com a telemetria. Os 4 cilindros de salmoura e areia operam a 548 °C. Qual setor deseja auditar?</div>
+      </div>
+      <div class="grid2">
+        <button class="btn center" data-ask="opsec">Rede &amp; OpSec</button>
+        <button class="btn center" data-ask="energy">Energia térmica</button>
+        <button class="btn center" data-ask="family">Refúgio</button>
+        <button class="btn center" data-ask="staff">Escala 4x3</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

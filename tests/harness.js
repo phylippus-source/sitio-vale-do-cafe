@@ -5,8 +5,10 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const ROOT = path.resolve(__dirname, '..');
-const DEFAULT_TARGET = path.join(ROOT, 'legacy', 'sitio-vale-do-cafe.raw.html');
+// Fase 1+: alvo padrao = build de depuracao (nao minificado). Legado: --target=legacy/sitio-vale-do-cafe.raw.html
+const DEFAULT_TARGET = path.join(ROOT, 'dist-debug', 'index.html');
 const THREE = fs.readFileSync(path.join(__dirname, 'three.min.js'), 'utf8');
+const HOOK_ANCHOR = 'window.__sitio = {';
 const HOOK = 'window.__scene = scene; window.__dio = dio; window.__hull = hullMat; window.__sitio = {';
 const SEED_SCRIPT = '<script>(function(){var s=12345;Math.random=function(){s=(s*1664525+1013904223)%4294967296;return s/4294967296;};})();</script>';
 
@@ -15,14 +17,17 @@ function targetPath() {
   return a ? path.resolve(a.slice(9)) : DEFAULT_TARGET;
 }
 
-function prepareHtml(file) {
+function prepareHtml(file, { needScene = true } = {}) {
   let html = fs.readFileSync(file, 'utf8');
-  if (!html.includes('window.__sitio = {')) throw new Error('gancho __sitio ausente em ' + file);
-  if (!html.includes('window.__scene')) html = html.replace('window.__sitio = {', HOOK);
+  if (needScene && !html.includes('window.__scene')) {
+    if (!html.includes(HOOK_ANCHOR)) throw new Error('nomes minificados: use o build de depuracao');
+    html = html.replace(HOOK_ANCHOR, HOOK);
+  }
+  if (/^\s*<!doctype/i.test(html)) return html.replace('<head>', '<head>' + SEED_SCRIPT); // documento completo
   return '<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">' + SEED_SCRIPT + html;
 }
 
-async function open({ width = 1200, height = 800, file = targetPath() } = {}) {
+async function open({ width = 1200, height = 800, file = targetPath(), needScene = true } = {}) {
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist', '--enable-unsafe-swiftshader'] });
   const page = await (await browser.newContext({ viewport: { width, height } })).newPage();
   const errors = [];   // erros de execucao (quebram o teste)
@@ -34,7 +39,7 @@ async function open({ width = 1200, height = 800, file = targetPath() } = {}) {
     if (t.startsWith('Failed to load resource')) return; // fontes externas bloqueadas no teste
     warnings.push(t.slice(0, 120));
   });
-  const html = prepareHtml(file);
+  const html = prepareHtml(file, { needScene });
   const t0 = Date.now();
   await page.route('**/*', (r) => {
     const u = r.request().url();
@@ -43,7 +48,8 @@ async function open({ width = 1200, height = 800, file = targetPath() } = {}) {
     return r.abort();
   });
   await page.goto('http://local/');
-  await page.waitForFunction(() => window.__sitio && window.__scene, { timeout: 90000 });
+  await page.waitForFunction((n) => window.__sitio && (!n || window.__scene), needScene, { timeout: 90000 });
+  await page.evaluate(() => { window.THREE = window.__sitio.THREE; }); // three vem do bundle; testes precisam dele global
   const loadMs = Date.now() - t0;
   await page.waitForTimeout(2500);
   return { browser, page, errors, warnings, loadMs };

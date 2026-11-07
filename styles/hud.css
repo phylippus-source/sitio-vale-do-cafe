@@ -1,0 +1,14 @@
+
+.brand{position:fixed;z-index:20;left:calc(max(16px,env(safe-area-inset-left,0px)) + var(--lside));top:calc(12px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));pointer-events:none;transition:left .28s ease}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:500;font-size:clamp(26px,5vw,52px);line-height:.98;letter-spacing:-.02em;text-wrap:balance}
+.brand h1 em{font-style:italic;font-weight:400}
+.brand p{margin:6px 0 0;font:500 10px/1.4 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);max-width:44ch}
+@media (min-width:900px){ .brand{right:calc(var(--side) + 16px)} }
+@media (max-width:899px){ body.sheet-open .brand p{display:none} body.sheet-open .brand h1{font-size:24px} }
+
+.info{position:absolute;z-index:15;left:max(12px,env(safe-area-inset-left,0px));bottom:12px;max-width:min(340px,calc(100% - 24px));padding:12px 14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow);pointer-events:none}
+.info h2{margin:0 0 3px;font:600 13px/1.2 var(--f-body)}
+.info p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.info .tag{display:block;margin-bottom:4px;font:500 9px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+@media (max-width:899px){ body.sheet-open .info{display:none} }

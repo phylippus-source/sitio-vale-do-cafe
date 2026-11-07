@@ -1,0 +1,6 @@
+{
+  "src/core/math.js": { "header": "Funções matemáticas puras.", "items": [{"name":"clamp","export":true},{"name":"smooth","export":true}],
+    "imports": "" },
+  "src/core/random.js": { "header": "Aleatório determinístico (mulberry32): mesma semente, mesmo sítio.", "imports": "", "items": [{"name":"_s"},{"name":"R","export":true},{"name":"rr","export":true}] },
+  "src/core/color.js": { "header": "Conversão de cor sRGB → linear para vertex colors.", "imports": "import * as THREE from 'three';", "items": [{"name":"C","export":true}] }
+}

@@ -1,0 +1,6 @@
+{
+  "src/config/palette.js": {
+    "header": "Paleta base do mundo (K) e cores da Casa Grande. Cores compartilhadas por vários objetos ficam em PAL (abaixo).",
+    "names": ["K", "CW", "WHT", "IRON", "MARB", "AZB", "AZW", "TERRA"]
+  }
+}

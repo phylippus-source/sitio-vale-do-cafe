@@ -1,0 +1,18 @@
+{
+  "0x7a4a2a": "wood.floorBoard", "0x8a5a32": "wood.oak", "0x7a4f2c": "wood.walnut", "0x5a3a24": "wood.ebony", "0x3a2418": "wood.darkWalnut",
+  "0xffffff": "light.white", "0xffe9a6": "light.warmGlow", "0xefe6d2": "light.cream", "0xf4efe2": "light.ivory", "0xf2dfae": "light.parchment",
+  "0xfff3b0": "light.butter", "0xf0e0b0": "light.wheat", "0xcfd5da": "light.tileGrey", "0xe6d3b0": "light.linen",
+  "0x111319": "dark.deviceBlack", "0x2a2d38": "dark.slate", "0x0a0c14": "dark.void", "0x1b1e2a": "dark.navyBlack", "0x1a1c20": "dark.charcoal", "0x22262b": "dark.graphite",
+  "0xd4a24a": "clay.gold", "0xb5593b": "clay.terracotta", "0xe0b24a": "clay.honey", "0xc8923a": "clay.ochreDark", "0xc27a3a": "clay.copperBrown", "0xe2c47c": "clay.sandGold", "0xe9c86a": "clay.mustard",
+  "0x6b2f2a": "fabric.burgundy", "0x2f6cb8": "fabric.royalBlue", "0x2f9a58": "fabric.emerald", "0x2fa05a": "fabric.jade", "0xa83a2a": "fabric.brickRed", "0xc4503a": "fabric.rust", "0x2f2a4a": "fabric.indigo", "0x6a1f2a": "fabric.wine",
+  "0x8fb9d4": "glass.paleBlue", "0x2a4a73": "glass.windowDeep", "0xbfe3f3": "glass.showerGlass", "0x9fd2f2": "glass.iceBlue",
+  "0x2f5a3a": "paint.shutterGreen",
+  "0xe98aa0": "animal.pigPink", "0x6b645b": "animal.horn", "0x8a847a": "animal.grey",
+  "0x6bc4e6": "water.trough",
+  "0x6c7b88": "metal.blueSteel", "0xd7c08c": "stone.sandstone",
+  "0xc07bff": "flora.violet", "0x8e5fb0": "flora.purple", "0x4a8fc4": "flora.cornflower", "0x3fae4a": "flora.leafGreen", "0xe0462d": "flora.tomatoRed",
+  "0xff8a1e": "flora.pumpkin", "0x3f8c26": "flora.fernGreen", "0xffd23a": "flora.sunflower", "0xe8b04a": "flora.marigold", "0xf0d257": "flora.straw",
+  "0x3fb04a": "flora.cropGreenA", "0x2f9a44": "flora.cropGreenB", "0x57c25c": "flora.cropGreenC", "0xb583e6": "flora.lilac", "0xd9534f": "flora.coral",
+  "0x7bb661": "flora.sage", "0xd96a5a": "flora.salmon", "0x6aa84f": "flora.grass", "0x7bd36a": "flora.lime",
+  "0xffb347": "neon.amber", "0x35e0ff": "neon.cyan", "0xffe14a": "neon.yellow", "0xb066ff": "neon.violet", "0x2a6cff": "neon.blue", "0x4dffa8": "neon.mint", "0xff5ad2": "neon.magenta"
+}

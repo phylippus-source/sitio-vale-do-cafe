@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { K, CW, WHT, IRON, MARB, AZB, AZW, TERRA, PAL } from './config/palette.js';
 import { SECTORS } from './data/sectors.js';
 import { LABELS } from './data/labels.js';
 import { BOM } from './data/bom.js';
@@ -100,8 +101,8 @@ import { TANKS } from './data/sisteminha.js';
   dio.add(under);
   dio.add(surface);
   scene.add(dio);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.34);
+  scene.add(new THREE.AmbientLight(PAL.light.white, 0.6));
+  const sun = new THREE.DirectionalLight(PAL.light.white, 0.34);
   const SUNDIR = new THREE.Vector3(-0.55, 0.78, 0.55).normalize();
   scene.add(sun);
   scene.add(sun.target);
@@ -318,46 +319,6 @@ import { TANKS } from './data/sisteminha.js';
   };
 
   /* paleta chapada */
-  const K = {
-    grass: 0x6cc13e,
-    grass2: 0x5db234,
-    grass3: 0x7dcd4b,
-    tuft: 0x4a9b2b,
-    soil: 0x7c4f2d,
-    soilD: 0x5b3a21,
-    dirt: 0xdcb57d,
-    water: 0x4cc6f2,
-    waterL: 0xa9e8fa,
-    pond: 0x2fd2c6,
-    sand: 0xedd49b,
-    stone: 0xbdb6a8,
-    stoneD: 0x8f887b,
-    stoneL: 0xd6d0c2,
-    rock: 0x9c9c98,
-    roof: 0xdb642f,
-    roofD: 0xb44b22,
-    cal: 0xf8f3e5,
-    ocre: 0xe3a63f,
-    wood: 0xab723f,
-    woodD: 0x6b4527,
-    woodL: 0xdaa768,
-    conc: 0xcdd2d6,
-    concD: 0x9ea5ac,
-    steel: 0xa5b0bc,
-    steelD: 0x606b77,
-    black: 0x25282d,
-    yellow: 0xf7b90e,
-    orange: 0xff7a14,
-    red: 0xdc3b2d,
-    blue: 0x3e86d8,
-    green: 0x31a05a,
-    glass: 0x9bd9f1,
-    white: 0xf6f8f9,
-    pink: 0xf5a9b9,
-    copper: 0xd47f3b,
-    ice: 0xeaf3f7,
-    navy: 0x1d3566,
-  };
   const COL = []; /* colisão da 1ª pessoa: [x1,z1,x2,z2,nível] */
   function col(x1, z1, x2, z2, lv) {
     COL.push([Math.min(x1, x2), Math.min(z1, z2), Math.max(x1, x2), Math.max(z1, z2), lv || 's']);
@@ -680,7 +641,7 @@ import { TANKS } from './data/sisteminha.js';
       [x + 3.1, 0.12, z - 1.2],
       [x + 3.1, 0.12, z - 3.6],
       0.05,
-      K.brown || 0x7a4f2c,
+      K.brown || PAL.wood.walnut,
       5,
     ); /* sifão do sedimentador para a composteira */
   }
@@ -698,7 +659,9 @@ import { TANKS } from './data/sisteminha.js';
   SB.bb(24, 0.1, 0.14, K.blue, -16, 0.1, 44.4);
   for (let hb = 0; hb < 5; hb++) {
     const hbz = 46.1 + hb * 1.9,
-      hcr = [0x58c05b, 0x3fae4a, 0xe0462d, 0xc07bff, 0xf0d257][hb];
+      hcr = [0x58c05b, PAL.flora.leafGreen, PAL.flora.tomatoRed, PAL.flora.violet, PAL.flora.straw][
+        hb
+      ];
     SB.bb(24, 0.38, 1.3, K.soilD, -16, 0, hbz);
     for (let hj = 0; hj < 17; hj++) {
       const hjx = -27.2 + hj * 1.4;
@@ -709,10 +672,18 @@ import { TANKS } from './data/sisteminha.js';
       else if (hb === 2) {
         SB.cb(0.03, 1.0, K.woodD, hjx, 0.38, hbz, 4);
         SB.ic(1, hcr, hjx, 1.1, hbz, 0.2, 0.2, 0.2);
-        SB.ic(1, 0x3fae4a, hjx, 0.9, hbz, 0.3, 0.25, 0.3);
+        SB.ic(1, PAL.flora.leafGreen, hjx, 0.9, hbz, 0.3, 0.25, 0.3);
       } /* tomate */
       else if (hb === 3)
-        SB.bb(0.34, 0.5, 0.34, [0x8e5fb0, 0x6a3f94][hj % 2], hjx, 0.38, hbz); /* beterraba/roxas */
+        SB.bb(
+          0.34,
+          0.5,
+          0.34,
+          [PAL.flora.purple, 0x6a3f94][hj % 2],
+          hjx,
+          0.38,
+          hbz,
+        ); /* beterraba/roxas */
       else {
         SB.cn(0.16, 0.7 + (hj % 3) * 0.1, 0x6cae3a, hjx, 0.38, hbz, 4);
         SB.ic(1, hcr, hjx, 1.0, hbz, 0.12, 0.12, 0.12);
@@ -720,7 +691,7 @@ import { TANKS } from './data/sisteminha.js';
     }
   }
   SB.bb(0.2, 1.4, 0.2, K.woodD, -28.6, 0, 55.4);
-  SB.bb(1.9, 0.8, 0.1, 0xf2dfae, -28.6, 1.4, 55.4);
+  SB.bb(1.9, 0.8, 0.1, PAL.light.parchment, -28.6, 1.4, 55.4);
 
   /* composteira (3 baias de paletes) e minhocário (8 canteiros) */
   for (let cb3 = 0; cb3 < 3; cb3++) {
@@ -731,7 +702,7 @@ import { TANKS } from './data/sisteminha.js';
     for (let cp = 0; cp < 4; cp++) SB.bb(2.2, 0.08, 0.14, K.woodD, 0, 0.2 + cp * 0.3, cbz + 1.05);
     SB.ic(
       1,
-      [0x5a3a24, 0x4a2f1c, 0x3a2417][cb3],
+      [PAL.wood.ebony, 0x4a2f1c, 0x3a2417][cb3],
       0,
       0.55 + cb3 * 0.15,
       cbz,
@@ -776,8 +747,8 @@ import { TANKS } from './data/sisteminha.js';
   SB.add(GX.box, K.roofD, -40, 2.35, 33.4, [4.8, 0.2, 3.6]);
   SB.bb(0.9, 1.3, 0.1, K.woodD, -40, 0, 35.0);
   SB.beam([-37.6, 0.1, 35.4], [-38.6, 1.3, 35.0], 0.08, K.wood, 4);
-  for (let nb = 0; nb < 4; nb++) SB.bb(0.7, 0.5, 0.6, 0xe0b24a, -42.4 + nb * 0.9, 0.9, 32.6);
-  SB.bb(1.6, 0.4, 0.5, 0x6bc4e6, -35, 0, 38.8);
+  for (let nb = 0; nb < 4; nb++) SB.bb(0.7, 0.5, 0.6, PAL.clay.honey, -42.4 + nb * 0.9, 0.9, 32.6);
+  SB.bb(1.6, 0.4, 0.5, PAL.water.trough, -35, 0, 38.8);
   SB.cb(0.3, 0.6, K.steel, -33, 0, 38.8, 8);
   /* frangos de corte em trator móvel e mosca-soldado */
   [
@@ -806,7 +777,7 @@ import { TANKS } from './data/sisteminha.js';
     for (let gk = 0; gk < 8; gk++)
       SB.ic(
         1,
-        [0x3fae4a, 0x2f9644, 0x66c25a][(gk + gbd) % 3],
+        [PAL.flora.leafGreen, 0x2f9644, 0x66c25a][(gk + gbd) % 3],
         gh.x - 4.9 + gk * 1.0,
         0.7,
         gh.z - 3.4 + gbd * 2.3 + rr(-0.2, 0.2),
@@ -819,7 +790,7 @@ import { TANKS } from './data/sisteminha.js';
   SB.bb(4, 2.6, 4, K.cal, gh.x + 4, 0, gh.z + 1.4);
   SB.bb(4.3, 0.3, 4.3, K.roofD, gh.x + 4, 2.6, gh.z + 1.4);
   SB.bb(1, 1.9, 0.12, K.woodD, gh.x + 4, 0, gh.z + 3.45);
-  SB.bb(0.9, 0.5, 0.1, 0x6bc4e6, gh.x + 4, 1.4, gh.z + 3.46);
+  SB.bb(0.9, 0.5, 0.1, PAL.water.trough, gh.x + 4, 1.4, gh.z + 3.46);
 
   /* ---------- quadras de rotação quadrienal ---------- */
   PLOTS.forEach(function (pl) {
@@ -838,10 +809,27 @@ import { TANKS } from './data/sisteminha.js';
         const y0 = 0.64,
           a = (i + j) % 3;
         if (pl.k === 0) {
-          SB.bb(0.7, 0.7, 0.7, [0x3fb04a, 0x2f9a44, 0x57c25c][a], x, y0, z);
-          if (a === 0) SB.ic(1, 0xb583e6, x, y0 + 1.0, z, 0.22, 0.22, 0.22);
+          SB.bb(
+            0.7,
+            0.7,
+            0.7,
+            [PAL.flora.cropGreenA, PAL.flora.cropGreenB, PAL.flora.cropGreenC][a],
+            x,
+            y0,
+            z,
+          );
+          if (a === 0) SB.ic(1, PAL.flora.lilac, x, y0 + 1.0, z, 0.22, 0.22, 0.22);
         } else if (pl.k === 1) {
-          SB.ic(1, [0x2f9a44, 0x47ad4f, 0x5cc060][a], x, y0 + 0.35, z, 0.55, 0.38, 0.55);
+          SB.ic(
+            1,
+            [PAL.flora.cropGreenB, 0x47ad4f, 0x5cc060][a],
+            x,
+            y0 + 0.35,
+            z,
+            0.55,
+            0.38,
+            0.55,
+          );
           if (j % 3 === 0) SB.ic(1, 0xa070c4, x, y0 + 0.06, z + 0.45, 0.28, 0.2, 0.28);
         } else if (pl.k === 2) {
           if (i % 2 === 0) SB.cn(0.34, 2.4 + a * 0.25, 0x78bf3a, x, y0, z, 4);
@@ -856,12 +844,12 @@ import { TANKS } from './data/sisteminha.js';
       }
     }
     SB.bb(0.25, 1.3, 0.25, K.woodD, pl.x1 + 0.7, 0, pl.z2 + 0.5);
-    SB.bb(1.5, 0.8, 0.12, 0xf2dfae, pl.x1 + 0.7, 1.3, pl.z2 + 0.5);
+    SB.bb(1.5, 0.8, 0.12, PAL.light.parchment, pl.x1 + 0.7, 1.3, pl.z2 + 0.5);
   });
 
   /* ---------- curral de 300 m²: piso ripado, abrigos, cochos ---------- */
   const pen = { x1: 23, x2: 39, z1: -10, z2: 9 };
-  SB.bb(16, 0.12, 19, 0xd7c08c, 31, 0, -0.5);
+  SB.bb(16, 0.12, 19, PAL.stone.sandstone, 31, 0, -0.5);
   [pen.z1, pen.z2].forEach(function (z) {
     [0.55, 1.15].forEach(function (h) {
       SB.bb(pen.x2 - pen.x1 + 0.2, 0.14, 0.14, K.wood, 31, h, z);
@@ -893,12 +881,12 @@ import { TANKS } from './data/sisteminha.js';
     [35.8, -6.4],
     [27, 6.5],
   ].forEach(function (t) {
-    SB.bb(2.2, 0.45, 0.7, 0xe0b24a, t[0], 0, t[1]);
+    SB.bb(2.2, 0.45, 0.7, PAL.clay.honey, t[0], 0, t[1]);
     SB.bb(2.0, 0.2, 0.5, 0x6b8f4e, t[0], 0.45, t[1]);
   });
   for (let hb = 0; hb < 5; hb++)
     SB.bb(1.3, 0.8, 0.8, 0xe6c75a, 36.5 + (hb % 2) * 0.1, hb > 2 ? 0.8 : 0, -3 + (hb % 3) * 1.1);
-  SB.bb(3, 0.55, 1.1, 0x6bc4e6, 28, 0, 1.4);
+  SB.bb(3, 0.55, 1.1, PAL.water.trough, 28, 0, 1.4);
 
   /* ---------- poços artesianos (5), cisterna e reservatório falso ---------- */
   [
@@ -1062,7 +1050,16 @@ import { TANKS } from './data/sisteminha.js';
     const g = TG[(R() * 3) | 0],
       h = rr(3.2, 4.6) * s,
       cr = rr(2.4, 3.4) * s;
-    b.cb(0.34 * s, h, [0x7a4f2c, 0x6b4527, 0x8a5a32][(R() * 3) | 0], x, 0, z, 6, 0.24 * s);
+    b.cb(
+      0.34 * s,
+      h,
+      [PAL.wood.walnut, 0x6b4527, PAL.wood.oak][(R() * 3) | 0],
+      x,
+      0,
+      z,
+      6,
+      0.24 * s,
+    );
     b.ic(cr, g[0], x, h + cr * 0.55, z, 1, 0.9, 1);
     b.ic(cr * 0.78, g[1], x + rr(-0.9, 0.9) * s, h + cr * 1.1, z + rr(-0.9, 0.9) * s, 1, 0.9, 1);
     b.ic(cr * 0.55, g[2], x + rr(-0.8, 0.8) * s, h + cr * 1.55, z + rr(-0.8, 0.8) * s, 1, 0.9, 1);
@@ -1070,7 +1067,7 @@ import { TANKS } from './data/sisteminha.js';
   function fruit(b, x, z) {
     const h = rr(2.0, 2.6),
       cr = rr(1.7, 2.2),
-      col = [0xff8a1e, 0xf2c230, 0xe0462d, 0xff9e3a][(R() * 4) | 0];
+      col = [PAL.flora.pumpkin, 0xf2c230, PAL.flora.tomatoRed, 0xff9e3a][(R() * 4) | 0];
     b.cb(0.26, h, 0x6b4527, x, 0, z, 6, 0.2);
     b.ic(cr, 0x3a9a40, x, h + cr * 0.5, z, 1, 0.85, 1);
     b.ic(cr * 0.62, 0x52b552, x + 0.5, h + cr * 0.95, z - 0.4, 1, 0.85, 1);
@@ -1177,7 +1174,7 @@ import { TANKS } from './data/sisteminha.js';
       FB.cn(
         rr(0.14, 0.2),
         rr(0.5, 0.9),
-        [K.tuft, 0x58b238, 0x3f8c26][sp],
+        [K.tuft, 0x58b238, PAL.flora.fernGreen][sp],
         tx2 + rr(-0.3, 0.3),
         0,
         tz2 + rr(-0.3, 0.3),
@@ -1189,10 +1186,10 @@ import { TANKS } from './data/sisteminha.js';
     const fx = rr(-48, 42),
       fz = rr(-73, 73);
     if (!free(fx, fz, 0.5)) continue;
-    FB.cb(0.04, 0.5, 0x3f8c26, fx, 0, fz, 3);
+    FB.cb(0.04, 0.5, PAL.flora.fernGreen, fx, 0, fz, 3);
     FB.ic(
       1,
-      [0xffffff, 0xffd23a, 0xff7aa8, 0xb583e6, 0xff8a3a][i % 5],
+      [PAL.light.white, PAL.flora.sunflower, 0xff7aa8, PAL.flora.lilac, 0xff8a3a][i % 5],
       fx,
       0.6,
       fz,
@@ -1224,14 +1221,22 @@ import { TANKS } from './data/sisteminha.js';
     const cz = -57.5 + ((cv / 3) | 0) * 2.6;
     FB.bb(0.7, 0.5, 0.1, K.woodD, cx, 0.0, cz);
     [0, 1, 2].forEach(function (l) {
-      FB.bb(0.95, 0.34, 0.85, [0xf0d257, 0xfff3b0, 0xe3b23a][(l + cv) % 3], cx, 0.5 + l * 0.36, cz);
+      FB.bb(
+        0.95,
+        0.34,
+        0.85,
+        [PAL.flora.straw, PAL.light.butter, 0xe3b23a][(l + cv) % 3],
+        cx,
+        0.5 + l * 0.36,
+        cz,
+      );
     });
     FB.bb(1.05, 0.12, 0.95, 0xdfe3e6, cx, 1.58, cz);
     FB.bb(0.5, 0.05, 0.07, K.black, cx, 0.62, cz + 0.45);
     FB.bb(0.7, 0.14, 0.5, K.woodD, cx, 0.0, cz + 0.2);
   }
   for (i = 0; i < 14; i++) {
-    FB.cb(0.04, 0.8, 0x3f8c26, rr(15.4, 19.6), 0, rr(-60.5, -52.5), 3);
+    FB.cb(0.04, 0.8, PAL.flora.fernGreen, rr(15.4, 19.6), 0, rr(-60.5, -52.5), 3);
   }
   FB.build(surface);
 
@@ -1256,7 +1261,7 @@ import { TANKS } from './data/sisteminha.js';
     const R1 = new Batch();
     const I1 = new Batch();
     const U1 = new Batch();
-    const glassC = 0x2a4a73;
+    const glassC = PAL.glass.windowDeep;
     let i;
     /* paredes de pedra com 80 cm */
     W1.bb(22, BH, 0.8, K.stone, 0, 0, -4.6);
@@ -1388,7 +1393,7 @@ import { TANKS } from './data/sisteminha.js';
     I1.bb(21.4, 0.16, 9.2, 0xcbc4b4, 0, 0, 0);
     I1.beam([-10.4, 2.0, -3.2], [10.9, 2.0, -3.2], 0.14, K.steel, 8);
     [-9, -4.5, 0, 4.5, 9].forEach(function (x) {
-      I1.bb(0.5, 0.4, 0.5, 0xc8923a, x, 1.8, -3.2);
+      I1.bb(0.5, 0.4, 0.5, PAL.clay.ochreDark, x, 1.8, -3.2);
       I1.bb(0.36, 1.8, 0.36, K.woodD, x, 0.16, -3.7);
     });
     [-8, -4, 2, 6].forEach(function (x) {
@@ -1423,7 +1428,7 @@ import { TANKS } from './data/sisteminha.js';
       [-0.6, -2.4],
       [-2.2, -2.4],
     ].forEach(function (p) {
-      I1.cb(0.3, 1.5, 0xc8923a, p[0], 0.5, p[1], 12);
+      I1.cb(0.3, 1.5, PAL.clay.ochreDark, p[0], 0.5, p[1], 12);
       I1.cb(0.42, 0.12, K.steel, p[0], 2.0, p[1], 10);
     });
     I1.beam([-3.3, 0.5, -0.4], [-0.4, 1.1, -0.9], 0.1, 0x7fb544, 5);
@@ -1436,10 +1441,10 @@ import { TANKS } from './data/sisteminha.js';
     });
     I1.bb(1.4, 0.14, 0.14, K.steel, -8.9, 2.5, 2.6);
     /* forja de ferreiro com bigorna e fole */
-    I1.bb(2.4, 1.3, 1.8, 0xb5593b, -5.4, 0.16, 2.9);
+    I1.bb(2.4, 1.3, 1.8, PAL.clay.terracotta, -5.4, 0.16, 2.9);
     I1.cn(1.1, 1.5, K.steelD, -5.4, 1.46, 2.9, 4);
     I1.cb(0.22, 2.0, K.steelD, -5.4, 2.96, 2.9, 8);
-    U1.bb(1.6, 0.12, 1.0, 0xff8a1e, -5.4, 1.46, 2.9);
+    U1.bb(1.6, 0.12, 1.0, PAL.flora.pumpkin, -5.4, 1.46, 2.9);
     I1.cb(0.38, 0.8, K.woodD, -3.4, 0.16, 2.8, 8);
     I1.bb(0.9, 0.28, 0.4, K.black, -3.4, 0.96, 2.8);
     I1.bb(0.3, 0.2, 0.3, K.black, -2.9, 1.1, 2.8);
@@ -1453,9 +1458,9 @@ import { TANKS } from './data/sisteminha.js';
     I1.bb(0.8, 0.9, 0.9, 0x2f5a8a, 2.8, 1.56, -3.2);
     I1.cb(0.3, 0.5, K.steel, 2.5, 1.8, -3.2, 10, 0.3, [0, 0, Math.PI / 2]);
     I1.bb(0.5, 0.6, 0.5, K.steel, 5.5, 1.56, -3.2);
-    I1.bb(1.2, 0.4, 1.2, 0x2f9a58, 7.2, 0.16, -3.2);
-    I1.bb(0.5, 2.4, 0.5, 0x2f9a58, 7.2, 0.56, -3.6);
-    I1.bb(0.9, 0.6, 1.2, 0x2f9a58, 7.2, 2.8, -3.1);
+    I1.bb(1.2, 0.4, 1.2, PAL.fabric.emerald, 7.2, 0.16, -3.2);
+    I1.bb(0.5, 2.4, 0.5, PAL.fabric.emerald, 7.2, 0.56, -3.6);
+    I1.bb(0.9, 0.6, 1.2, PAL.fabric.emerald, 7.2, 2.8, -3.1);
     I1.bb(1.5, 0.2, 1.0, K.steel, 7.2, 1.5, -2.9);
     I1.bb(2.4, 0.18, 1.3, K.steelD, 8, 1.0, -0.6);
     [
@@ -1469,11 +1474,11 @@ import { TANKS } from './data/sisteminha.js';
     I1.bb(0.9, 1.0, 0.9, K.red, 9.4, 0.16, 0.6);
     I1.beam([9.0, 1.0, 0.4], [8.0, 1.4, -0.6], 0.05, K.black, 4);
     [
-      [7.6, 1.3, -0.6, 0.16, 0xffffff],
+      [7.6, 1.3, -0.6, 0.16, PAL.light.white],
       [7.9, 1.45, -0.5, 0.12, 0x9fe3ff],
       [7.3, 1.35, -0.8, 0.1, 0xfff0a0],
-      [8.0, 1.5, -0.7, 0.1, 0xffffff],
-      [7.7, 1.55, -0.9, 0.08, 0xffd23a],
+      [8.0, 1.5, -0.7, 0.1, PAL.light.white],
+      [7.7, 1.55, -0.9, 0.08, PAL.flora.sunflower],
     ].forEach(function (s) {
       U1.add(GX.ico0, s[4], s[0], s[1], s[2], s[3]);
     });
@@ -1494,8 +1499,8 @@ import { TANKS } from './data/sisteminha.js';
     });
     I1.bb(0.8, 0.5, 0.1, K.black, 6.6, 1.24, 3.3);
     U1.bb(0.7, 0.4, 0.02, 0x44ffb0, 6.6, 1.3, 3.36);
-    I1.bb(0.4, 0.04, 0.3, 0x2fa05a, 7.4, 1.24, 3.8);
-    I1.bb(0.3, 0.04, 0.25, 0x2fa05a, 7.9, 1.24, 3.5);
+    I1.bb(0.4, 0.04, 0.3, PAL.fabric.jade, 7.4, 1.24, 3.8);
+    I1.bb(0.3, 0.04, 0.25, PAL.fabric.jade, 7.9, 1.24, 3.5);
     I1.bb(1.0, 0.5, 0.6, K.red, 9.8, 0.16, -3.8);
     I1.bb(1.0, 0.5, 0.6, K.red, 9.8, 0.66, -3.8);
     I1.bb(1.0, 0.5, 0.6, K.red, 8.7, 0.16, -3.8);
@@ -1551,13 +1556,6 @@ import { TANKS } from './data/sisteminha.js';
     g.computeVertexNormals();
     return g;
   }
-  const CW = 0xe8bf63,
-    WHT = K.cal,
-    IRON = 0x2a2d31,
-    MARB = 0xf1f0ea,
-    AZB = 0x2f5fa8,
-    AZW = 0xf4f7fb,
-    TERRA = 0xc9724a;
   function ccol(x1, z1, x2, z2, lv) {
     col(x1 + 1, z1 - 58, x2 + 1, z2 - 58, lv);
   } /* colisão em coordenadas locais da casa */
@@ -1612,7 +1610,7 @@ import { TANKS } from './data/sisteminha.js';
             y0 + sill - 0.12,
             fixed,
           ); /* peitoril (topo 3 cm acima do muro) */
-          B.bb(w, hh - 0.05, 0.06, 0x2a4a73, m, y0 + sill + 0.01, fixed); /* vidro */
+          B.bb(w, hh - 0.05, 0.06, PAL.glass.windowDeep, m, y0 + sill + 0.01, fixed); /* vidro */
           B.bb(0.16, hh - 0.02, th + 0.12, WHT, g[0] - 0.02, y0 + sill + 0.01, fixed);
           B.bb(
             0.16,
@@ -1642,12 +1640,20 @@ import { TANKS } from './data/sisteminha.js';
             [0, 0, 0],
           ); /* cornija */
           const sz2 = fixed + (hf + 0.06) * s;
-          B.bb(w * 0.4, hh - 0.2, 0.1, 0x2f5a3a, g[0] - w * 0.2 - 0.1, y0 + sill + 0.1, sz2);
           B.bb(
             w * 0.4,
             hh - 0.2,
             0.1,
-            0x2f5a3a,
+            PAL.paint.shutterGreen,
+            g[0] - w * 0.2 - 0.1,
+            y0 + sill + 0.1,
+            sz2,
+          );
+          B.bb(
+            w * 0.4,
+            hh - 0.2,
+            0.1,
+            PAL.paint.shutterGreen,
             g[1] + w * 0.2 + 0.1,
             y0 + sill + 0.1,
             sz2,
@@ -1678,7 +1684,7 @@ import { TANKS } from './data/sisteminha.js';
     BS.bb(26.8, GF - 0.2, 20.8, K.stone, 0, 0, 0);
     for (i = 0; i < 4; i++) BS.bb(26.9, 0.05, 20.9, K.stoneD, 0, 0.2 + i * 0.18, 0);
     [-9.5, -6.5, -3.5, 3.5, 6.5, 9.5].forEach(function (px) {
-      W2.bb(0.6, 0.44, 0.16, 0x1a1c20, px, 0.3, 10.46);
+      W2.bb(0.6, 0.44, 0.16, PAL.dark.charcoal, px, 0.3, 10.46);
     }); /* respiros gradeados do porão */
     /* paredes externas */
     wall(
@@ -1819,11 +1825,11 @@ import { TANKS } from './data/sisteminha.js';
     }
     fl(-13, 2, -7, 10, 0xcdb08a);
     fl(-7, 2, 7, 10, MARB);
-    fl(7, 2, 13, 10, 0x7a4a2a);
+    fl(7, 2, 13, 10, PAL.wood.floorBoard);
     fl(-13, -1, -7, 2, 0xe6d6b0);
     fl(-13, -10, -7, -1, TERRA);
-    fl(-7, -4, 7, 2, 0x8a5a32);
-    fl(-7, -10, 7, -4, 0x8a5a32);
+    fl(-7, -4, 7, 2, PAL.wood.oak);
+    fl(-7, -10, 7, -4, PAL.wood.oak);
     fl(7, -3, 13, 2, 0x3b6ea5);
     fl(7, -10, 13, -3, K.concD);
     casaBaseMesh = BS.build(casaG, { mat: flrMat, outline: false });
@@ -1852,16 +1858,16 @@ import { TANKS } from './data/sisteminha.js';
     /* capela: altar de madeira entalhada e dourada, tapete, bancos */
     I2.bb(3.0, 0.3, 1.2, K.woodD, -10, GF, 3.0);
     I2.bb(2.6, 2.4, 0.4, K.woodD, -10, GF, 2.4);
-    I2.bb(2.2, 2.0, 0.1, 0xd4a24a, -10, GF + 0.2, 2.65);
-    I2.bb(0.3, 0.9, 0.3, 0xd4a24a, -10, GF + 2.4, 2.4);
-    I2.bb(1.1, 0.03, 5, 0xa83a2a, -10, GF, 6.2);
+    I2.bb(2.2, 2.0, 0.1, PAL.clay.gold, -10, GF + 0.2, 2.65);
+    I2.bb(0.3, 0.9, 0.3, PAL.clay.gold, -10, GF + 2.4, 2.4);
+    I2.bb(1.1, 0.03, 5, PAL.fabric.brickRed, -10, GF, 6.2);
     for (i = 0; i < 3; i++) {
       I2.bb(2.8, 0.5, 0.6, K.woodL, -10, GF, 5.2 + i * 1.3);
       I2.bb(2.8, 0.5, 0.1, K.woodD, -10, GF + 0.5, 5.0 + i * 1.3);
     }
     /* hall: bancos de ferro, relógio de pé, quadros (molduras) */
     I2.bb(0.6, 2.2, 0.4, K.woodD, 5.6, GF, 2.4);
-    I2.bb(0.4, 0.5, 0.1, 0xd4a24a, 5.6, GF + 1.2, 2.62);
+    I2.bb(0.4, 0.5, 0.1, PAL.clay.gold, 5.6, GF + 1.2, 2.62);
     I2.bb(1.4, 0.5, 0.5, IRON, -4.5, GF, 9.3);
     I2.bb(1.4, 0.1, 0.55, K.woodL, -4.5, GF + 0.5, 9.3);
     [
@@ -1890,21 +1896,21 @@ import { TANKS } from './data/sisteminha.js';
     I2.bb(3.4, 0.9, 0.5, K.woodD, 0, GF, -9.6);
     I2.bb(3.5, 0.06, 0.55, MARB, 0, GF + 0.9, -9.6);
     [[-1.2], [0], [1.2]].forEach(function (c) {
-      I2.bb(0.5, 0.4, 0.2, 0xd4a24a, c[0], GF + 1.4, -9.7);
+      I2.bb(0.5, 0.4, 0.2, PAL.clay.gold, c[0], GF + 1.4, -9.7);
     });
     /* sala de visitas: sofá, poltronas, tapete, piano */
-    I2.cb(2.0, 0.03, 0xa83a2a, 0, GF, -1, 22);
-    I2.bb(3.0, 0.55, 0.9, 0x6b2f2a, 0, GF, -2.9);
-    I2.bb(3.0, 0.6, 0.25, 0x6b2f2a, 0, GF + 0.5, -3.3);
+    I2.cb(2.0, 0.03, PAL.fabric.brickRed, 0, GF, -1, 22);
+    I2.bb(3.0, 0.55, 0.9, PAL.fabric.burgundy, 0, GF, -2.9);
+    I2.bb(3.0, 0.6, 0.25, PAL.fabric.burgundy, 0, GF + 0.5, -3.3);
     I2.bb(1.2, 0.4, 0.8, K.woodD, 0, GF, -0.8);
     [
       [-3.6, -0.5],
       [3.6, -0.5],
     ].forEach(function (p) {
-      I2.bb(0.9, 0.5, 0.9, 0x2f5a3a, p[0], GF, p[1]);
-      I2.bb(0.9, 0.5, 0.2, 0x2f5a3a, p[0], GF + 0.4, p[1] - 0.4);
+      I2.bb(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], GF, p[1]);
+      I2.bb(0.9, 0.5, 0.2, PAL.paint.shutterGreen, p[0], GF + 0.4, p[1] - 0.4);
     });
-    I2.bb(1.6, 0.9, 0.7, 0x1a1c20, 5.3, GF, 0.8);
+    I2.bb(1.6, 0.9, 0.7, PAL.dark.charcoal, 5.3, GF, 0.8);
     I2.bb(1.7, 0.06, 0.9, K.woodD, 5.3, GF + 0.9, 0.8);
     /* cozinha de serviço: fogão a lenha de ferro com coifa, bancada, pia, mesa, azulejos portugueses nas paredes */
     I2.bb(0.06, 1.6, 10.8, AZW, -12.72, GF + 0.9, -5.6);
@@ -1913,9 +1919,9 @@ import { TANKS } from './data/sisteminha.js';
     I2.bb(2.2, 1.0, 1.1, IRON, -11.4, GF, -9.2);
     I2.cn(1.0, 1.0, IRON, -11.4, GF + 1.0, -9.2, 4, [0, Math.PI / 4, 0]);
     I2.cb(0.2, 1.8, IRON, -11.4, GF + 2.0, -9.2, 8);
-    U2.bb(0.8, 0.25, 0.04, 0xff8a1e, -11.4, GF + 0.55, -8.62);
+    U2.bb(0.8, 0.25, 0.04, PAL.flora.pumpkin, -11.4, GF + 0.55, -8.62);
     I2.bb(0.7, 0.9, 4.5, K.woodL, -12.3, GF, -4.8);
-    I2.bb(0.75, 0.06, 4.6, 0xefe6d2, -12.3, GF + 0.9, -4.8);
+    I2.bb(0.75, 0.06, 4.6, PAL.light.cream, -12.3, GF + 0.9, -4.8);
     I2.bb(0.5, 0.12, 0.9, K.steel, -12.3, GF + 0.94, -4.2);
     I2.bb(2.6, 0.14, 1.4, K.wood, -9.6, GF + 0.75, -5.0);
     [
@@ -1932,14 +1938,21 @@ import { TANKS } from './data/sisteminha.js';
     I2.bb(2.5, 0.9, 0.8, K.woodL, -8.5, GF, 0.6);
     /* despensa de catástrofe (42 m²): prateleiras, barris, galões, freezer */
     function jarc(k) {
-      return [0xd9534f, 0xe8b04a, 0x7bb661, 0xf0e0b0, 0x8e5fb0, 0xc27a3a][k % 6];
+      return [
+        PAL.flora.coral,
+        PAL.flora.marigold,
+        PAL.flora.sage,
+        PAL.light.wheat,
+        PAL.flora.purple,
+        PAL.clay.copperBrown,
+      ][k % 6];
     }
     function sItem(B, x, y, z, k) {
       const m = k % 5;
       if (m === 0 || m === 3) B.cb(0.12, 0.3, jarc(k), x, y, z, 6);
       else if (m === 1) B.cb(0.09, 0.2, K.steel, x, y, z, 6);
-      else if (m === 2) B.bb(0.34, 0.24, 0.3, 0xe2c47c, x, y, z);
-      else B.bb(0.3, 0.3, 0.3, [K.woodL, 0xe9c86a, 0xb5593b][k % 3], x, y, z);
+      else if (m === 2) B.bb(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
+      else B.bb(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][k % 3], x, y, z);
     }
     function shelfX(B, x1, x2, z, y0, t) {
       const L = x2 - x1,
@@ -1976,7 +1989,15 @@ import { TANKS } from './data/sisteminha.js';
       I2.cb(0.47, 0.06, K.steelD, b[0], GF + 0.45, b[1], 10);
     });
     for (i = 0; i < 12; i++) {
-      I2.cb(0.22, 0.5, 0x4a8fc4, 8.4 + (i % 4) * 0.5, GF, -4.6 + ((i / 4) | 0) * 0.5, 8);
+      I2.cb(
+        0.22,
+        0.5,
+        PAL.flora.cornflower,
+        8.4 + (i % 4) * 0.5,
+        GF,
+        -4.6 + ((i / 4) | 0) * 0.5,
+        8,
+      );
     }
     I2.bb(2.0, 0.85, 0.8, K.white, 11.4, GF, -5.0);
     I2.bb(2.05, 0.08, 0.85, K.steel, 11.4, GF + 0.85, -5.0);
@@ -2001,7 +2022,7 @@ import { TANKS } from './data/sisteminha.js';
       B.bb(1.1, 0.08, 1.1, 0xeaf3f7, x, y, z);
       B.cb(0.03, 1.9, K.steel, x - sx * 0.5, y + 0.08, z + sz * 0.5, 5);
       B.bb(0.3, 0.05, 0.3, K.steel, x - sx * 0.38, y + 1.85, z + sz * 0.45);
-      B.bb(0.04, 1.9, 1.1, 0xbfe3f3, x + sx * 0.55, y + 0.08, z);
+      B.bb(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + sx * 0.55, y + 0.08, z);
     }
     I2.bb(0.06, 1.5, 4.8, AZB, 12.72, GF, -0.5);
     I2.bb(0.06, 0.48, 4.8, AZW, 12.7, GF + 1.01, -0.5);
@@ -2116,7 +2137,7 @@ import { TANKS } from './data/sisteminha.js';
     [-11.1, -8.4, -5.7, -3.0, 3.0, 5.7, 8.4, 11.1].forEach(function (px) {
       UW.bb(2.0, 0.18, 0.14, WHT, px, 3.1, 10.34);
       UW.add(GX.box, WHT, px, 3.1 + 0.18 + 0.2, 10.34, [2.0, 0.4, 0.1], [0, 0, 0]);
-      UW.bb(0.9, 0.9, 0.08, 0x2a4a73, px, 0.0, 10.28);
+      UW.bb(0.9, 0.9, 0.08, PAL.glass.windowDeep, px, 0.0, 10.28);
     });
     /* partições do sobrado */
     wall(
@@ -2253,20 +2274,20 @@ import { TANKS } from './data/sisteminha.js';
     function uf(x1, z1, x2, z2, c) {
       UI.bb(x2 - x1, 0.04, z2 - z1, c, (x1 + x2) / 2, 0, (z1 + z2) / 2);
     }
-    uf(-13, 2.5, -7.5, 10, 0x7a4a2a);
-    uf(-7.5, 2.5, -2, 10, 0x7a4a2a);
-    uf(2, 2.5, 7.5, 10, 0x7a4a2a);
-    uf(7.5, 2.5, 13, 10, 0x7a4a2a);
+    uf(-13, 2.5, -7.5, 10, PAL.wood.floorBoard);
+    uf(-7.5, 2.5, -2, 10, PAL.wood.floorBoard);
+    uf(2, 2.5, 7.5, 10, PAL.wood.floorBoard);
+    uf(7.5, 2.5, 13, 10, PAL.wood.floorBoard);
     uf(-13, -1, 13, 2.5, TERRA);
-    uf(-13, -10, -4, -1, 0x7a4a2a);
-    uf(-4, -10, 4, -1, 0x8a5a32);
-    uf(4, -10, 13, -1, 0x7a4a2a);
-    uf(-2, 2.5, -1, 10, 0x7a4a2a);
-    uf(1, 2.5, 2, 10, 0x7a4a2a);
-    uf(-1, 9.8, 1, 10, 0x7a4a2a);
+    uf(-13, -10, -4, -1, PAL.wood.floorBoard);
+    uf(-4, -10, 4, -1, PAL.wood.oak);
+    uf(4, -10, 13, -1, PAL.wood.floorBoard);
+    uf(-2, 2.5, -1, 10, PAL.wood.floorBoard);
+    uf(1, 2.5, 2, 10, PAL.wood.floorBoard);
+    uf(-1, 9.8, 1, 10, PAL.wood.floorBoard);
     function bedU(bx, bz, c) {
       UI.bb(2.0, 0.5, 2.2, K.woodD, bx, 0.04, bz);
-      UI.bb(1.9, 0.28, 2.1, 0xf4efe2, bx, 0.54, bz);
+      UI.bb(1.9, 0.28, 2.1, PAL.light.ivory, bx, 0.54, bz);
       UI.bb(1.9, 0.12, 1.3, c, bx, 0.82, bz + 0.4);
       UI.bb(1.4, 0.18, 0.5, K.white, bx, 0.82, bz - 0.8);
       UI.bb(2.1, 1.3, 0.14, K.woodD, bx, 0.04, bz - 1.15);
@@ -2275,11 +2296,18 @@ import { TANKS } from './data/sisteminha.js';
     function wardrobe(wx, wz, wrot) {
       UI.at(wx, 0, wz, wrot || 0);
       UI.bb(1.6, 2.3, 0.6, K.woodD, 0, 0.04, 0);
-      UI.bb(0.03, 2.0, 0.05, 0xd4a24a, 0, 0.2, 0.32);
+      UI.bb(0.03, 2.0, 0.05, PAL.clay.gold, 0, 0.2, 0.32);
       UI.at(0, 0, 0, 0);
     }
     /* suítes de frente (A, B, C, D) */
-    const sc = [0x4a8fc4, 0xd96a5a, 0x6aa84f, 0xc07bff, 0xe8b04a, 0x4a8fc4];
+    const sc = [
+      PAL.flora.cornflower,
+      PAL.flora.salmon,
+      PAL.flora.grass,
+      PAL.flora.violet,
+      PAL.flora.marigold,
+      PAL.flora.cornflower,
+    ];
     bedU(-10.2, 6.8, sc[0]);
     wardrobe(-7.95, 5.4, -Math.PI / 2);
     bedU(-4.7, 6.8, sc[1]);
@@ -2293,15 +2321,15 @@ import { TANKS } from './data/sisteminha.js';
     wardrobe(-11.0, -9.45, 0);
     bedU(8.2, -6.5, sc[5]);
     wardrobe(11.0, -9.45, 0);
-    UI.cb(2.4, 0.03, 0xc4503a, 0, 0.04, -5.5, 22);
-    UI.bb(2.8, 0.55, 0.9, 0x2f6cb8, 0, 0.04, -8.4);
-    UI.bb(2.8, 0.6, 0.25, 0x2f6cb8, 0, 0.5, -8.8);
+    UI.cb(2.4, 0.03, PAL.fabric.rust, 0, 0.04, -5.5, 22);
+    UI.bb(2.8, 0.55, 0.9, PAL.fabric.royalBlue, 0, 0.04, -8.4);
+    UI.bb(2.8, 0.6, 0.25, PAL.fabric.royalBlue, 0, 0.5, -8.8);
     UI.bb(1.2, 0.4, 0.8, K.woodD, 0, 0.04, -5.5);
     [
       [-2.4, -6],
       [2.4, -6],
     ].forEach(function (p) {
-      UI.bb(0.9, 0.5, 0.9, 0x2f5a3a, p[0], 0.04, p[1]);
+      UI.bb(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], 0.04, p[1]);
     });
     /* lustres de ferro e lampiões */
     [
@@ -2312,7 +2340,7 @@ import { TANKS } from './data/sisteminha.js';
     ].forEach(function (p) {
       UI.cb(0.03, 1.0, IRON, p[0], UHT - 1.0, p[1], 4);
       UI.cb(0.4, 0.06, IRON, p[0], UHT - 1.05, p[1], 10);
-      UU.ic(0.14, 0xffe9a6, p[0], UHT - 1.1, p[1], 1, 1, 1);
+      UU.ic(0.14, PAL.light.warmGlow, p[0], UHT - 1.1, p[1], 1, 1, 1);
     });
     UI.build(casaUp);
     UU.build(casaUp, { unlit: true, outline: false });
@@ -2513,7 +2541,7 @@ import { TANKS } from './data/sisteminha.js';
     ].forEach(function (p) {
       b.bb(0.1, 1.3, 0.1, K.yellow, p[0], 1.45, p[1]);
     });
-    b.bb(1.1, 1.0, 1.1, 0x8fb9d4, 0, 1.45, 0.0);
+    b.bb(1.1, 1.0, 1.1, PAL.glass.paleBlue, 0, 1.45, 0.0);
     b.bb(1.4, 0.1, 0.1, K.black, 0, 1.1, 0.62);
     b.beam([-0.82, 1.0, -0.7], [-0.82, 0.9, 1.9], 0.1, K.yellow, 6);
     b.beam([0.82, 1.0, -0.7], [0.82, 0.9, 1.9], 0.1, K.yellow, 6);
@@ -2539,7 +2567,7 @@ import { TANKS } from './data/sisteminha.js';
     b.add(cylG(1, 16), K.black, 0, 1.15, 0, [1.3, 0.12, 1.3]);
     b.bb(2.0, 1.0, 2.3, K.orange, 0, 1.2, -0.3);
     b.bb(1.8, 0.8, 0.9, K.black, 0, 2.2, -1.1);
-    b.bb(1.0, 1.5, 1.0, 0x8fb9d4, -0.5, 2.2, 0.4);
+    b.bb(1.0, 1.5, 1.0, PAL.glass.paleBlue, -0.5, 2.2, 0.4);
     b.bb(1.2, 0.1, 1.2, K.orange, -0.5, 3.7, 0.4);
     b.bb(0.1, 1.5, 0.1, K.orange, -0.95, 2.2, 0.85);
     b.bb(1.2, 0.7, 0.5, K.black, 0, 1.4, -1.5);
@@ -2584,11 +2612,11 @@ import { TANKS } from './data/sisteminha.js';
     b.at(X, 0, Z, RY);
     b.bb(1.9, 1.5, 3.1, K.white, 0, 0.5, -0.6);
     b.bb(1.85, 1.0, 1.3, K.white, 0, 0.5, 1.6);
-    b.bb(1.7, 0.6, 0.1, 0x8fb9d4, 0, 1.35, 2.25);
+    b.bb(1.7, 0.6, 0.1, PAL.glass.paleBlue, 0, 1.35, 2.25);
     b.bb(1.95, 0.12, 4.6, K.blue, 0, 0.7, 0.2);
-    b.bb(1.6, 0.5, 0.1, 0x8fb9d4, 0, 1.4, 0.95);
-    b.bb(0.1, 0.5, 1.0, 0x8fb9d4, 0.93, 1.2, 1.6);
-    b.bb(0.1, 0.5, 1.0, 0x8fb9d4, -0.93, 1.2, 1.6);
+    b.bb(1.6, 0.5, 0.1, PAL.glass.paleBlue, 0, 1.4, 0.95);
+    b.bb(0.1, 0.5, 1.0, PAL.glass.paleBlue, 0.93, 1.2, 1.6);
+    b.bb(0.1, 0.5, 1.0, PAL.glass.paleBlue, -0.93, 1.2, 1.6);
     [
       [-0.95, 1.5],
       [0.95, 1.5],
@@ -2658,7 +2686,7 @@ import { TANKS } from './data/sisteminha.js';
     bc.mesh = m;
     const bar = new THREE.Mesh(
       new THREE.BoxGeometry(0.9, 0.06, 0.12),
-      new THREE.MeshBasicMaterial({ color: C(0xfff3b0) }),
+      new THREE.MeshBasicMaterial({ color: C(PAL.light.butter) }),
     );
     bar.position.copy(m.position);
     surface.add(bar);
@@ -2676,7 +2704,7 @@ import { TANKS } from './data/sisteminha.js';
     let i;
     const WR = 2.6;
     const WW = 3.0;
-    const dark = 0x5a3a24;
+    const dark = PAL.wood.ebony;
     [-WW / 2, WW / 2].forEach(function (z) {
       b.add(GX.tor, dark, 0, 0, z, [WR, WR, 3.0]);
       b.add(GX.tor, dark, 0, 0, z, [WR - 0.5, WR - 0.5, 3.0]);
@@ -2779,18 +2807,18 @@ import { TANKS } from './data/sisteminha.js';
     if (kind === 'pig') {
       b.bb(1.5, 0.9, 0.85, K.pink, 0, 0.5, 0);
       b.bb(0.6, 0.65, 0.7, 0xf6b7c6, 0.9, 0.62, 0);
-      b.bb(0.28, 0.28, 0.4, 0xe98aa0, 1.25, 0.7, 0);
-      b.add(GX.ico0, 0xe98aa0, -0.78, 0.85, 0, [0.12, 0.12, 0.12]);
+      b.bb(0.28, 0.28, 0.4, PAL.animal.pigPink, 1.25, 0.7, 0);
+      b.add(GX.ico0, PAL.animal.pigPink, -0.78, 0.85, 0, [0.12, 0.12, 0.12]);
       [
         [-0.5, -0.3],
         [-0.5, 0.3],
         [0.5, -0.3],
         [0.5, 0.3],
       ].forEach(function (l) {
-        b.cb(0.11, 0.5, 0xe98aa0, l[0], 0, l[1], 6);
+        b.cb(0.11, 0.5, PAL.animal.pigPink, l[0], 0, l[1], 6);
       });
-      b.bb(0.1, 0.22, 0.15, 0xe98aa0, 0.95, 1.18, -0.25);
-      b.bb(0.1, 0.22, 0.15, 0xe98aa0, 0.95, 1.18, 0.25);
+      b.bb(0.1, 0.22, 0.15, PAL.animal.pigPink, 0.95, 1.18, -0.25);
+      b.bb(0.1, 0.22, 0.15, PAL.animal.pigPink, 0.95, 1.18, 0.25);
       b.bb(0.07, 0.07, 0.07, K.black, 1.2, 0.88, -0.2);
       b.bb(0.07, 0.07, 0.07, K.black, 1.2, 0.88, 0.2);
     } else if (kind === 'hen') {
@@ -2804,10 +2832,10 @@ import { TANKS } from './data/sisteminha.js';
     } else {
       b.bb(1.2, 0.7, 0.5, 0xcfcac0, 0, 0.7, 0);
       b.bb(0.4, 0.6, 0.38, 0xb9b3a6, 0.7, 1.1, 0);
-      b.bb(0.25, 0.22, 0.3, 0x8a847a, 0.95, 1.15, 0);
-      b.add(coneG(3), 0x6b645b, 0.8, 1.62, -0.1, [0.07, 0.28, 0.07]);
-      b.add(coneG(3), 0x6b645b, 0.8, 1.62, 0.1, [0.07, 0.28, 0.07]);
-      b.add(GX.ico0, 0x6b645b, 0.82, 0.85, 0, [0.08, 0.22, 0.08]);
+      b.bb(0.25, 0.22, 0.3, PAL.animal.grey, 0.95, 1.15, 0);
+      b.add(coneG(3), PAL.animal.horn, 0.8, 1.62, -0.1, [0.07, 0.28, 0.07]);
+      b.add(coneG(3), PAL.animal.horn, 0.8, 1.62, 0.1, [0.07, 0.28, 0.07]);
+      b.add(GX.ico0, PAL.animal.horn, 0.82, 0.85, 0, [0.08, 0.22, 0.08]);
       [
         [-0.45, -0.16],
         [-0.45, 0.16],
@@ -2816,7 +2844,7 @@ import { TANKS } from './data/sisteminha.js';
       ].forEach(function (l) {
         b.cb(0.07, 0.7, 0x7b756b, l[0], 0, l[1], 5);
       });
-      b.add(coneG(3), 0x8a847a, -0.7, 1.0, 0, [0.1, 0.3, 0.1], [0, 0, (Math.PI / 2) * 1.2]);
+      b.add(coneG(3), PAL.animal.grey, -0.7, 1.0, 0, [0.1, 0.3, 0.1], [0, 0, (Math.PI / 2) * 1.2]);
     }
     const g = new THREE.Group();
     b.build(g);
@@ -2877,7 +2905,7 @@ import { TANKS } from './data/sisteminha.js';
     b.build(f1);
     const b2 = new Batch();
     b2.add(coneG(3), K.white, 0.15, 0.1, 0, [0.28, 0.9, 0.14], [0, 0, -Math.PI / 2]);
-    b2.add(coneG(3), 0x9fd2f2, -0.6, 0.1, 0, [0.22, 0.4, 0.1], [0, 0, Math.PI / 2]);
+    b2.add(coneG(3), PAL.glass.iceBlue, -0.6, 0.1, 0, [0.22, 0.4, 0.1], [0, 0, Math.PI / 2]);
     const f2 = new THREE.Group();
     b2.build(f2);
     for (let i = 0; i < 8; i++) {
@@ -2918,7 +2946,7 @@ import { TANKS } from './data/sisteminha.js';
   SB.build(surface);
   const foam = [];
   (function () {
-    const gm = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const gm = new THREE.MeshBasicMaterial({ color: PAL.light.white });
     for (let i = 0; i < 26; i++) {
       const m = new THREE.Mesh(new THREE.BoxGeometry(rr(0.8, 2.0), 0.06, 0.12), gm);
       let zr = i < 14 ? [-74, -62] : [-39, 74];
@@ -2933,7 +2961,7 @@ import { TANKS } from './data/sisteminha.js';
   const splash = [],
     splashGeo = new THREE.BoxGeometry(0.22, 0.22, 0.22),
     splashMats = [
-      new THREE.MeshBasicMaterial({ color: 0xffffff }),
+      new THREE.MeshBasicMaterial({ color: PAL.light.white }),
       new THREE.MeshBasicMaterial({ color: C(0x8fdcf5) }),
       new THREE.MeshBasicMaterial({ color: C(0x4cc6f2) }),
     ];
@@ -3039,7 +3067,7 @@ import { TANKS } from './data/sisteminha.js';
     /* giroflex e LEDs */
     beacons.forEach(function (bc, n) {
       const on = Math.floor(t * 2.2 + n * 0.4) % 2 === 0;
-      bc.mesh.material.color.copy(C(on ? 0xffd23a : K.orange));
+      bc.mesh.material.color.copy(C(on ? PAL.flora.sunflower : K.orange));
       bc.mesh.scale.setScalar(on ? 1.15 : 0.9);
       bc.bar.rotation.y = t * 7 + n;
     });
@@ -3072,10 +3100,10 @@ import { TANKS } from './data/sisteminha.js';
       CAP = new Batch();
     const WALLC = 0xc4cad0,
       PW = 0xe9edf0,
-      DARK = 0x1b1e2a,
+      DARK = PAL.dark.navyBlack,
       NEON = 0xff2bd6,
-      CY = 0x35e0ff,
-      GRN = 0x4dffa8;
+      CY = PAL.neon.cyan,
+      GRN = PAL.neon.mint;
     /* limites */
     const X1 = -11.4,
       X2 = 27.4,
@@ -3162,20 +3190,20 @@ import { TANKS } from './data/sisteminha.js';
     });
     /* pisos por ambiente */
     tile(X1, Z1, -4.4, ZA, 0x12141c);
-    tile(-4.4, Z1, 0.1, ZA, 0x8a5a32);
-    tile(0.1, Z1, 3.9, ZA, 0x7a4a2a);
+    tile(-4.4, Z1, 0.1, ZA, PAL.wood.oak);
+    tile(0.1, Z1, 3.9, ZA, PAL.wood.floorBoard);
     tile(3.9, Z1, 7.1, ZA, 0xe8c9d0);
     tile(7.1, Z1, 10.1, ZA, 0x6b7a8a);
     tile(10.1, Z1, 16.1, ZA, 0xdfe6ea);
     tile(16.1, Z1, 20, ZA, 0xeaf3f7);
     tile(20, Z1, 23, ZA, 0xf2f4f8);
     tile(23, Z1, X2, ZA, 0xe2e6ea);
-    tile(X1, ZA, X2, ZB, 0x2a2d38);
+    tile(X1, ZA, X2, ZB, PAL.dark.slate);
     tile(X1, ZB, 2.2, Z2, 0xb69a74);
     tile(2.2, ZB, 5.8, Z2, 0xe8d3b0);
     tile(5.8, ZB, 12.4, Z2, 0x1e1a26);
     tile(12.4, ZB, 20.4, Z2, 0x2c4a3a);
-    tile(20.4, ZB, X2, Z2, 0xcfd5da);
+    tile(20.4, ZB, X2, Z2, PAL.light.tileGrey);
     /* corredor: neon e dutos */
     UN.bb(38.6, 0.05, 0.05, NEON, 8, FL + 3.3, ZA + 0.2);
     UN.bb(38.6, 0.05, 0.05, CY, 8, FL + 3.3, ZB - 0.2);
@@ -3211,7 +3239,7 @@ import { TANKS } from './data/sisteminha.js';
       LI.bb(1.1, 0.08, 1.1, 0xeaf3f7, x, FL + 0.06, z);
       LI.cb(0.03, 1.9, K.steel, x - 0.5, FL + 0.14, z + sz * 0.5, 5);
       LI.bb(0.3, 0.05, 0.3, K.steel, x - 0.38, FL + 1.99, z + sz * 0.45);
-      LI.bb(0.04, 1.9, 1.1, 0xbfe3f3, x + 0.55, FL + 0.14, z);
+      LI.bb(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + 0.55, FL + 0.14, z);
     }
     /* banheiro nos fundos (zw = parede dos fundos, sz = +1): paredes com porta voltada ao quarto */
     function pb(xo, bw, zw, dxa, dxb, sideWall) {
@@ -3242,7 +3270,7 @@ import { TANKS } from './data/sisteminha.js';
     }
     function bedK(bx, bz, c) {
       LI.bb(2.0, 0.5, 2.2, K.woodD, bx, FL + 0.06, bz);
-      LI.bb(1.9, 0.28, 2.1, 0xf4efe2, bx, FL + 0.56, bz);
+      LI.bb(1.9, 0.28, 2.1, PAL.light.ivory, bx, FL + 0.56, bz);
       LI.bb(1.9, 0.12, 1.3, c, bx, FL + 0.84, bz + 0.4);
       LI.bb(1.4, 0.18, 0.5, K.white, bx, FL + 0.84, bz - 0.8);
       LI.bb(2.1, 1.3, 0.14, K.woodD, bx, FL + 0.06, bz - 1.15);
@@ -3251,14 +3279,14 @@ import { TANKS } from './data/sisteminha.js';
     }
     function bedS(bx, bz, c) {
       LI.bb(1.1, 0.4, 2.0, K.woodD, bx, FL + 0.06, bz);
-      LI.bb(1.0, 0.22, 1.9, 0xf4efe2, bx, FL + 0.46, bz);
+      LI.bb(1.0, 0.22, 1.9, PAL.light.ivory, bx, FL + 0.46, bz);
       LI.bb(1.0, 0.1, 1.2, c, bx, FL + 0.68, bz + 0.35);
       LI.bb(1.2, 1.0, 0.12, K.woodD, bx, FL + 0.06, bz - 1.05);
     }
     function wardrobe(wx, wz, r) {
       LI.at(wx, 0, wz, r || 0);
       LI.bb(1.6, 2.3, 0.6, K.woodD, 0, FL + 0.06, 0);
-      LI.bb(0.03, 2.0, 0.05, 0xd4a24a, 0, FL + 0.26, 0.32);
+      LI.bb(0.03, 2.0, 0.05, PAL.clay.gold, 0, FL + 0.26, 0.32);
       LI.at(0, 0, 0, 0);
     }
     function desk(x, z, len, rot) {
@@ -3269,13 +3297,13 @@ import { TANKS } from './data/sisteminha.js';
       LI.at(0, 0, 0, 0);
     }
     function chair(x, z, c) {
-      LI.bb(0.5, 0.1, 0.5, c || 0x111319, x, FL + 0.5, z);
-      LI.bb(0.5, 0.8, 0.08, c || 0x111319, x, FL + 0.55, z - 0.26);
+      LI.bb(0.5, 0.1, 0.5, c || PAL.dark.deviceBlack, x, FL + 0.5, z);
+      LI.bb(0.5, 0.8, 0.08, c || PAL.dark.deviceBlack, x, FL + 0.55, z - 0.26);
       LI.cb(0.05, 0.44, K.steelD, x, FL + 0.06, z, 6);
       LI.cb(0.28, 0.04, K.steelD, x, FL + 0.06, z, 8);
     }
     function plant(x, z, s) {
-      LI.cb(0.22 * s, 0.35 * s, 0xb5593b, x, FL + 0.06, z, 8);
+      LI.cb(0.22 * s, 0.35 * s, PAL.clay.terracotta, x, FL + 0.06, z, 8);
       LI.ic(0.4 * s, 0x3fae52, x, FL + 0.6 * s + 0.2, z, 1, 1.2, 1);
     }
 
@@ -3287,7 +3315,7 @@ import { TANKS } from './data/sisteminha.js';
       pb(-7.35, 2.8, Z1, -5.6, -4.7, false); /* banheiro-cabine no canto leste dos fundos */
       wardrobe(x0 + 0.3, -57.2, Math.PI / 2);
       wardrobe(x0 + 0.3, -58.8, Math.PI / 2);
-      LI.bb(0.5, 0.8, 1.6, 0x1b1e2a, x1 - 0.3, FL + 0.06, -57.4);
+      LI.bb(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
       UN.bb(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
       LI.bb(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
       for (i = 0; i < 5; i++)
@@ -3295,7 +3323,7 @@ import { TANKS } from './data/sisteminha.js';
           0.3,
           0.1,
           0.18,
-          [K.red, K.white, 0x2a4a73, K.yellow, 0x111319][i],
+          [K.red, K.white, PAL.glass.windowDeep, K.yellow, PAL.dark.deviceBlack][i],
           x0 + 0.55,
           FL + 0.06 + i * 0.0,
           -59.9 + 0.0,
@@ -3307,18 +3335,18 @@ import { TANKS } from './data/sisteminha.js';
           0.08,
           0.62,
           1.28,
-          0x0a0c14,
+          PAL.dark.void,
           x0 + 0.2,
           FL + 1.0,
           mz + (n === 0 ? 0.08 : n === 2 ? -0.08 : 0),
         );
         UN.bb(0.04, 0.56, 1.2, [CY, NEON, GRN][n], x0 + 0.28, FL + 1.03, mz);
       });
-      LI.bb(0.3, 0.5, 0.6, 0x1b1e2a, x0 + 0.5, FL + 0.81, -64.0);
+      LI.bb(0.3, 0.5, 0.6, PAL.dark.navyBlack, x0 + 0.5, FL + 0.81, -64.0);
       UN.bb(0.02, 0.4, 0.5, CY, x0 + 0.66, FL + 0.86, -64.0);
       LI.bb(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
-      chair(x0 + 1.7, -62.2, 0x111319);
-      LI.bb(0.9, 1.9, 0.8, 0x22262b, x0 + 0.5, FL + 0.06, -65.4);
+      chair(x0 + 1.7, -62.2, PAL.dark.deviceBlack);
+      LI.bb(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
       for (i = 0; i < 9; i++)
         UN.bb(0.05, 0.05, 0.5, [CY, GRN, NEON][i % 3], x0 + 0.92, FL + 0.3 + i * 0.19, -65.4);
       UN.bb(0.04, 0.04, 3.6, CY, x0 + 0.08, FL + 0.72, -62.2);
@@ -3327,11 +3355,11 @@ import { TANKS } from './data/sisteminha.js';
       UN.cb(0.95, 0.04, CY, -6.9, FL + 0.66, -61.6, 16);
       UN.ic(0.55, CY, -6.9, FL + 1.6, -61.6, 1, 1, 1, 1);
       UN.cb(1.0, 0.03, NEON, -6.9, FL + 0.07, -61.6, 22);
-      LI.bb(0.9, 0.5, 2.4, 0x2f2a4a, x1 - 0.5, FL + 0.06, -61.6);
-      LI.bb(0.3, 0.8, 2.4, 0x2f2a4a, x1 - 0.2, FL + 0.06, -61.6);
-      LI.cb(0.5, 0.4, 0xc07bff, -9.2, FL + 0.06, -59.9, 10);
-      LI.cb(0.5, 0.4, 0x35e0ff, -9.2, FL + 0.06, -65.3, 10);
-      LI.bb(0.9, 1.8, 0.8, 0x2a2d38, -9.2, FL + 0.06, -56.8);
+      LI.bb(0.9, 0.5, 2.4, PAL.fabric.indigo, x1 - 0.5, FL + 0.06, -61.6);
+      LI.bb(0.3, 0.8, 2.4, PAL.fabric.indigo, x1 - 0.2, FL + 0.06, -61.6);
+      LI.cb(0.5, 0.4, PAL.flora.violet, -9.2, FL + 0.06, -59.9, 10);
+      LI.cb(0.5, 0.4, PAL.neon.cyan, -9.2, FL + 0.06, -65.3, 10);
+      LI.bb(0.9, 1.8, 0.8, PAL.dark.slate, -9.2, FL + 0.06, -56.8);
       UN.bb(0.7, 0.5, 0.04, NEON, -9.2, FL + 1.2, -56.4); /* fliperama (ao lado da porta) */
       /* cama-casulo redonda com mosquiteiro, cabeceira em arco e anel de neon */
       const bx = -8.1,
@@ -3339,9 +3367,9 @@ import { TANKS } from './data/sisteminha.js';
       LI.cb(1.95, 0.3, 0x15171f, bx, FL + 0.06, bz, 28);
       LI.cb(1.7, 0.3, 0xf0eef6, bx, FL + 0.36, bz, 28);
       UN.cb(2.0, 0.03, NEON, bx, FL + 0.07, bz, 32);
-      LI.cb(0.55, 0.18, 0xc07bff, bx - 0.6, FL + 0.66, bz - 0.8, 10, 0.45);
-      LI.cb(0.55, 0.18, 0x35e0ff, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
-      LI.cb(1.0, 0.06, 0x2a2d38, bx, FL + 0.66, bz + 0.5, 20, 0.9);
+      LI.cb(0.55, 0.18, PAL.flora.violet, bx - 0.6, FL + 0.66, bz - 0.8, 10, 0.45);
+      LI.cb(0.55, 0.18, PAL.neon.cyan, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
+      LI.cb(1.0, 0.06, PAL.dark.slate, bx, FL + 0.66, bz + 0.5, 20, 0.9);
       for (let th = -Math.PI / 2 - 1.1; th <= -Math.PI / 2 + 1.11; th += 0.275) {
         const sx = bx + 2.25 * Math.cos(th),
           sz = bz + 2.25 * Math.sin(th),
@@ -3366,26 +3394,26 @@ import { TANKS } from './data/sisteminha.js';
         0.35,
       ); /* mosquiteiro translúcido em cúpula */
       LI.cb(0.04, 0.5, K.steelD, bx, FL + 3.0, bz, 6);
-      UN.ic(0.14, 0xffe9a6, bx, FL + 3.1, bz, 1, 1, 1, 1);
+      UN.ic(0.14, PAL.light.warmGlow, bx, FL + 3.1, bz, 1, 1, 1, 1);
       /* parede aquário, skyline e prateleiras */
       LI.bb(3.6, 1.5, 0.3, 0x0a2a3a, -9.45, FL + 0.5, -72.2);
       UN.bb(3.4, 1.3, 0.05, 0x1a6fd0, -9.45, FL + 0.6, -72.0);
       [
         [-10.5, 0.9, 0xffa14a],
-        [-9.4, 1.2, 0xff5ad2],
-        [-8.4, 0.8, 0xffe14a],
-        [-9.9, 1.5, 0x4dffa8],
+        [-9.4, 1.2, PAL.neon.magenta],
+        [-8.4, 0.8, PAL.neon.yellow],
+        [-9.9, 1.5, PAL.neon.mint],
       ].forEach(function (f) {
         UN.ic(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
       });
-      LI.bb(0.1, 2.6, 5.4, 0x0a0c14, x0 - 0.05, FL + 0.3, -68.6);
+      LI.bb(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
       for (i = 0; i < 18; i++) {
         const skh = 0.5 + (((i * 37) % 17) / 17) * 1.9;
         UN.bb(
           0.08,
           skh,
           0.26,
-          [CY, NEON, 0xffe14a, 0xb066ff][i % 4],
+          [CY, NEON, PAL.neon.yellow, PAL.neon.violet][i % 4],
           x0 + 0.08,
           FL + 0.4,
           -71.0 + i * 0.3,
@@ -3396,7 +3424,7 @@ import { TANKS } from './data/sisteminha.js';
         for (j = 0; j < 4; j++)
           LI.ic(
             0.1,
-            [0xff5ad2, 0x35e0ff, 0xffe14a, 0x7bd36a][(i + j) % 4],
+            [PAL.neon.magenta, PAL.neon.cyan, PAL.neon.yellow, PAL.flora.lime][(i + j) % 4],
             x1 - 0.2,
             FL + 1.15 + i * 0.5,
             -69.0 + j * 0.4,
@@ -3405,11 +3433,19 @@ import { TANKS } from './data/sisteminha.js';
             1,
           );
       }
-      LI.bb(0.9, 0.8, 0.5, 0x2a2d38, x1 - 0.4, FL + 0.06, -65.5);
+      LI.bb(0.9, 0.8, 0.5, PAL.dark.slate, x1 - 0.4, FL + 0.06, -65.5);
       LI.bb(0.5, 0.1, 0.4, K.black, x1 - 0.4, FL + 0.86, -65.5);
-      LI.cb(0.2, 0.04, 0x111319, x1 - 0.4, FL + 0.96, -65.5, 16); /* aparador com vitrola */
-      LI.bb(0.4, 1.4, 0.3, 0x111319, x1 - 0.2, FL + 0.06, -64.6);
-      LI.bb(0.4, 1.4, 0.3, 0x111319, x1 - 0.2, FL + 0.06, -66.4); /* caixas de som */
+      LI.cb(
+        0.2,
+        0.04,
+        PAL.dark.deviceBlack,
+        x1 - 0.4,
+        FL + 0.96,
+        -65.5,
+        16,
+      ); /* aparador com vitrola */
+      LI.bb(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -64.6);
+      LI.bb(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -66.4); /* caixas de som */
       plant(x0 + 0.45, -70.5, 1.2);
       plant(x1 - 0.4, -69.9, 1.0);
       UN.bb(6.4, 0.05, 0.05, NEON, -7.9, FL + 3.4, -62);
@@ -3421,68 +3457,68 @@ import { TANKS } from './data/sisteminha.js';
         x1 = -0.05;
       pb(x0, 2.6, Z1, -2.7, -1.8, true);
       wardrobe(-0.9, -72.1, 0);
-      bedK(-1.9, -65.6, 0x6aa84f);
-      LI.bb(3.2, 1.6, 0.16, 0x3a2418, -1.9, FL + 0.06, -67.0);
-      UN.bb(2.8, 0.05, 0.05, 0xffb347, -1.9, FL + 1.55, -66.88);
+      bedK(-1.9, -65.6, PAL.flora.grass);
+      LI.bb(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
+      UN.bb(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
       LI.bb(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
-      UN.cb(0.06, 0.05, 0xffe9a6, -3.9, FL + 1.1, -67.3, 6);
+      UN.cb(0.06, 0.05, PAL.light.warmGlow, -3.9, FL + 1.1, -67.3, 6);
       LI.bb(1.6, 0.9, 0.5, K.woodD, x1 - 0.3, FL + 0.06, -60.8);
-      LI.bb(0.08, 1.1, 1.6, 0x0a0c14, x1 - 0.08, FL + 0.9, -60.8);
-      UN.bb(0.03, 1.0, 1.5, 0x2a6cff, x1 - 0.14, FL + 0.95, -60.8);
+      LI.bb(0.08, 1.1, 1.6, PAL.dark.void, x1 - 0.08, FL + 0.9, -60.8);
+      UN.bb(0.03, 1.0, 1.5, PAL.neon.blue, x1 - 0.14, FL + 0.95, -60.8);
       LI.bb(1.0, 0.8, 0.5, K.woodL, x0 + 0.35, FL + 0.06, -57.3);
-      LI.bb(0.04, 1.4, 0.9, 0xbfe3f3, x0 + 0.1, FL + 0.9, -57.3);
-      UN.bb(0.02, 1.4, 0.04, 0xffe9a6, x0 + 0.12, FL + 0.9, -56.8);
-      LI.bb(0.9, 0.5, 0.9, 0x6b2f2a, x0 + 0.7, FL + 0.06, -61.5);
-      LI.bb(0.2, 0.6, 0.9, 0x6b2f2a, x0 + 0.3, FL + 0.06, -61.5);
+      LI.bb(0.04, 1.4, 0.9, PAL.glass.showerGlass, x0 + 0.1, FL + 0.9, -57.3);
+      UN.bb(0.02, 1.4, 0.04, PAL.light.warmGlow, x0 + 0.12, FL + 0.9, -56.8);
+      LI.bb(0.9, 0.5, 0.9, PAL.fabric.burgundy, x0 + 0.7, FL + 0.06, -61.5);
+      LI.bb(0.2, 0.6, 0.9, PAL.fabric.burgundy, x0 + 0.3, FL + 0.06, -61.5);
       LI.cb(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
-      UN.ic(0.16, 0xffe9a6, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
-      LI.bb(0.7, 1.9, 0.5, 0x3a2418, x1 - 0.4, FL + 0.06, -70.8);
+      UN.ic(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
+      LI.bb(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
       for (i = 0; i < 6; i++)
         LI.cb(
           0.07,
           0.3,
-          [0x6a1f2a, 0x2a4a1f, 0x6a1f2a][i % 3],
+          [PAL.fabric.wine, 0x2a4a1f, PAL.fabric.wine][i % 3],
           x1 - 0.45 + ((i % 2) * 0.2 - 0.1),
           FL + 0.4 + ((i / 2) | 0) * 0.45,
           -70.75,
           6,
         );
-      LI.cb(1.2, 0.03, 0xd7c08c, -1.9, FL + 0.06, -63.2, 20);
-      UN.bb(3.6, 0.04, 0.04, 0xffb347, -2.1, FL + 3.3, -64);
+      LI.cb(1.2, 0.03, PAL.stone.sandstone, -1.9, FL + 0.06, -63.2, 20);
+      UN.bb(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
     })();
     /* ---- IRMÃ (3,5 m) · SOBRINHA 11 anos (2,9 m) · CONVIDADO (2,7 m) ---- */
     pb(0.25, 2.4, Z1, 1.0, 1.9, true);
-    bedK(2.4, -64.0, 0xd96a5a);
+    bedK(2.4, -64.0, PAL.flora.salmon);
     wardrobe(3.45, -60.6, -Math.PI / 2);
     desk(0.7, -58.2, 1.3, 0);
     LI.bb(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
-    chair(0.7, -57.6, 0x8e5fb0);
+    chair(0.7, -57.6, PAL.flora.purple);
     plant(3.4, -57.0, 1.0);
-    LI.cb(0.9, 0.03, 0x8e5fb0, 1.0, FL + 0.06, -60.5, 18);
+    LI.cb(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
     pb(4.05, 2.9, Z1, 5.0, 5.9, false);
-    bedS(6.0, -64.0, 0xc07bff);
+    bedS(6.0, -64.0, PAL.flora.violet);
     wardrobe(4.35, -60.5, Math.PI / 2);
     LI.bb(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
     LI.bb(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
     chair(5.6, -56.9, 0xff7ac8);
     UN.bb(2.6, 0.05, 0.05, 0xffd98a, 5.5, FL + 3.2, -70);
     LI.cn(0.7, 1.5, 0xe8c9a0, 4.8, FL + 0.06, -61.6, 6);
-    UN.ic(0.1, 0xffe9a6, 4.8, FL + 0.6, -61.6, 1, 1, 1, 1); /* cabaninha de leitura */
+    UN.ic(0.1, PAL.light.warmGlow, 4.8, FL + 0.6, -61.6, 1, 1, 1, 1); /* cabaninha de leitura */
     for (i = 0; i < 10; i++)
       UN.bb(
         0.06,
         0.06,
         0.06,
-        [0xffe14a, 0xffffff, 0x9fd2f2][i % 3],
+        [PAL.neon.yellow, PAL.light.white, PAL.glass.iceBlue][i % 3],
         4.2 + ((i * 7) % 11) * 0.25,
         FL + 3.45,
         -57.5 - ((i * 5) % 9) * 1.2,
       ); /* estrelinhas no teto */
     pb(7.25, 2.7, Z1, 8.2, 9.1, false);
-    bedS(9.1, -64.0, 0x4a8fc4);
+    bedS(9.1, -64.0, PAL.flora.cornflower);
     wardrobe(7.55, -60.5, Math.PI / 2);
     desk(8.6, -57.6, 1.2, 0);
-    chair(8.6, -57.0, 0x2a4a73);
+    chair(8.6, -57.0, PAL.glass.windowDeep);
 
     /* =================== FILEIRA DOS FUNDOS: técnico (x 10,1 → 27,4) =================== */
     /* datacenter imerso */
@@ -3503,14 +3539,14 @@ import { TANKS } from './data/sisteminha.js';
     });
     for (i = 0; i < 5; i++) {
       const rx = 10.95 + i * 1.1;
-      LI.bb(0.95, 2.3, 0.9, 0x22262b, rx, FL, -71.9);
+      LI.bb(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
       for (j = 0; j < 10; j++)
         for (k = 0; k < 3; k++)
           [LA, LB, LC][(i + j + k) % 3].bb(
             0.12,
             0.07,
             0.04,
-            [CY, GRN, 0xc07bff, 0xffb347][(i * 3 + j + k) % 4],
+            [CY, GRN, PAL.flora.violet, PAL.neon.amber][(i * 3 + j + k) % 4],
             rx - 0.28 + k * 0.28,
             FL + 0.25 + j * 0.2,
             -71.42,
@@ -3518,12 +3554,12 @@ import { TANKS } from './data/sisteminha.js';
     }
     /* laboratórios */
     LI.bb(0.9, 0.95, 12, K.white, 16.6, FL, -64.2);
-    LI.bb(1.0, 0.07, 12.1, 0x6c7b88, 16.6, FL + 0.95, -64.2);
+    LI.bb(1.0, 0.07, 12.1, PAL.metal.blueSteel, 16.6, FL + 0.95, -64.2);
     LI.bb(0.9, 0.95, 12, K.white, 19.5, FL, -64.2);
-    LI.bb(1.0, 0.07, 12.1, 0x6c7b88, 19.5, FL + 0.95, -64.2);
+    LI.bb(1.0, 0.07, 12.1, PAL.metal.blueSteel, 19.5, FL + 0.95, -64.2);
     [-70.5, -67.5, -64.5, -61.5].forEach(function (z, n) {
       LI.cb(0.2, 1.0, K.white, 16.6, FL + 1.02, z, 10);
-      LI.ic(0.35, 0xbfe3f3, 16.6, FL + 1.7, z, 1, 1, 1, 1);
+      LI.ic(0.35, PAL.glass.showerGlass, 16.6, FL + 1.7, z, 1, 1, 1, 1);
       LI.bb(0.6, 0.5, 0.6, [K.steelD, K.white][n % 2], 19.5, FL + 1.02, z);
       LG.bb(0.3, 0.3, 0.04, CY, 19.2, FL + 1.3, z);
     });
@@ -3531,11 +3567,11 @@ import { TANKS } from './data/sisteminha.js';
     /* sala limpa */
     LI.bb(1.4, 0.9, 3.0, 0x191c22, 21.6, FL, -69.6);
     LI.bb(0.7, 0.5, 0.9, K.white, 21.4, FL + 0.9, -70.2);
-    LG.bb(0.6, 0.04, 0.8, 0xb066ff, 21.4, FL + 0.9, -70.2);
+    LG.bb(0.6, 0.04, 0.8, PAL.neon.violet, 21.4, FL + 0.9, -70.2);
     LI.bb(0.2, 1.2, 0.2, K.steelD, 21.4, FL + 1.4, -70.2);
-    LI.cb(0.5, 3.0, 0xcfd5da, 22.4, FL, -64.6, 12);
+    LI.cb(0.5, 3.0, PAL.light.tileGrey, 22.4, FL, -64.6, 12);
     LI.bb(1.1, 1.1, 1.1, K.white, 21.6, FL, -59.4);
-    LC.bb(0.2, 0.06, 6, 0xb066ff, 21.5, FL + 3.2, -64);
+    LC.bb(0.2, 0.06, 6, PAL.neon.violet, 21.5, FL + 3.2, -64);
     /* suporte de vida e baterias térmicas */
     [-70.6, -68.2, -65.8, -63.4].forEach(function (bz) {
       LI.add(cylG(1, 16), K.steel, 25.2, FL + 1.0, bz, [0.7, 3.0, 0.7], [0, 0, Math.PI / 2]);
@@ -3559,14 +3595,14 @@ import { TANKS } from './data/sisteminha.js';
 
     /* =================== FILEIRA DA FRENTE (x −11,4 → 27,4) =================== */
     /* estar, jantar e cozinha (13,6 × 14,6 m) */
-    LI.bb(8.0, 0.9, 0.7, 0xe6d3b0, -4.4, FL + 0.06, -52.7);
-    LI.bb(8.1, 0.06, 0.8, 0xefe6d2, -4.4, FL + 0.96, -52.7);
+    LI.bb(8.0, 0.9, 0.7, PAL.light.linen, -4.4, FL + 0.06, -52.7);
+    LI.bb(8.1, 0.06, 0.8, PAL.light.cream, -4.4, FL + 0.96, -52.7);
     LI.bb(0.8, 0.12, 0.5, K.steel, -6.4, FL + 1.0, -52.7);
     LI.cb(0.035, 0.3, K.steel, -6.4, FL + 1.12, -52.5, 5);
     LI.bb(0.9, 0.1, 0.6, K.black, -3.4, FL + 1.02, -52.7);
     LI.bb(0.9, 1.9, 0.8, K.white, 0.9, FL + 0.06, -52.7);
     LI.bb(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
-    LI.bb(3.2, 0.95, 1.1, 0xe6d3b0, -4.6, FL + 0.06, -49.4);
+    LI.bb(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
     LI.bb(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
     for (i = 0; i < 4; i++) LI.cb(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
     LI.bb(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
@@ -3584,22 +3620,22 @@ import { TANKS } from './data/sisteminha.js';
     }
     LI.bb(0.42, 0.5, 0.42, K.woodL, -7.7, FL + 0.06, -44.6);
     LI.bb(0.42, 0.5, 0.42, K.woodL, -1.5, FL + 0.06, -44.6);
-    LI.bb(1.0, 0.5, 3.8, 0x2f6cb8, -9.6, FL + 0.06, -41.9);
-    LI.bb(0.3, 0.8, 3.8, 0x2f6cb8, -10.4, FL + 0.06, -41.9);
-    LI.bb(3.2, 0.5, 1.0, 0x2f6cb8, -7.8, FL + 0.06, -39.9);
+    LI.bb(1.0, 0.5, 3.8, PAL.fabric.royalBlue, -9.6, FL + 0.06, -41.9);
+    LI.bb(0.3, 0.8, 3.8, PAL.fabric.royalBlue, -10.4, FL + 0.06, -41.9);
+    LI.bb(3.2, 0.5, 1.0, PAL.fabric.royalBlue, -7.8, FL + 0.06, -39.9);
     LI.bb(1.0, 0.4, 1.0, K.woodD, -8.2, FL + 0.06, -42.2);
-    LI.cb(1.6, 0.03, 0xc4503a, -8.4, FL + 0.06, -43.0, 22);
-    LI.bb(0.1, 1.5, 3.2, 0x0a0c14, -11.15, FL + 1.0, -47.5);
-    UN.bb(0.02, 1.4, 3.1, 0x2a6cff, -11.05, FL + 1.05, -47.5);
+    LI.cb(1.6, 0.03, PAL.fabric.rust, -8.4, FL + 0.06, -43.0, 22);
+    LI.bb(0.1, 1.5, 3.2, PAL.dark.void, -11.15, FL + 1.0, -47.5);
+    UN.bb(0.02, 1.4, 3.1, PAL.neon.blue, -11.05, FL + 1.05, -47.5);
     LI.bb(0.5, 0.4, 2.6, K.woodD, -10.9, FL + 0.06, -47.5);
-    LI.bb(2.2, 1.1, 0.5, 0x2a2d38, 0.4, FL + 0.06, -40.2);
-    UN.bb(1.8, 0.04, 0.04, 0xffb347, 0.4, FL + 0.9, -39.9);
+    LI.bb(2.2, 1.1, 0.5, PAL.dark.slate, 0.4, FL + 0.06, -40.2);
+    UN.bb(1.8, 0.04, 0.04, PAL.neon.amber, 0.4, FL + 0.9, -39.9);
     [[-0.4], [0.4], [1.2]].forEach(function (s) {
       LI.cb(0.2, 0.5, K.woodD, s[0], FL + 0.06, -41.0, 8);
     }); /* bar com bancos */
     plant(-10.8, -52.6, 1.3);
     plant(1.7, -45.0, 1.3);
-    UN.bb(12, 0.05, 0.05, 0xffe9a6, -4.6, FL + 3.3, -46);
+    UN.bb(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
     /* despensa 90 dias */
     function bItem(x, y, z, n) {
       const m = n % 5;
@@ -3607,15 +3643,22 @@ import { TANKS } from './data/sisteminha.js';
         LI.cb(
           0.12,
           0.3,
-          [0xd9534f, 0xe8b04a, 0x7bb661, 0xf0e0b0, 0x8e5fb0, 0xc27a3a][n % 6],
+          [
+            PAL.flora.coral,
+            PAL.flora.marigold,
+            PAL.flora.sage,
+            PAL.light.wheat,
+            PAL.flora.purple,
+            PAL.clay.copperBrown,
+          ][n % 6],
           x,
           y,
           z,
           6,
         );
       else if (m === 1) LI.cb(0.09, 0.2, K.steel, x, y, z, 6);
-      else if (m === 2) LI.bb(0.34, 0.24, 0.3, 0xe2c47c, x, y, z);
-      else LI.bb(0.3, 0.3, 0.3, [K.woodL, 0xe9c86a, 0xb5593b][n % 3], x, y, z);
+      else if (m === 2) LI.bb(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
+      else LI.bb(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][n % 3], x, y, z);
     }
     function shelfZ(z1, z2, x) {
       const L = z2 - z1;
@@ -3636,22 +3679,22 @@ import { TANKS } from './data/sisteminha.js';
       LI.cb(0.4, 0.9, K.wood, 3.5 + (i % 2) * 1.0, FL + 0.06, -47 + ((i / 2) | 0) * 1.0, 10, 0.37);
     LI.bb(1.4, 0.85, 0.7, K.white, 4.0, FL + 0.06, -40.6);
     /* cinema e jogos */
-    LI.bb(5.2, 2.6, 0.2, 0x0a0c14, 9.1, FL + 0.6, -52.9);
-    UN.bb(4.9, 2.3, 0.04, 0x2a6cff, 9.1, FL + 0.75, -52.78);
+    LI.bb(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
+    UN.bb(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
     [-50.0, -47.8].forEach(function (z, n) {
       for (i = 0; i < 3; i++) {
-        LI.bb(0.9, 0.5, 0.9, 0x6b2f2a, 7.2 + i * 1.5, FL + 0.06 + n * 0.3, z);
-        LI.bb(0.9, 0.7, 0.2, 0x6b2f2a, 7.2 + i * 1.5, FL + 0.4 + n * 0.3, z + 0.45);
+        LI.bb(0.9, 0.5, 0.9, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.06 + n * 0.3, z);
+        LI.bb(0.9, 0.7, 0.2, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.4 + n * 0.3, z + 0.45);
       }
     });
     LI.bb(2.4, 0.8, 1.3, 0x1a5a3a, 8.6, FL + 0.06, -42.4);
     LI.bb(2.5, 0.1, 1.4, K.woodD, 8.6, FL + 0.8, -42.4);
-    LI.cb(0.1, 0.1, 0xffffff, 8.2, FL + 0.92, -42.4, 8);
-    LI.cb(0.1, 0.1, 0xe0462d, 8.9, FL + 0.92, -42.4, 8);
+    LI.cb(0.1, 0.1, PAL.light.white, 8.2, FL + 0.92, -42.4, 8);
+    LI.cb(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
     LI.bb(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
     UN.bb(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
     for (i = 0; i < 2; i++) {
-      LI.bb(0.9, 1.8, 0.8, 0x2a2d38, 10.2 + i * 1.1, FL + 0.06, -39.6);
+      LI.bb(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
       UN.bb(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
     }
     UN.bb(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
@@ -3662,7 +3705,7 @@ import { TANKS } from './data/sisteminha.js';
         for (k = 0; k < 19; k++)
           LI.ic(
             0.26,
-            [0x3fb04a, 0x57c25c, 0x7bd36a][(k + j) % 3],
+            [PAL.flora.cropGreenA, PAL.flora.cropGreenC, PAL.flora.lime][(k + j) % 3],
             hx + (k % 2 ? 0.2 : -0.2),
             FL + 0.78 + j * 0.7,
             -52.0 + k * 0.62,
@@ -3679,13 +3722,13 @@ import { TANKS } from './data/sisteminha.js';
     LI.cb(0.5, 1.4, K.blue, 19.6, FL, -39.8, 10);
     /* oficina maker */
     LI.bb(0.8, 0.95, 10, K.woodL, 26.8, FL, -46.2);
-    LI.bb(0.9, 0.06, 10.1, 0xefe6d2, 26.8, FL + 0.95, -46.2);
+    LI.bb(0.9, 0.06, 10.1, PAL.light.cream, 26.8, FL + 0.95, -46.2);
     [-51, -49, -47].forEach(function (pz) {
       LI.bb(0.5, 0.5, 0.5, K.white, 26.8, FL + 1.01, pz);
       LG.bb(0.3, 0.3, 0.04, CY, 26.54, FL + 1.3, pz);
     });
     LI.bb(1.6, 1.5, 1.4, K.steelD, 22.2, FL, -51.6);
-    LG.bb(1.0, 0.5, 0.05, 0xffb347, 22.2, FL + 0.8, -50.9);
+    LG.bb(1.0, 0.5, 0.05, PAL.neon.amber, 22.2, FL + 0.8, -50.9);
     LI.bb(2.2, 0.8, 0.8, K.steel, 22.2, FL, -47.4);
     LI.cb(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
     LI.bb(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);

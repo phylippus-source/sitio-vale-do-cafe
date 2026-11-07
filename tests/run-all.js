@@ -1,6 +1,6 @@
 // Roda todas as verificacoes em sequencia. Saida != 0 se qualquer uma falhar.
 const { spawnSync } = require('child_process');
-const steps = ['metrics', 'coplanar', 'fp', 'golden', 'smoke'];
+const steps = ['metrics', 'coplanar', 'fp', 'interact', 'golden', 'smoke'];
 let failed = [];
 for (const s of steps) {
   console.log('\n=== ' + s + ' ===');

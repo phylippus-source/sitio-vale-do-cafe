@@ -4,7 +4,7 @@ const { open, ROOT } = require('./harness');
 
 (async () => {
   const file = path.join(ROOT, 'dist', 'index.html');
-  const { browser, page, errors, warnings, loadMs } = await open({ file, needScene: false });
+  const { browser, page, errors, warnings, loadMs } = await open({ file });
   const st = await page.evaluate(() => __sitio.state());
   await browser.close();
   console.log('SMOKE', JSON.stringify({ loadMs, warnings: warnings.length, animals: st.animals, fish: st.fish, calls: st.calls }));

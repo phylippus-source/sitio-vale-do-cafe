@@ -5,7 +5,10 @@ Fase 0 (rede de segurança) e Fase 1 (dependências e estrutura) concluídas. `l
 ## Estrutura
 - `index.html` — marcação (sem JS/CSS inline)
 - `styles/` — `main.css` importa tokens, base, hud, panel, drawer, firstperson (ordem original)
-- `src/main.js` — lógica legada (ainda monolítica; Fases 2–8)
+- `src/main.js` — lógica legada (ainda monolítica; Fases 4–8)
+- `src/config/` — `palette.js` (K, cores da Casa, PAL agrupada), `dimensions.js` (cotas, gleba, bunker, origens)
+- `src/data/` — tabelas puras (sectors, labels, bom, aura, rooms, fpspots, terrain, collision, crops, sisteminha), `areas.js` (áreas derivadas) e `validate.js` (checagem na carga; erro vira `console.error`, e o teste de métricas falha)
+- `tools/` — scripts de migração (extract-const, name-colors, split-decls) com verificação deepEqual
 - `vite.config.js` — Vite + singlefile; `npm run build` (minificado, `dist/`), `npm run build:debug` (`dist-debug/`, usado nos testes)
 - three.js 0.128.0 vem do npm e é embutido (sem CDN)
 
@@ -33,3 +36,10 @@ Playwright global 1.63.0 (`export NODE_PATH=/home/claude/.npm-global/lib/node_mo
 - Bug latente corrigido: laço `for (i=...)` que vazava `i`; variáveis de laço `fp`/`hb` redeclaradas (agora `let`, `fenceX/fenceZ`).
 - Ganchos de teste (`window.__sitio`) só existem com `?debug` na URL. Testes rodam no build de produção.
 - Pendente (fases 6–7): 3 funções acima de 80 linhas (`wall`, um IIFE do engenho/bunker, `frame`); `let i;` hoisted usados por laços sem escopo próprio.
+
+## Fase 3 (feito)
+- 12 tabelas movidas para `src/data` (valores idênticos, verificados por deepEqual); `main.js` caiu de 5,9 mil para 4,6 mil linhas.
+- Paleta: `K` + cores da Casa em `config/palette.js`; 72 cores usadas 2+ vezes agora são `PAL.grupo.nome` (238 trocas). 167 literais de uso único ficam no lugar e migram para o bloco do próprio ambiente na Fase 6.
+- Dimensões: `FLOOR`, `BFL`, `BWH`, `GF`, `GHT`, `UF`, `UHT`, `LOT`, `STREAM`, `BUNKER`, `BUNKER_INNER`, `CASA_ORIGIN`, `BARN_ORIGIN`. `RB/RH/RW/RD` (telhado) são locais de função: ficam para a Fase 6.
+- Validação: cotas, setores, rótulos, cômodos (ladrilham o interior do bunker), quadras (500 m²), pontos de 1ª pessoa.
+- Achado de conteúdo: textos de área divergem da geometria (ver ACHADOS_FASE1-2.md). Nada de texto foi alterado.

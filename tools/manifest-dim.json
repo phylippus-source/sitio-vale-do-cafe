@@ -1,0 +1,6 @@
+{
+  "src/config/dimensions.js": {
+    "header": "Cotas verticais (1 unidade = 1 metro). Origens e limites do terreno ficam abaixo.",
+    "names": ["FLOOR", "BFL", "BWH", "GF", "GHT", "UF", "UHT"]
+  }
+}

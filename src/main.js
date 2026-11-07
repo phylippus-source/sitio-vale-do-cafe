@@ -1,5 +1,21 @@
 import * as THREE from 'three';
+import {
+  FLOOR,
+  BFL,
+  BWH,
+  GF,
+  GHT,
+  UF,
+  UHT,
+  LOT,
+  STREAM,
+  BUNKER,
+  BUNKER_INNER,
+  CASA_ORIGIN,
+  BARN_ORIGIN,
+} from './config/dimensions.js';
 import { K, CW, WHT, IRON, MARB, AZB, AZW, TERRA, PAL } from './config/palette.js';
+import { validateData } from './data/validate.js';
 import { SECTORS } from './data/sectors.js';
 import { LABELS } from './data/labels.js';
 import { BOM } from './data/bom.js';
@@ -13,6 +29,9 @@ import { TANKS } from './data/sisteminha.js';
 
 (function () {
   'use strict';
+  validateData().forEach(function (problem) {
+    console.error('[dados] ' + problem);
+  });
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const $ = function (s, r) {
     return (r || document).querySelector(s);
@@ -333,7 +352,7 @@ import { TANKS } from './data/sisteminha.js';
     SP = new Batch();
   const waterMat = new THREE.MeshToonMaterial({ color: C(K.water), gradientMap: gradTex });
   const pondMat = new THREE.MeshToonMaterial({ color: C(K.pond), gradientMap: gradTex });
-  const FLOOR = -8.9; /* laje do bunker: piso a −8,7 m */
+  /* laje do bunker: piso a −8,7 m */
   function strata(x1, z1, x2, z2, top) {
     STRATA.forEach(function (b) {
       const t = Math.min(b[1], top);
@@ -344,14 +363,14 @@ import { TANKS } from './data/sisteminha.js';
     strata(x1, z1, x2, z2, -0.4);
     slab(SB, x1, z1, x2, z2, -0.4, 0.4, K.grass);
   }
-  land(-50, -75, -12, 75);
-  land(28, -75, 43, 75);
-  land(-12, -38, 28, 75);
-  land(-12, -75, 28, -73);
-  land(48, -75, 50, 75);
-  strata(-12, -73, 28, -38, FLOOR); /* rocha sob o fosso */
-  strata(43, -75, 48, 75, -1.4); /* leito do córrego */
-  slab(SW, 43, -75, 48, 75, -1.4, 0.85, K.white); /* água (material próprio) */
+  land(LOT.x1, LOT.z1, BUNKER.x1, LOT.z2);
+  land(BUNKER.x2, LOT.z1, STREAM.x1, LOT.z2);
+  land(BUNKER.x1, BUNKER.z2, BUNKER.x2, LOT.z2);
+  land(BUNKER.x1, LOT.z1, BUNKER.x2, BUNKER.z1);
+  land(STREAM.x2, LOT.z1, LOT.x2, LOT.z2);
+  strata(BUNKER.x1, BUNKER.z1, BUNKER.x2, BUNKER.z2, FLOOR); /* rocha sob o fosso */
+  strata(STREAM.x1, LOT.z1, STREAM.x2, LOT.z2, -1.4); /* leito do córrego */
+  slab(SW, STREAM.x1, LOT.z1, STREAM.x2, LOT.z2, -1.4, 0.85, K.white); /* água (material próprio) */
 
   /* linhas de estrato desenhadas e pedras nas faces do corte */
   (function () {
@@ -1242,7 +1261,7 @@ import { TANKS } from './data/sisteminha.js';
 
   /* ================= ENGENHO 1850 · 22 × 10 m ================= */
   const barnG = new THREE.Group();
-  barnG.position.set(32, 0, -38);
+  barnG.position.set(BARN_ORIGIN.x, BARN_ORIGIN.y, BARN_ORIGIN.z);
   surface.add(barnG);
   const barnWalls = new THREE.Group(),
     barnRoofG = new THREE.Group();
@@ -1516,7 +1535,7 @@ import { TANKS } from './data/sisteminha.js';
    corpo central com frontão triangular, escadaria monumental de mármore com espelhos de azulejo e gradil de ferro, portas-janela com guarda-corpo de ferro,
    capela e escritório ladeando o hall, escada interna que se bifurca em social e serviço, sala central no sobrado, telhado de quatro águas em capa e canal. */
   const casaG = new THREE.Group();
-  casaG.position.set(1, 0, -58);
+  casaG.position.set(CASA_ORIGIN.x, CASA_ORIGIN.y, CASA_ORIGIN.z);
   surface.add(casaG);
   const flrMat = toonMat.clone();
   let casaBaseMesh;
@@ -1528,10 +1547,7 @@ import { TANKS } from './data/sisteminha.js';
   casaG.add(casaRoofG);
   casaG.add(casaUp);
   casaUp.add(casaUpW);
-  const GF = 1.0,
-    GHT = 3.8,
-    UF = 5.0,
-    UHT = 3.6; /* piso térreo, pé-direito térreo, piso do sobrado, pé-direito do sobrado */
+  /* piso térreo, pé-direito térreo, piso do sobrado, pé-direito do sobrado */
   casaUp.position.y = UF;
   const roofMat = toonMat.clone();
   roofMat.side = THREE.DoubleSide;
@@ -1557,7 +1573,7 @@ import { TANKS } from './data/sisteminha.js';
     return g;
   }
   function ccol(x1, z1, x2, z2, lv) {
-    col(x1 + 1, z1 - 58, x2 + 1, z2 - 58, lv);
+    col(x1 + CASA_ORIGIN.x, z1 + CASA_ORIGIN.z, x2 + CASA_ORIGIN.x, z2 + CASA_ORIGIN.z, lv);
   } /* colisão em coordenadas locais da casa */
   /* parede com vãos: eixo 'x' (ao longo de x, em z=fixed) ou 'z'. gaps [a,b,sill,top] (alturas a partir de y0) */
   function wall(B, axis, fixed, lo, hi, gaps, y0, h, th, color, lv, deco) {
@@ -3078,8 +3094,6 @@ import { TANKS } from './data/sisteminha.js';
 
   /* ================= BUNKER · UM NÍVEL · 40 × 35 m = 1.400 m² · piso a −8,7 m · sob a Casa Grande e parte do Engenho ================= */
   const ledGroups = [];
-  const BFL = FLOOR + 0.2;
-  const BWH = 3.6;
   let bunkCapMesh = null;
   const capMat = toonMat.clone();
   (function () {
@@ -3105,13 +3119,13 @@ import { TANKS } from './data/sisteminha.js';
       CY = PAL.neon.cyan,
       GRN = PAL.neon.mint;
     /* limites */
-    const X1 = -11.4,
-      X2 = 27.4,
-      Z1 = -72.4,
-      Z2 = -38.6,
-      ZA = -55.8,
+    const X1 = BUNKER_INNER.x1,
+      X2 = BUNKER_INNER.x2,
+      Z1 = BUNKER_INNER.z1,
+      Z2 = BUNKER_INNER.z2,
+      ZA = BUNKER_INNER.corridorZ1,
       ZB =
-        -53.2; /* interior; fileira dos fundos até ZA, corredor ZA..ZB, fileira da frente ZB..Z2 */
+        BUNKER_INNER.corridorZ2; /* interior; fileira dos fundos até ZA, corredor ZA..ZB, fileira da frente ZB..Z2 */
     function bcol(axis, fixed, lo, hi, gaps, th) {
       let cur = lo;
       (gaps || [])

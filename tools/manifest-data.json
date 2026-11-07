@@ -1,0 +1,12 @@
+{
+  "src/data/sectors.js": { "header": "Setores navegáveis: câmera (f, ry, rx, z), texto e abertura do corte (lift).", "names": ["SECTORS"] },
+  "src/data/labels.js": { "header": "Rótulos 3D flutuantes (t título, s subtítulo, L nível, p posição).", "names": ["LABELS"] },
+  "src/data/bom.js": { "header": "Lista de materiais e memorial técnico (capítulos 01–23).", "names": ["BOM"] },
+  "src/data/aura.js": { "header": "Textos de telemetria por perfil de visão.", "names": ["AURA"] },
+  "src/data/rooms.js": { "header": "Cômodos para a 1ª pessoa: [nome, x1, z1, x2, z2, nível] em coordenadas do mundo.", "names": ["ROOMS"] },
+  "src/data/fpspots.js": { "header": "Pontos de entrada da 1ª pessoa.", "names": ["FPSPOT"] },
+  "src/data/terrain.js": { "header": "Camadas do solo (y0, y1, cor) e paleta de variações do canteiro.", "names": ["STRATA", "TG"] },
+  "src/data/collision.js": { "header": "Colisão da 1ª pessoa na superfície: retângulos [x1,z1,x2,z2] e círculos [x,z,r].", "names": ["BLOCK", "BCIRC"] },
+  "src/data/crops.js": { "header": "Quadras de rotação de cultivo (20 × 25 m).", "names": ["PLOTS"] },
+  "src/data/sisteminha.js": { "header": "Posições dos tanques do Sisteminha Embrapa.", "names": ["TANKS"] }
+}

@@ -43,3 +43,11 @@ Playwright global 1.63.0 (`export NODE_PATH=/home/claude/.npm-global/lib/node_mo
 - Dimensões: `FLOOR`, `BFL`, `BWH`, `GF`, `GHT`, `UF`, `UHT`, `LOT`, `STREAM`, `BUNKER`, `BUNKER_INNER`, `CASA_ORIGIN`, `BARN_ORIGIN`. `RB/RH/RW/RD` (telhado) são locais de função: ficam para a Fase 6.
 - Validação: cotas, setores, rótulos, cômodos (ladrilham o interior do bunker), quadras (500 m²), pontos de 1ª pessoa.
 - Achado de conteúdo: textos de área divergem da geometria (ver ACHADOS_FASE1-2.md). Nada de texto foi alterado.
+
+## Textos de área (feito, entre as fases 3 e 4)
+- Textos de áreas do bunker e do quadro de áreas alinhados à geometria; `validate.js` confere texto × geometria a cada carga.
+
+## Fase 4 (feito)
+- `src/core/materials.js` (gradTex, toonMat, unlitMat, hullMat, waterMat, pondMat), `geometries.js` (GX, cylG, coneG, ni), `renderer.js` (`createRenderer`), `geometry.js` (`slab`, `hipGeo`).
+- `src/core/Batch.js`: classe ES com batch lacrado após `build`. Métodos renomeados: `at→setOrigin`, `add→addGeometry`, `bb→addBox`, `cb→addCylinder`, `cn→addCone`, `ic→addSphere`, `beam→addBeam` (895 chamadas, por AST). Entrada não finita (ex.: rotação numérica em vez de `[rx,ry,rz]`) agora é avisada no console.
+- Bug corrigido: duas chamadas passavam rotação como número → vértices NaN, peças invisíveis (9 painéis curvos da cabeceira + 16 luzes de teto da suíte cyberpunk). Agora aparecem. Golden `fp-suite-cyberpunk` atualizado; avisos do three: 3 → 0; pares coplanares: 31.678 → 1.726.

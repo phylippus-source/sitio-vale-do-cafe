@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { clamp, smooth } from './core/math.js';
 import { R, rr } from './core/random.js';
 import { C } from './core/color.js';
+import { toonMat, hullMat, waterMat, pondMat } from './core/materials.js';
+import { GX, cylG, coneG } from './core/geometries.js';
+import { Batch } from './core/Batch.js';
+import { createRenderer } from './core/renderer.js';
+import { slab, hipGeo } from './core/geometry.js';
 import {
   FLOOR,
   BFL,
@@ -91,26 +96,11 @@ import { TANKS } from './data/sisteminha.js';
   const glHost = $('#gl'),
     stage = $('#stage');
 
-  let renderer;
-  try {
-    renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-    });
-  } catch {
+  const renderer = createRenderer(glHost);
+  if (!renderer) {
     glHost.innerHTML = '<div class="fallback">Este aparelho não conseguiu iniciar o WebGL.</div>';
     return;
   }
-  renderer.setPixelRatio(
-    Math.min(
-      window.devicePixelRatio || 1,
-      Math.min(window.innerWidth, window.innerHeight) < 640 ? 1.5 : 2,
-    ),
-  ); /* celulares de entrada (moto g52): 1,5× poupa a GPU */
-  renderer.setClearColor(0x000000, 0);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  glHost.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(26, 1, 30, 2400);
@@ -128,212 +118,16 @@ import { TANKS } from './data/sisteminha.js';
 
   /* ---------- utilidades ---------- */
 
-  /* ---------- materiais cel-shading ---------- */
-  const gradData = new Uint8Array([0, 0, 0, 255, 128, 128, 128, 255, 255, 255, 255, 255]);
-  const gradTex = new THREE.DataTexture(gradData, 3, 1, THREE.RGBAFormat);
-  gradTex.minFilter = gradTex.magFilter = THREE.NearestFilter;
-  gradTex.generateMipmaps = false;
-  gradTex.needsUpdate = true;
-  const toonMat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradTex });
-  const unlitMat = new THREE.MeshBasicMaterial({ vertexColors: true });
-  const hullMat = new THREE.ShaderMaterial({
-    uniforms: { uRes: { value: new THREE.Vector2(1, 1) }, uThick: { value: 1.5 } },
-    vertexShader: [
-      'uniform vec2 uRes; uniform float uThick; attribute vec3 snormal;',
-      'void main(){',
-      '  vec4 clip = projectionMatrix * modelViewMatrix * vec4(position,1.0);',
-      '  vec3 nv = normalize(normalMatrix * snormal);',
-      '  vec4 nc = projectionMatrix * vec4(nv, 0.0);',
-      '  vec2 dp = nc.xy * uRes; float l = length(dp); dp = l > 1e-5 ? dp / l : vec2(0.0);',
-      '  clip.xy += dp * (2.0 * uThick / uRes) * clip.w;',
-      '  clip.z += 0.0004 * clip.w;',
-      '  gl_Position = clip;',
-      '}',
-    ].join('\n'),
-    fragmentShader: 'void main(){ gl_FragColor = vec4(0.035, 0.027, 0.02, 1.0); }',
-    side: THREE.BackSide,
-  });
-
-  /* ---------- geometrias compartilhadas ---------- */
-  const GX = {
-    box: new THREE.BoxGeometry(1, 1, 1),
-    ico0: new THREE.IcosahedronGeometry(1, 0),
-    ico1: new THREE.IcosahedronGeometry(1, 1),
-    tor: new THREE.TorusGeometry(1, 0.05, 4, 18),
-    arc: new THREE.TorusGeometry(1, 0.035, 4, 16, Math.PI),
-    half: new THREE.CylinderGeometry(1, 1, 1, 14, 1, false, 0, Math.PI),
-  };
-  const _gc = {};
-  function cylG(k, seg) {
-    const key = 'c' + k.toFixed(3) + '|' + seg;
-    return _gc[key] || (_gc[key] = new THREE.CylinderGeometry(k, 1, 1, seg));
-  }
-  function coneG(seg) {
-    const key = 'n' + seg;
-    return _gc[key] || (_gc[key] = new THREE.ConeGeometry(1, 1, seg));
-  }
-  function ni(g) {
-    if (!g.userData.ni) {
-      const n = g.index ? g.toNonIndexed() : g;
-      n.computeBoundingBox();
-      g.userData.ni = n;
-    }
-    return g.userData.ni;
-  }
-
-  /* ---------- Batch: junta primitivas numa única malha com cor por vértice ---------- */
-  const _m4 = new THREE.Matrix4(),
-    _q4 = new THREE.Quaternion(),
-    _e4 = new THREE.Euler(),
-    _v3 = new THREE.Vector3(),
-    _s3 = new THREE.Vector3(),
-    _nm3 = new THREE.Matrix3(),
-    _Y = new THREE.Vector3(0, 1, 0);
-  function Batch() {
-    this.pos = [];
-    this.nor = [];
-    this.col = [];
-    this.base = new THREE.Matrix4();
-  }
-  Batch.prototype.at = function (x, y, z, ry) {
-    this.base.makeRotationY(ry || 0);
-    this.base.setPosition(x || 0, y || 0, z || 0);
-    return this;
-  };
-  Batch.prototype.add = function (geo, hex, x, y, z, s, r, q) {
-    const g = ni(geo),
-      bb = g.boundingBox,
-      y0 = bb.min.y,
-      hh = Math.max(1e-6, bb.max.y - bb.min.y);
-    if (typeof s === 'number') s = [s, s, s];
-    s = s || [1, 1, 1];
-    if (q) _q4.copy(q);
-    else {
-      r = r || [0, 0, 0];
-      _e4.set(r[0], r[1], r[2]);
-      _q4.setFromEuler(_e4);
-    }
-    _v3.set(x, y, z);
-    _s3.set(s[0], s[1], s[2]);
-    _m4.compose(_v3, _q4, _s3);
-    _m4.premultiply(this.base);
-    _nm3.getNormalMatrix(_m4);
-    const P = g.attributes.position,
-      N = g.attributes.normal,
-      c = C(hex),
-      n = P.count;
-    for (let i = 0; i < n; i++) {
-      _v3.fromBufferAttribute(P, i);
-      const t = (_v3.y - y0) / hh;
-      _v3.applyMatrix4(_m4);
-      this.pos.push(_v3.x, _v3.y, _v3.z);
-      _v3.fromBufferAttribute(N, i).applyMatrix3(_nm3).normalize();
-      this.nor.push(_v3.x, _v3.y, _v3.z);
-      const k = 0.93 + 0.12 * t;
-      this.col.push(c.r * k, c.g * k, c.b * k);
-    }
-    return this;
-  };
-  /* caixa pela base (y = fundo) */
-  Batch.prototype.bb = function (w, h, d, hex, x, y0, z, r) {
-    return this.add(GX.box, hex, x, y0 + h / 2, z, [w, h, d], r);
-  };
-  /* cilindro pela base: raio r, topo rt */
-  Batch.prototype.cb = function (r, h, hex, x, y0, z, seg, rt, rot) {
-    rt = rt == null ? r : rt;
-    return this.add(cylG(rt / r, seg || 10), hex, x, y0 + h / 2, z, [r, h, r], rot);
-  };
-  Batch.prototype.cn = function (r, h, hex, x, y0, z, seg, rot) {
-    return this.add(coneG(seg || 6), hex, x, y0 + h / 2, z, [r, h, r], rot);
-  };
-  Batch.prototype.ic = function (r, hex, x, y, z, sx, sy, sz, det) {
-    return this.add(det ? GX.ico1 : GX.ico0, hex, x, y, z, [
-      r * (sx || 1),
-      r * (sy || 1),
-      r * (sz || 1),
-    ]);
-  };
-  Batch.prototype.beam = function (a, b, rad, hex, seg) {
-    const A = new THREE.Vector3(a[0], a[1], a[2]),
-      B = new THREE.Vector3(b[0], b[1], b[2]),
-      len = A.distanceTo(B);
-    const q = new THREE.Quaternion().setFromUnitVectors(_Y, B.clone().sub(A).normalize());
-    return this.add(
-      cylG(1, seg || 6),
-      hex,
-      (A.x + B.x) / 2,
-      (A.y + B.y) / 2,
-      (A.z + B.z) / 2,
-      [rad, len, rad],
-      null,
-      q,
-    );
-  };
-  function smoothN(pos, nor) {
-    const n = pos.length / 3;
-    const map = new Map();
-    const out = new Float32Array(pos.length);
-    const keys = new Array(n);
-    let i;
-    let k;
-    for (i = 0; i < n; i++) {
-      k =
-        Math.round(pos[3 * i] * 400) +
-        10000 +
-        20001 * (Math.round(pos[3 * i + 1] * 400) + 10000) +
-        400040001 * (Math.round(pos[3 * i + 2] * 400) + 10000);
-      keys[i] = k;
-      let a = map.get(k);
-      if (!a) {
-        a = [0, 0, 0];
-        map.set(k, a);
-      }
-      a[0] += nor[3 * i];
-      a[1] += nor[3 * i + 1];
-      a[2] += nor[3 * i + 2];
-    }
-    for (i = 0; i < n; i++) {
-      const v = map.get(keys[i]),
-        l = Math.hypot(v[0], v[1], v[2]) || 1;
-      out[3 * i] = v[0] / l;
-      out[3 * i + 1] = v[1] / l;
-      out[3 * i + 2] = v[2] / l;
-    }
-    return out;
-  }
-  Batch.prototype.build = function (parent, o) {
-    o = o || {};
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nor, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
-    const mesh = new THREE.Mesh(g, o.mat || (o.unlit ? unlitMat : toonMat));
-    if (o.outline !== false) {
-      const hg = new THREE.BufferGeometry();
-      hg.setAttribute('position', g.attributes.position);
-      hg.setAttribute('snormal', new THREE.Float32BufferAttribute(smoothN(this.pos, this.nor), 3));
-      mesh.add(new THREE.Mesh(hg, hullMat));
-    }
-    if (parent) parent.add(mesh);
-    this.pos = this.nor = this.col = null;
-    return mesh;
-  };
-
   /* paleta chapada */
   const COL = []; /* colisão da 1ª pessoa: [x1,z1,x2,z2,nível] */
   function col(x1, z1, x2, z2, lv) {
     COL.push([Math.min(x1, x2), Math.min(z1, z2), Math.max(x1, x2), Math.max(z1, z2), lv || 's']);
-  }
-  function slab(b, x1, z1, x2, z2, y0, h, col) {
-    b.bb(x2 - x1, h, z2 - z1, col, (x1 + x2) / 2, y0, (z1 + z2) / 2);
   }
 
   /* ================= TERRENO 100 × 150 m (1 unidade = 1 m) ================= */
   const SB = new Batch(),
     SW = new Batch(),
     SP = new Batch();
-  const waterMat = new THREE.MeshToonMaterial({ color: C(K.water), gradientMap: gradTex });
-  const pondMat = new THREE.MeshToonMaterial({ color: C(K.pond), gradientMap: gradTex });
   /* laje do bunker: piso a −8,7 m */
   function strata(x1, z1, x2, z2, top) {
     STRATA.forEach(function (b) {
@@ -360,10 +154,10 @@ import { TANKS } from './data/sisteminha.js';
     const ys = [-8, -5, -2.4, -0.4];
     let k;
     function stripX(x1, x2, z, y) {
-      SB.bb(x2 - x1, 0.16, 0.07, ln, (x1 + x2) / 2, y - 0.08, z);
+      SB.addBox(x2 - x1, 0.16, 0.07, ln, (x1 + x2) / 2, y - 0.08, z);
     }
     function stripZ(z1, z2, x, y) {
-      SB.bb(0.07, 0.16, z2 - z1, ln, x, y - 0.08, (z1 + z2) / 2);
+      SB.addBox(0.07, 0.16, z2 - z1, ln, x, y - 0.08, (z1 + z2) / 2);
     }
     ys.forEach(function (y) {
       stripX(-50, 50, 75.04, y);
@@ -376,10 +170,12 @@ import { TANKS } from './data/sisteminha.js';
         y = rr(-9.6, -0.9);
       if (u < 0.34) {
         const x = rr(-49, 49);
-        SB.ic(1, col, x, y, 75.0, rr(0.45, 1.1), rr(0.3, 0.7), 0.18);
-      } else if (u < 0.6) SB.ic(1, col, -50.0, y, rr(-74, 74), 0.18, rr(0.3, 0.7), rr(0.45, 1.1));
-      else if (u < 0.8) SB.ic(1, col, 50.0, y, rr(-74, 74), 0.18, rr(0.3, 0.7), rr(0.45, 1.1));
-      else SB.ic(1, col, rr(-49, 49), y, 75.0, rr(0.45, 1.1), rr(0.3, 0.7), 0.18);
+        SB.addSphere(1, col, x, y, 75.0, rr(0.45, 1.1), rr(0.3, 0.7), 0.18);
+      } else if (u < 0.6)
+        SB.addSphere(1, col, -50.0, y, rr(-74, 74), 0.18, rr(0.3, 0.7), rr(0.45, 1.1));
+      else if (u < 0.8)
+        SB.addSphere(1, col, 50.0, y, rr(-74, 74), 0.18, rr(0.3, 0.7), rr(0.45, 1.1));
+      else SB.addSphere(1, col, rr(-49, 49), y, 75.0, rr(0.45, 1.1), rr(0.3, 0.7), 0.18);
     }
   })();
 
@@ -407,7 +203,7 @@ import { TANKS } from './data/sisteminha.js';
       !inLand(gpx - gpr, gpz + gpr)
     )
       continue;
-    SB.cb(gpr, 0.03, [K.grass2, K.grass3][gp % 2], gpx, 0, gpz, 7);
+    SB.addCylinder(gpr, 0.03, [K.grass2, K.grass3][gp % 2], gpx, 0, gpz, 7);
   }
 
   /* retângulos de uso do solo: nada de árvore ou capim por cima */
@@ -430,7 +226,7 @@ import { TANKS } from './data/sisteminha.js';
 
   /* caminhos de terra */
   function path(x1, z1, x2, z2) {
-    SB.bb(x2 - x1, 0.06, z2 - z1, K.dirt, (x1 + x2) / 2, 0, (z1 + z2) / 2);
+    SB.addBox(x2 - x1, 0.06, z2 - z1, K.dirt, (x1 + x2) / 2, 0, (z1 + z2) / 2);
   }
   path(-16, -44, -12, 26); /* entre quadras */
   path(-12, -19, 8, -14); /* corte entre quadras */
@@ -444,17 +240,17 @@ import { TANKS } from './data/sisteminha.js';
   /* ---------- estrada de cascalho: porteira (leste) → via transversal → via principal → pátio e garagem ---------- */
   const GRV = 0xe6dcc0,
     RUT = 0xcbb98f;
-  SB.bb(71.5, 0.1, 5, GRV, -14.25, 0, 28); /* x -50 … 21,5 · z 25,5 … 30,5 */
-  SB.bb(71.5, 0.11, 0.55, RUT, -14.25, 0, 27.0);
-  SB.bb(71.5, 0.11, 0.55, RUT, -14.25, 0, 29.0);
-  SB.bb(76.5, 0.1, 5, GRV, 19, 0, -7.75); /* via principal x 16,5 … 21,5 */
-  SB.bb(0.55, 0.11, 76.5, RUT, 18.1, 0, -7.75);
-  SB.bb(0.55, 0.11, 76.5, RUT, 19.9, 0, -7.75);
+  SB.addBox(71.5, 0.1, 5, GRV, -14.25, 0, 28); /* x -50 … 21,5 · z 25,5 … 30,5 */
+  SB.addBox(71.5, 0.11, 0.55, RUT, -14.25, 0, 27.0);
+  SB.addBox(71.5, 0.11, 0.55, RUT, -14.25, 0, 29.0);
+  SB.addBox(76.5, 0.1, 5, GRV, 19, 0, -7.75); /* via principal x 16,5 … 21,5 */
+  SB.addBox(0.55, 0.11, 76.5, RUT, 18.1, 0, -7.75);
+  SB.addBox(0.55, 0.11, 76.5, RUT, 19.9, 0, -7.75);
   path(21.5, 25.5, 43, 30.5); /* continua em terra até o córrego */
   for (let rd = 0; rd < 46; rd++) {
     const rdx = -48 + rd * 1.6,
       rdz = rd % 2 ? 25.25 : 30.75;
-    SB.ic(
+    SB.addSphere(
       1,
       K.rock,
       rdx + rr(-0.3, 0.3),
@@ -467,7 +263,7 @@ import { TANKS } from './data/sisteminha.js';
   }
   for (let rd2 = 0; rd2 < 18; rd2++) {
     const rdz2 = -44 + rd2 * 4.2;
-    SB.ic(
+    SB.addSphere(
       1,
       K.rock,
       rd2 % 2 ? 16.35 : 21.65,
@@ -479,40 +275,42 @@ import { TANKS } from './data/sisteminha.js';
     );
   }
   /* setas de guia no pátio, rumo à porta da garagem (x 28,5…33,5 · z −33) */
-  for (let ra = 0; ra < 6; ra++) SB.bb(0.9, 0.03, 0.2, K.white, 22.8 + ra * 1.55, 0.2, -24);
-  for (let rb = 0; rb < 5; rb++) SB.bb(0.2, 0.03, 0.9, K.white, 31, 0.2, -25.6 - rb * 1.4);
+  for (let ra = 0; ra < 6; ra++) SB.addBox(0.9, 0.03, 0.2, K.white, 22.8 + ra * 1.55, 0.2, -24);
+  for (let rb = 0; rb < 5; rb++) SB.addBox(0.2, 0.03, 0.9, K.white, 31, 0.2, -25.6 - rb * 1.4);
   /* porteira de pedra e madeira */
   const GX0 = -49.1,
     GZ1 = 24.6,
     GZ2 = 31.4;
   [GZ1, GZ2].forEach(function (gz, gi) {
-    SB.bb(1.0, 3.6, 1.0, K.stone, GX0, 0, gz);
-    SB.bb(1.3, 0.28, 1.3, K.stoneD, GX0, 3.6, gz);
-    SB.bb(0.8, 0.2, 0.8, K.stoneL, GX0, 3.88, gz);
-    for (let gst = 0; gst < 4; gst++) SB.bb(1.02, 0.04, 1.02, K.stoneD, GX0, 0.7 + gst * 0.8, gz);
+    SB.addBox(1.0, 3.6, 1.0, K.stone, GX0, 0, gz);
+    SB.addBox(1.3, 0.28, 1.3, K.stoneD, GX0, 3.6, gz);
+    SB.addBox(0.8, 0.2, 0.8, K.stoneL, GX0, 3.88, gz);
+    for (let gst = 0; gst < 4; gst++)
+      SB.addBox(1.02, 0.04, 1.02, K.stoneD, GX0, 0.7 + gst * 0.8, gz);
   });
-  SB.bb(0.34, 0.34, GZ2 - GZ1 + 1.0, K.woodD, GX0, 3.9, (GZ1 + GZ2) / 2); /* travessa */
-  SB.beam([GX0, 3.9, GZ1 + 0.4], [GX0, 3.4, GZ1 + 0.4], 0.03, K.steelD, 4);
-  SB.beam([GX0, 3.9, GZ2 - 0.4], [GX0, 3.4, GZ2 - 0.4], 0.03, K.steelD, 4);
-  SB.bb(0.18, 0.9, 5.2, K.woodL, GX0, 2.5, (GZ1 + GZ2) / 2); /* tábua da placa */
+  SB.addBox(0.34, 0.34, GZ2 - GZ1 + 1.0, K.woodD, GX0, 3.9, (GZ1 + GZ2) / 2); /* travessa */
+  SB.addBeam([GX0, 3.9, GZ1 + 0.4], [GX0, 3.4, GZ1 + 0.4], 0.03, K.steelD, 4);
+  SB.addBeam([GX0, 3.9, GZ2 - 0.4], [GX0, 3.4, GZ2 - 0.4], 0.03, K.steelD, 4);
+  SB.addBox(0.18, 0.9, 5.2, K.woodL, GX0, 2.5, (GZ1 + GZ2) / 2); /* tábua da placa */
   [
     [GZ1 + 1.0, GX0 + 3.4, GZ1 + 0.2],
     [GZ2 - 1.0, GX0 + 3.4, GZ2 - 0.2],
   ].forEach(function (l, li) {
     const zz = l[2];
-    SB.bb(3.4, 0.14, 0.1, K.wood, GX0 + 1.95, 0.55, zz);
-    SB.bb(3.4, 0.14, 0.1, K.wood, GX0 + 1.95, 1.45, zz);
-    for (let pk = 0; pk < 6; pk++) SB.bb(0.12, 1.6, 0.08, K.woodL, GX0 + 0.7 + pk * 0.6, 0.1, zz);
-    SB.beam([GX0 + 0.55, 0.5, zz], [GX0 + 3.5, 1.5, zz], 0.05, K.woodD, 4);
+    SB.addBox(3.4, 0.14, 0.1, K.wood, GX0 + 1.95, 0.55, zz);
+    SB.addBox(3.4, 0.14, 0.1, K.wood, GX0 + 1.95, 1.45, zz);
+    for (let pk = 0; pk < 6; pk++)
+      SB.addBox(0.12, 1.6, 0.08, K.woodL, GX0 + 0.7 + pk * 0.6, 0.1, zz);
+    SB.addBeam([GX0 + 0.55, 0.5, zz], [GX0 + 3.5, 1.5, zz], 0.05, K.woodD, 4);
   });
-  SB.bb(0.2, 3.0, 0.2, K.woodD, -48.1, 0, 22.6);
-  SB.bb(0.6, 0.4, 0.9, K.red, -48.1, 3.0, 22.6);
-  SB.bb(0.5, 0.08, 0.7, K.white, -48.1, 3.4, 22.6); /* caixa de correio */
-  SB.cb(0.09, 4.2, K.steelD, -47.9, 0, 33.2, 6);
-  SB.ic(1, 0xfff1b8, -47.9, 4.4, 33.2, 0.35, 0.35, 0.35);
-  SB.bb(0.7, 0.1, 0.7, K.black, -47.9, 4.2, 33.2); /* poste de luz */
-  SB.bb(0.7, 1.1, 3.4, K.stone, GX0, 0, 22.7);
-  SB.bb(0.7, 1.1, 3.4, K.stone, GX0, 0, 33.4); /* muretas */
+  SB.addBox(0.2, 3.0, 0.2, K.woodD, -48.1, 0, 22.6);
+  SB.addBox(0.6, 0.4, 0.9, K.red, -48.1, 3.0, 22.6);
+  SB.addBox(0.5, 0.08, 0.7, K.white, -48.1, 3.4, 22.6); /* caixa de correio */
+  SB.addCylinder(0.09, 4.2, K.steelD, -47.9, 0, 33.2, 6);
+  SB.addSphere(1, 0xfff1b8, -47.9, 4.4, 33.2, 0.35, 0.35, 0.35);
+  SB.addBox(0.7, 0.1, 0.7, K.black, -47.9, 4.2, 33.2); /* poste de luz */
+  SB.addBox(0.7, 1.1, 3.4, K.stone, GX0, 0, 22.7);
+  SB.addBox(0.7, 1.1, 3.4, K.stone, GX0, 0, 33.4); /* muretas */
   (function () {
     const cv = document.createElement('canvas');
     cv.width = 1024;
@@ -547,7 +345,7 @@ import { TANKS } from './data/sisteminha.js';
   for (let rk = 0; rk < 90; rk++) {
     const rkz = rr(-74, 74),
       side = R() < 0.5;
-    SB.ic(
+    SB.addSphere(
       1,
       K.rock,
       side ? rr(42.2, 43.4) : rr(47.6, 48.6),
@@ -563,20 +361,20 @@ import { TANKS } from './data/sisteminha.js';
     [-57, 0.38],
     [-54, 0.2],
   ].forEach(function (st) {
-    SW.bb(5.0, st[1], 2.4, K.white, 45.5, -0.55, st[0]);
-    SB.bb(5.0, 0.07, 2.4, K.white, 45.5, -0.55 + st[1], st[0]);
+    SW.addBox(5.0, st[1], 2.4, K.white, 45.5, -0.55, st[0]);
+    SB.addBox(5.0, 0.07, 2.4, K.white, 45.5, -0.55 + st[1], st[0]);
   });
 
   /* ---------- lago de reúso (120 m²): reservatório do sistema, longe dos tanques ---------- */
   const pondX = -36.5,
     pondZ = 48.5,
     pondR = 6.2;
-  SB.cb(7.2, 0.14, K.sand, pondX, 0, pondZ, 36);
-  SP.cb(pondR, 0.3, K.white, pondX, 0, pondZ, 36);
+  SB.addCylinder(7.2, 0.14, K.sand, pondX, 0, pondZ, 36);
+  SP.addCylinder(pondR, 0.3, K.white, pondX, 0, pondZ, 36);
   for (let pq = 0; pq < 30; pq++) {
     const pa = (pq / 30) * Math.PI * 2 + rr(-0.08, 0.08),
       pr = rr(6.6, 7.2);
-    SB.ic(
+    SB.addSphere(
       1,
       K.rock,
       pondX + Math.cos(pa) * pr,
@@ -593,9 +391,9 @@ import { TANKS } from './data/sisteminha.js';
     [-2.0, 3.1, 0.7],
     [3.4, -2.2, 0.6],
   ].forEach(function (l) {
-    SB.cb(l[2], 0.04, 0x45b84a, pondX + l[0], 0.3, pondZ + l[1], 10);
+    SB.addCylinder(l[2], 0.04, 0x45b84a, pondX + l[0], 0.3, pondZ + l[1], 10);
   });
-  SB.ic(1, K.pink, pondX - 3.2, 0.42, pondZ - 1.4, 0.3, 0.25, 0.3);
+  SB.addSphere(1, K.pink, pondX - 3.2, 0.42, pondZ - 1.4, 0.3, 0.25, 0.3);
 
   /* ================= NÚCLEO SISTEMINHA EMBRAPA (regras: tanque no centro, tudo perto, sem árvore) =================
    1 tanque redondo de 4,4 m (10 m³) por módulo, em terreno plano, perto de energia e água, sem árvores ao redor.
@@ -605,10 +403,10 @@ import { TANKS } from './data/sisteminha.js';
     let a;
     const x = t.x;
     const z = t.z;
-    SB.cb(4.4, 0.06, K.conc, x, 0, z, 32); /* laje plana de apoio */
+    SB.addCylinder(4.4, 0.06, K.conc, x, 0, z, 32); /* laje plana de apoio */
     for (a = 0; a < 18; a++) {
       const th = (a / 18) * Math.PI * 2;
-      SB.add(
+      SB.addGeometry(
         GX.box,
         K.conc,
         x + Math.cos(th) * 2.32,
@@ -618,12 +416,12 @@ import { TANKS } from './data/sisteminha.js';
         [0, -th - Math.PI / 2, 0],
       );
     }
-    SB.cb(2.46, 0.1, K.concD, x, 0.9, z, 24, 2.46);
-    SP.cb(2.2, 0.8, K.white, x, 0, z, 24); /* 10 m³ · lâmina de 70 a 80 cm */
-    SB.cb(0.09, 0.9, K.black, x + 0.4, 0.8, z, 6);
-    SB.bb(0.5, 0.05, 0.5, K.steelD, x + 0.4, 1.7, z); /* aerador venturi */
-    SB.cb(0.34, 0.75, K.blue, x + 3.1, 0.06, z + 0.7, 10, 0.3);
-    SB.ic(
+    SB.addCylinder(2.46, 0.1, K.concD, x, 0.9, z, 24, 2.46);
+    SP.addCylinder(2.2, 0.8, K.white, x, 0, z, 24); /* 10 m³ · lâmina de 70 a 80 cm */
+    SB.addCylinder(0.09, 0.9, K.black, x + 0.4, 0.8, z, 6);
+    SB.addBox(0.5, 0.05, 0.5, K.steelD, x + 0.4, 1.7, z); /* aerador venturi */
+    SB.addCylinder(0.34, 0.75, K.blue, x + 3.1, 0.06, z + 0.7, 10, 0.3);
+    SB.addSphere(
       1,
       K.white,
       x + 3.1,
@@ -633,12 +431,12 @@ import { TANKS } from './data/sisteminha.js';
       0.14,
       0.26,
     ); /* biofiltro com cabeleira de nylon */
-    SB.cb(0.42, 0.9, 0xe9e2cb, x + 3.1, 0.06, z - 0.8, 10, 0.38);
-    SB.cb(0.45, 0.08, K.steel, x + 3.1, 0.96, z - 0.8, 10); /* sedimentador */
-    SB.beam([x + 2.3, 0.85, z - 0.3], [x + 3.1, 0.8, z - 0.8], 0.06, K.black, 5);
-    SB.beam([x + 3.1, 0.4, z - 0.8], [x + 3.1, 0.4, z + 0.7], 0.06, K.black, 5);
-    SB.bb(0.5, 0.35, 0.4, K.black, x + 2.5, 0.06, z + 1.9); /* bomba SB-2000 */
-    SB.beam(
+    SB.addCylinder(0.42, 0.9, 0xe9e2cb, x + 3.1, 0.06, z - 0.8, 10, 0.38);
+    SB.addCylinder(0.45, 0.08, K.steel, x + 3.1, 0.96, z - 0.8, 10); /* sedimentador */
+    SB.addBeam([x + 2.3, 0.85, z - 0.3], [x + 3.1, 0.8, z - 0.8], 0.06, K.black, 5);
+    SB.addBeam([x + 3.1, 0.4, z - 0.8], [x + 3.1, 0.4, z + 0.7], 0.06, K.black, 5);
+    SB.addBox(0.5, 0.35, 0.4, K.black, x + 2.5, 0.06, z + 1.9); /* bomba SB-2000 */
+    SB.addBeam(
       [x + 3.1, 0.12, z - 1.2],
       [x + 3.1, 0.12, z - 3.6],
       0.05,
@@ -648,35 +446,41 @@ import { TANKS } from './data/sisteminha.js';
   }
   TANKS.forEach(sisTank);
   /* quadro de energia e bomba d'água: perto da rede (windmill e poços) */
-  SB.bb(1.0, 1.9, 0.5, K.concD, -14.2, 0, 31.8);
-  SB.bb(0.7, 0.5, 0.1, K.yellow, -14.2, 1.1, 32.1);
-  SB.cb(0.1, 3.4, K.woodD, -15.6, 0, 31.8, 6);
-  SB.beam([10, 0.14, 32], [-5.5, 0.14, 34.5], 0.07, K.blue, 5);
-  SB.beam([-5.5, 0.14, 34.5], [-7.3, 0.7, 37.4], 0.07, K.blue, 5); /* água dos poços */
-  SB.beam([-9.5, 0.14, 41.0], [-9.5, 0.14, 44.4], 0.09, K.blue, 5);
-  SB.beam([-19, 0.14, 41.0], [-19, 0.14, 44.4], 0.09, K.blue, 5); /* água do tanque para a horta */
+  SB.addBox(1.0, 1.9, 0.5, K.concD, -14.2, 0, 31.8);
+  SB.addBox(0.7, 0.5, 0.1, K.yellow, -14.2, 1.1, 32.1);
+  SB.addCylinder(0.1, 3.4, K.woodD, -15.6, 0, 31.8, 6);
+  SB.addBeam([10, 0.14, 32], [-5.5, 0.14, 34.5], 0.07, K.blue, 5);
+  SB.addBeam([-5.5, 0.14, 34.5], [-7.3, 0.7, 37.4], 0.07, K.blue, 5); /* água dos poços */
+  SB.addBeam([-9.5, 0.14, 41.0], [-9.5, 0.14, 44.4], 0.09, K.blue, 5);
+  SB.addBeam(
+    [-19, 0.14, 41.0],
+    [-19, 0.14, 44.4],
+    0.09,
+    K.blue,
+    5,
+  ); /* água do tanque para a horta */
 
   /* horta: 5 canteiros irrigados por gotejo com a água dos tanques */
-  SB.bb(24, 0.1, 0.14, K.blue, -16, 0.1, 44.4);
+  SB.addBox(24, 0.1, 0.14, K.blue, -16, 0.1, 44.4);
   for (let hb = 0; hb < 5; hb++) {
     const hbz = 46.1 + hb * 1.9,
       hcr = [0x58c05b, PAL.flora.leafGreen, PAL.flora.tomatoRed, PAL.flora.violet, PAL.flora.straw][
         hb
       ];
-    SB.bb(24, 0.38, 1.3, K.soilD, -16, 0, hbz);
+    SB.addBox(24, 0.38, 1.3, K.soilD, -16, 0, hbz);
     for (let hj = 0; hj < 17; hj++) {
       const hjx = -27.2 + hj * 1.4;
       if (hb === 0)
-        SB.ic(1, [0x7ad063, 0x55b84f][hj % 2], hjx, 0.6, hbz, 0.34, 0.26, 0.34); /* alface */
+        SB.addSphere(1, [0x7ad063, 0x55b84f][hj % 2], hjx, 0.6, hbz, 0.34, 0.26, 0.34); /* alface */
       else if (hb === 1)
-        SB.ic(1, [0x3d9a4a, 0x6cc06a][hj % 2], hjx, 0.7, hbz, 0.42, 0.34, 0.42); /* couve */
+        SB.addSphere(1, [0x3d9a4a, 0x6cc06a][hj % 2], hjx, 0.7, hbz, 0.42, 0.34, 0.42); /* couve */
       else if (hb === 2) {
-        SB.cb(0.03, 1.0, K.woodD, hjx, 0.38, hbz, 4);
-        SB.ic(1, hcr, hjx, 1.1, hbz, 0.2, 0.2, 0.2);
-        SB.ic(1, PAL.flora.leafGreen, hjx, 0.9, hbz, 0.3, 0.25, 0.3);
+        SB.addCylinder(0.03, 1.0, K.woodD, hjx, 0.38, hbz, 4);
+        SB.addSphere(1, hcr, hjx, 1.1, hbz, 0.2, 0.2, 0.2);
+        SB.addSphere(1, PAL.flora.leafGreen, hjx, 0.9, hbz, 0.3, 0.25, 0.3);
       } /* tomate */
       else if (hb === 3)
-        SB.bb(
+        SB.addBox(
           0.34,
           0.5,
           0.34,
@@ -686,22 +490,23 @@ import { TANKS } from './data/sisteminha.js';
           hbz,
         ); /* beterraba/roxas */
       else {
-        SB.cn(0.16, 0.7 + (hj % 3) * 0.1, 0x6cae3a, hjx, 0.38, hbz, 4);
-        SB.ic(1, hcr, hjx, 1.0, hbz, 0.12, 0.12, 0.12);
+        SB.addCone(0.16, 0.7 + (hj % 3) * 0.1, 0x6cae3a, hjx, 0.38, hbz, 4);
+        SB.addSphere(1, hcr, hjx, 1.0, hbz, 0.12, 0.12, 0.12);
       } /* temperos e chás */
     }
   }
-  SB.bb(0.2, 1.4, 0.2, K.woodD, -28.6, 0, 55.4);
-  SB.bb(1.9, 0.8, 0.1, PAL.light.parchment, -28.6, 1.4, 55.4);
+  SB.addBox(0.2, 1.4, 0.2, K.woodD, -28.6, 0, 55.4);
+  SB.addBox(1.9, 0.8, 0.1, PAL.light.parchment, -28.6, 1.4, 55.4);
 
   /* composteira (3 baias de paletes) e minhocário (8 canteiros) */
   for (let cb3 = 0; cb3 < 3; cb3++) {
     const cbz = 33.2 + cb3 * 2.5;
-    SB.bb(0.14, 1.3, 2.2, K.woodL, -1.1, 0, cbz);
-    SB.bb(0.14, 1.3, 2.2, K.woodL, 1.1, 0, cbz);
-    SB.bb(2.2, 1.3, 0.14, K.woodL, 0, 0, cbz - 1.1 + 0.1);
-    for (let cp = 0; cp < 4; cp++) SB.bb(2.2, 0.08, 0.14, K.woodD, 0, 0.2 + cp * 0.3, cbz + 1.05);
-    SB.ic(
+    SB.addBox(0.14, 1.3, 2.2, K.woodL, -1.1, 0, cbz);
+    SB.addBox(0.14, 1.3, 2.2, K.woodL, 1.1, 0, cbz);
+    SB.addBox(2.2, 1.3, 0.14, K.woodL, 0, 0, cbz - 1.1 + 0.1);
+    for (let cp = 0; cp < 4; cp++)
+      SB.addBox(2.2, 0.08, 0.14, K.woodD, 0, 0.2 + cp * 0.3, cbz + 1.05);
+    SB.addSphere(
       1,
       [PAL.wood.ebony, 0x4a2f1c, 0x3a2417][cb3],
       0,
@@ -716,67 +521,68 @@ import { TANKS } from './data/sisteminha.js';
   for (let mc = 0; mc < 8; mc++) {
     const mcx = -0.5 + (mc % 4) * 1.7,
       mcz = 44.2 + ((mc / 4) | 0) * 3.2;
-    SB.bb(1.5, 0.7, 2.5, 0xc2704c, mcx, 0, mcz);
-    SB.bb(1.3, 0.08, 2.3, 0x2d1f15, mcx, 0.7, mcz);
+    SB.addBox(1.5, 0.7, 2.5, 0xc2704c, mcx, 0, mcz);
+    SB.addBox(1.3, 0.08, 2.3, 0x2d1f15, mcx, 0.7, mcz);
     for (let mw = 0; mw < 3; mw++)
-      SB.bb(0.5, 0.06, 0.06, 0xe8a0a0, mcx - 0.3 + mw * 0.3, 0.78, mcz - 0.5 + mw * 0.5);
+      SB.addBox(0.5, 0.06, 0.06, 0xe8a0a0, mcx - 0.3 + mw * 0.3, 0.78, mcz - 0.5 + mw * 0.5);
   }
 
   /* galinheiro de poedeiras (35 aves, 114 m²) com cerca e abrigo */
   const hen = { x1: -43, x2: -31, z1: 31, z2: 40.5 };
   [hen.z1, hen.z2].forEach(function (zz) {
     [0.5, 1.1].forEach(function (h) {
-      SB.bb(hen.x2 - hen.x1 + 0.2, 0.1, 0.1, K.wood, (hen.x1 + hen.x2) / 2, h, zz);
+      SB.addBox(hen.x2 - hen.x1 + 0.2, 0.1, 0.1, K.wood, (hen.x1 + hen.x2) / 2, h, zz);
     });
   });
   [hen.x1, hen.x2].forEach(function (xx) {
     [0.5, 1.1].forEach(function (h) {
-      SB.bb(0.1, 0.1, hen.z2 - hen.z1, K.wood, xx, h, (hen.z1 + hen.z2) / 2);
+      SB.addBox(0.1, 0.1, hen.z2 - hen.z1, K.wood, xx, h, (hen.z1 + hen.z2) / 2);
     });
   });
   for (let fenceX = 0; fenceX <= 6; fenceX++) {
     [hen.z1, hen.z2].forEach(function (zz) {
-      SB.bb(0.16, 1.4, 0.16, K.woodD, hen.x1 + fenceX * 2, 0, zz);
+      SB.addBox(0.16, 1.4, 0.16, K.woodD, hen.x1 + fenceX * 2, 0, zz);
     });
   }
   for (let fenceZ = 1; fenceZ < 5; fenceZ++) {
     [hen.x1, hen.x2].forEach(function (xx) {
-      SB.bb(0.16, 1.4, 0.16, K.woodD, xx, 0, hen.z1 + (fenceZ * (hen.z2 - hen.z1)) / 5);
+      SB.addBox(0.16, 1.4, 0.16, K.woodD, xx, 0, hen.z1 + (fenceZ * (hen.z2 - hen.z1)) / 5);
     });
   }
-  SB.bb(4.2, 2.0, 3.0, K.woodL, -40, 0, 33.4);
-  SB.add(GX.box, K.roofD, -40, 2.35, 33.4, [4.8, 0.2, 3.6]);
-  SB.bb(0.9, 1.3, 0.1, K.woodD, -40, 0, 35.0);
-  SB.beam([-37.6, 0.1, 35.4], [-38.6, 1.3, 35.0], 0.08, K.wood, 4);
-  for (let nb = 0; nb < 4; nb++) SB.bb(0.7, 0.5, 0.6, PAL.clay.honey, -42.4 + nb * 0.9, 0.9, 32.6);
-  SB.bb(1.6, 0.4, 0.5, PAL.water.trough, -35, 0, 38.8);
-  SB.cb(0.3, 0.6, K.steel, -33, 0, 38.8, 8);
+  SB.addBox(4.2, 2.0, 3.0, K.woodL, -40, 0, 33.4);
+  SB.addGeometry(GX.box, K.roofD, -40, 2.35, 33.4, [4.8, 0.2, 3.6]);
+  SB.addBox(0.9, 1.3, 0.1, K.woodD, -40, 0, 35.0);
+  SB.addBeam([-37.6, 0.1, 35.4], [-38.6, 1.3, 35.0], 0.08, K.wood, 4);
+  for (let nb = 0; nb < 4; nb++)
+    SB.addBox(0.7, 0.5, 0.6, PAL.clay.honey, -42.4 + nb * 0.9, 0.9, 32.6);
+  SB.addBox(1.6, 0.4, 0.5, PAL.water.trough, -35, 0, 38.8);
+  SB.addCylinder(0.3, 0.6, K.steel, -33, 0, 38.8, 8);
   /* frangos de corte em trator móvel e mosca-soldado */
   [
     [-27.2, 33.2],
     [-27.2, 36.4],
   ].forEach(function (c) {
-    SB.bb(5, 0.08, 2.2, K.woodL, c[0], 0.1, c[1]);
-    SB.add(GX.arc, K.white, c[0] - 2, 0.1, c[1], [1.1, 1.0, 1.1], [0, 0, 0]);
-    SB.add(GX.arc, K.white, c[0] + 2, 0.1, c[1], [1.1, 1.0, 1.1], [0, 0, 0]);
-    SB.bb(5, 0.06, 0.06, K.white, c[0], 1.1, c[1]);
+    SB.addBox(5, 0.08, 2.2, K.woodL, c[0], 0.1, c[1]);
+    SB.addGeometry(GX.arc, K.white, c[0] - 2, 0.1, c[1], [1.1, 1.0, 1.1], [0, 0, 0]);
+    SB.addGeometry(GX.arc, K.white, c[0] + 2, 0.1, c[1], [1.1, 1.0, 1.1], [0, 0, 0]);
+    SB.addBox(5, 0.06, 0.06, K.white, c[0], 1.1, c[1]);
   });
-  SB.bb(3.2, 2.0, 2.6, K.cal, -26, 0, 40.2);
-  SB.bb(3.5, 0.25, 2.9, K.roofD, -26, 2.0, 40.2);
+  SB.addBox(3.2, 2.0, 2.6, K.cal, -26, 0, 40.2);
+  SB.addBox(3.5, 0.25, 2.9, K.roofD, -26, 2.0, 40.2);
   for (let tr = 0; tr < 3; tr++)
-    SB.bb(2.4, 0.08, 0.7, [0x9bd04a, 0x7cb83a, 0xb7d96a][tr], -26, 0.6 + tr * 0.5, 40.2);
+    SB.addBox(2.4, 0.08, 0.7, [0x9bd04a, 0x7cb83a, 0xb7d96a][tr], -26, 0.6 + tr * 0.5, 40.2);
 
   /* estufa arqueada 12 × 10 m (a película translúcida entra depois) */
   const gh = { x: 27.5, z: 35.6, len: 12, w: 10 };
   for (let gr = 0; gr <= 8; gr++)
-    SB.add(GX.arc, K.white, gh.x - 6 + gr * 1.5, 0, gh.z, [5, 3.2, 5], [0, Math.PI / 2, 0]);
-  SB.bb(12, 0.14, 0.14, K.white, gh.x, 3.2, gh.z);
-  SB.bb(0.18, 0.18, 10, K.white, gh.x - 6, 0, gh.z);
-  SB.bb(0.18, 0.18, 10, K.white, gh.x + 6, 0, gh.z);
+    SB.addGeometry(GX.arc, K.white, gh.x - 6 + gr * 1.5, 0, gh.z, [5, 3.2, 5], [0, Math.PI / 2, 0]);
+  SB.addBox(12, 0.14, 0.14, K.white, gh.x, 3.2, gh.z);
+  SB.addBox(0.18, 0.18, 10, K.white, gh.x - 6, 0, gh.z);
+  SB.addBox(0.18, 0.18, 10, K.white, gh.x + 6, 0, gh.z);
   for (let gbd = 0; gbd < 4; gbd++) {
-    SB.bb(8, 0.5, 1.2, K.soilD, gh.x - 1.4, 0, gh.z - 3.4 + gbd * 2.3);
+    SB.addBox(8, 0.5, 1.2, K.soilD, gh.x - 1.4, 0, gh.z - 3.4 + gbd * 2.3);
     for (let gk = 0; gk < 8; gk++)
-      SB.ic(
+      SB.addSphere(
         1,
         [PAL.flora.leafGreen, 0x2f9644, 0x66c25a][(gk + gbd) % 3],
         gh.x - 4.9 + gk * 1.0,
@@ -788,14 +594,22 @@ import { TANKS } from './data/sisteminha.js';
       );
   }
   /* sala estéril de cogumelos (16 m²) */
-  SB.bb(4, 2.6, 4, K.cal, gh.x + 4, 0, gh.z + 1.4);
-  SB.bb(4.3, 0.3, 4.3, K.roofD, gh.x + 4, 2.6, gh.z + 1.4);
-  SB.bb(1, 1.9, 0.12, K.woodD, gh.x + 4, 0, gh.z + 3.45);
-  SB.bb(0.9, 0.5, 0.1, PAL.water.trough, gh.x + 4, 1.4, gh.z + 3.46);
+  SB.addBox(4, 2.6, 4, K.cal, gh.x + 4, 0, gh.z + 1.4);
+  SB.addBox(4.3, 0.3, 4.3, K.roofD, gh.x + 4, 2.6, gh.z + 1.4);
+  SB.addBox(1, 1.9, 0.12, K.woodD, gh.x + 4, 0, gh.z + 3.45);
+  SB.addBox(0.9, 0.5, 0.1, PAL.water.trough, gh.x + 4, 1.4, gh.z + 3.46);
 
   /* ---------- quadras de rotação quadrienal ---------- */
   PLOTS.forEach(function (pl) {
-    SB.bb(pl.x2 - pl.x1, 0.3, pl.z2 - pl.z1, K.soilD, (pl.x1 + pl.x2) / 2, 0, (pl.z1 + pl.z2) / 2);
+    SB.addBox(
+      pl.x2 - pl.x1,
+      0.3,
+      pl.z2 - pl.z1,
+      K.soilD,
+      (pl.x1 + pl.x2) / 2,
+      0,
+      (pl.z1 + pl.z2) / 2,
+    );
     const rows = 13;
     const sp = (pl.z2 - pl.z1 - 2) / (rows - 1);
     let i;
@@ -804,13 +618,13 @@ import { TANKS } from './data/sisteminha.js';
     let x;
     for (i = 0; i < rows; i++) {
       z = pl.z1 + 1 + i * sp;
-      SB.bb(pl.x2 - pl.x1 - 1.6, 0.34, 0.9, 0x5a3a20, (pl.x1 + pl.x2) / 2, 0.3, z);
+      SB.addBox(pl.x2 - pl.x1 - 1.6, 0.34, 0.9, 0x5a3a20, (pl.x1 + pl.x2) / 2, 0.3, z);
       for (j = 0; j < 18; j++) {
         x = pl.x1 + 1.6 + (j * (pl.x2 - pl.x1 - 3.2)) / 17;
         const y0 = 0.64,
           a = (i + j) % 3;
         if (pl.k === 0) {
-          SB.bb(
+          SB.addBox(
             0.7,
             0.7,
             0.7,
@@ -819,9 +633,9 @@ import { TANKS } from './data/sisteminha.js';
             y0,
             z,
           );
-          if (a === 0) SB.ic(1, PAL.flora.lilac, x, y0 + 1.0, z, 0.22, 0.22, 0.22);
+          if (a === 0) SB.addSphere(1, PAL.flora.lilac, x, y0 + 1.0, z, 0.22, 0.22, 0.22);
         } else if (pl.k === 1) {
-          SB.ic(
+          SB.addSphere(
             1,
             [PAL.flora.cropGreenB, 0x47ad4f, 0x5cc060][a],
             x,
@@ -831,63 +645,71 @@ import { TANKS } from './data/sisteminha.js';
             0.38,
             0.55,
           );
-          if (j % 3 === 0) SB.ic(1, 0xa070c4, x, y0 + 0.06, z + 0.45, 0.28, 0.2, 0.28);
+          if (j % 3 === 0) SB.addSphere(1, 0xa070c4, x, y0 + 0.06, z + 0.45, 0.28, 0.2, 0.28);
         } else if (pl.k === 2) {
-          if (i % 2 === 0) SB.cn(0.34, 2.4 + a * 0.25, 0x78bf3a, x, y0, z, 4);
+          if (i % 2 === 0) SB.addCone(0.34, 2.4 + a * 0.25, 0x78bf3a, x, y0, z, 4);
           else {
-            SB.ic(1, K.orange, x, y0 + 0.38, z, 0.52, 0.42, 0.52, 1);
-            SB.ic(1, 0x4a9a3a, x + 0.6, y0 + 0.2, z, 0.35, 0.12, 0.35);
+            SB.addSphere(1, K.orange, x, y0 + 0.38, z, 0.52, 0.42, 0.52, 1);
+            SB.addSphere(1, 0x4a9a3a, x + 0.6, y0 + 0.2, z, 0.35, 0.12, 0.35);
           }
         } else {
-          SB.bb(0.55, 0.45 + a * 0.2, 0.55, [0x4f9a3a, 0x3f8a2c, 0x6aae45][a], x, y0, z);
-          SB.ic(1, 0xf6d73a, x, y0 + 0.7 + a * 0.2, z, 0.26, 0.26, 0.26);
+          SB.addBox(0.55, 0.45 + a * 0.2, 0.55, [0x4f9a3a, 0x3f8a2c, 0x6aae45][a], x, y0, z);
+          SB.addSphere(1, 0xf6d73a, x, y0 + 0.7 + a * 0.2, z, 0.26, 0.26, 0.26);
         }
       }
     }
-    SB.bb(0.25, 1.3, 0.25, K.woodD, pl.x1 + 0.7, 0, pl.z2 + 0.5);
-    SB.bb(1.5, 0.8, 0.12, PAL.light.parchment, pl.x1 + 0.7, 1.3, pl.z2 + 0.5);
+    SB.addBox(0.25, 1.3, 0.25, K.woodD, pl.x1 + 0.7, 0, pl.z2 + 0.5);
+    SB.addBox(1.5, 0.8, 0.12, PAL.light.parchment, pl.x1 + 0.7, 1.3, pl.z2 + 0.5);
   });
 
   /* ---------- curral de 300 m²: piso ripado, abrigos, cochos ---------- */
   const pen = { x1: 23, x2: 39, z1: -10, z2: 9 };
-  SB.bb(16, 0.12, 19, PAL.stone.sandstone, 31, 0, -0.5);
+  SB.addBox(16, 0.12, 19, PAL.stone.sandstone, 31, 0, -0.5);
   [pen.z1, pen.z2].forEach(function (z) {
     [0.55, 1.15].forEach(function (h) {
-      SB.bb(pen.x2 - pen.x1 + 0.2, 0.14, 0.14, K.wood, 31, h, z);
+      SB.addBox(pen.x2 - pen.x1 + 0.2, 0.14, 0.14, K.wood, 31, h, z);
     });
   });
   [pen.x1, pen.x2].forEach(function (x) {
     [0.55, 1.15].forEach(function (h) {
-      SB.bb(0.14, 0.14, pen.z2 - pen.z1, K.wood, x, h, -0.5);
+      SB.addBox(0.14, 0.14, pen.z2 - pen.z1, K.wood, x, h, -0.5);
     });
   });
   for (let ppx = 0; ppx <= 8; ppx++) {
     [pen.z1, pen.z2].forEach(function (z) {
-      SB.bb(0.2, 1.5, 0.2, K.woodD, pen.x1 + ppx * 2, 0, z);
+      SB.addBox(0.2, 1.5, 0.2, K.woodD, pen.x1 + ppx * 2, 0, z);
     });
   }
   for (let ppz = 1; ppz <= 9; ppz++) {
     [pen.x1, pen.x2].forEach(function (x) {
-      SB.bb(0.2, 1.5, 0.2, K.woodD, x, 0, pen.z1 + (ppz * (pen.z2 - pen.z1)) / 10);
+      SB.addBox(0.2, 1.5, 0.2, K.woodD, x, 0, pen.z1 + (ppz * (pen.z2 - pen.z1)) / 10);
     });
   }
-  SB.bb(0.14, 1.3, 19, K.wood, 31, 0, -0.5); /* divisória baixa entre baias */
-  SB.bb(6.6, 2.6, 4.4, K.woodL, 26.5, 0, -6.2);
-  SB.add(coneG(4), K.roof, 26.5, 3.6, -6.2, [4.9, 2.2, 4.9], [0, Math.PI / 4, 0]);
-  SB.bb(1.2, 1.7, 0.1, K.woodD, 26.5, 0, -3.95);
-  SB.bb(5.4, 2.2, 3.8, K.woodL, 35.2, 0, 5.4);
-  SB.add(GX.box, K.roofD, 35.2, 2.5, 5.4, [6.2, 0.3, 4.6]);
+  SB.addBox(0.14, 1.3, 19, K.wood, 31, 0, -0.5); /* divisória baixa entre baias */
+  SB.addBox(6.6, 2.6, 4.4, K.woodL, 26.5, 0, -6.2);
+  SB.addGeometry(coneG(4), K.roof, 26.5, 3.6, -6.2, [4.9, 2.2, 4.9], [0, Math.PI / 4, 0]);
+  SB.addBox(1.2, 1.7, 0.1, K.woodD, 26.5, 0, -3.95);
+  SB.addBox(5.4, 2.2, 3.8, K.woodL, 35.2, 0, 5.4);
+  SB.addGeometry(GX.box, K.roofD, 35.2, 2.5, 5.4, [6.2, 0.3, 4.6]);
   [
     [34, -6.4],
     [35.8, -6.4],
     [27, 6.5],
   ].forEach(function (t) {
-    SB.bb(2.2, 0.45, 0.7, PAL.clay.honey, t[0], 0, t[1]);
-    SB.bb(2.0, 0.2, 0.5, 0x6b8f4e, t[0], 0.45, t[1]);
+    SB.addBox(2.2, 0.45, 0.7, PAL.clay.honey, t[0], 0, t[1]);
+    SB.addBox(2.0, 0.2, 0.5, 0x6b8f4e, t[0], 0.45, t[1]);
   });
   for (let hb = 0; hb < 5; hb++)
-    SB.bb(1.3, 0.8, 0.8, 0xe6c75a, 36.5 + (hb % 2) * 0.1, hb > 2 ? 0.8 : 0, -3 + (hb % 3) * 1.1);
-  SB.bb(3, 0.55, 1.1, PAL.water.trough, 28, 0, 1.4);
+    SB.addBox(
+      1.3,
+      0.8,
+      0.8,
+      0xe6c75a,
+      36.5 + (hb % 2) * 0.1,
+      hb > 2 ? 0.8 : 0,
+      -3 + (hb % 3) * 1.1,
+    );
+  SB.addBox(3, 0.55, 1.1, PAL.water.trough, 28, 0, 1.4);
 
   /* ---------- poços artesianos (5), cisterna e reservatório falso ---------- */
   [
@@ -897,23 +719,23 @@ import { TANKS } from './data/sisteminha.js';
     [19.6, 36.6],
     [10, 32.5],
   ].forEach(function (p) {
-    SB.cb(1.1, 1.4, K.blue, p[0], 0, p[1], 14);
-    SB.cb(0.8, 0.14, 0x1b3350, p[0], 1.4, p[1], 14);
-    SB.cb(1.2, 0.2, K.steel, p[0], 1.14, p[1], 14);
-    SB.cb(0.16, 2.2, K.steelD, p[0] + 0.9, 0, p[1], 8);
+    SB.addCylinder(1.1, 1.4, K.blue, p[0], 0, p[1], 14);
+    SB.addCylinder(0.8, 0.14, 0x1b3350, p[0], 1.4, p[1], 14);
+    SB.addCylinder(1.2, 0.2, K.steel, p[0], 1.14, p[1], 14);
+    SB.addCylinder(0.16, 2.2, K.steelD, p[0] + 0.9, 0, p[1], 8);
   });
 
   /* ---------- biodigestor tubular canadense (15 m³) junto ao curral: baias lavam por gravidade ---------- */
-  SB.bb(15, 0.4, 3.6, K.concD, 30, 0, 13.5);
-  SB.add(GX.half, 0x4fae62, 30, 0.4, 13.5, [1.6, 13.6, 1.6], [0, 0, Math.PI / 2]);
-  SB.ic(1, K.white, 39, 1.4, 13.5, 1.4, 1.1, 1.3, 1);
-  SB.bb(1.4, 0.12, 3.0, K.concD, 30, 0, 10.2); /* calha de lavagem: curral → biodigestor */
-  SB.cb(0.5, 2.6, K.steel, 25, 0, 16.8, 10);
-  SB.cb(0.62, 0.3, K.red, 25, 2.6, 16.8, 10);
-  SB.cb(0.5, 2.2, K.steel, 27.4, 0, 16.8, 10);
-  SB.cb(0.62, 0.3, K.blue, 27.4, 2.2, 16.8, 10);
-  SB.beam([26.4, 0.9, 13.5], [25.2, 2.8, 16.8], 0.14, K.steelD, 6);
-  SB.beam([37.4, 1.2, 13.5], [38.8, 1.2, 13.5], 0.12, K.steelD, 6);
+  SB.addBox(15, 0.4, 3.6, K.concD, 30, 0, 13.5);
+  SB.addGeometry(GX.half, 0x4fae62, 30, 0.4, 13.5, [1.6, 13.6, 1.6], [0, 0, Math.PI / 2]);
+  SB.addSphere(1, K.white, 39, 1.4, 13.5, 1.4, 1.1, 1.3, 1);
+  SB.addBox(1.4, 0.12, 3.0, K.concD, 30, 0, 10.2); /* calha de lavagem: curral → biodigestor */
+  SB.addCylinder(0.5, 2.6, K.steel, 25, 0, 16.8, 10);
+  SB.addCylinder(0.62, 0.3, K.red, 25, 2.6, 16.8, 10);
+  SB.addCylinder(0.5, 2.2, K.steel, 27.4, 0, 16.8, 10);
+  SB.addCylinder(0.62, 0.3, K.blue, 27.4, 2.2, 16.8, 10);
+  SB.addBeam([26.4, 0.9, 13.5], [25.2, 2.8, 16.8], 0.14, K.steelD, 6);
+  SB.addBeam([37.4, 1.2, 13.5], [38.8, 1.2, 13.5], 0.12, K.steelD, 6);
 
   /* ---------- bateria gravitacional: trilho de 35 m, bloco de 12 t, guincho ---------- */
   const gx = 36.5,
@@ -922,40 +744,48 @@ import { TANKS } from './data/sisteminha.js';
     gy1 = 15,
     gy2 = 0.6;
   [gx - 0.9, gx + 0.9].forEach(function (rx) {
-    SB.beam([rx, gy1, gz1], [rx, gy2, gz2], 0.16, K.steelD, 6);
+    SB.addBeam([rx, gy1, gz1], [rx, gy2, gz2], 0.16, K.steelD, 6);
   });
   for (let sl = 0; sl <= 16; sl++) {
     const su = sl / 16;
-    SB.bb(2.6, 0.2, 0.4, K.woodD, gx, gy1 + (gy2 - gy1) * su - 0.3, gz1 + (gz2 - gz1) * su);
+    SB.addBox(2.6, 0.2, 0.4, K.woodD, gx, gy1 + (gy2 - gy1) * su - 0.3, gz1 + (gz2 - gz1) * su);
   }
   [
     [gx - 1.6, gz1 - 0.6],
     [gx + 1.6, gz1 - 0.6],
   ].forEach(function (p) {
-    SB.beam([p[0], 0, p[1] - 0.5], [p[0], gy1, gz1], 0.22, K.steel, 6);
+    SB.addBeam([p[0], 0, p[1] - 0.5], [p[0], gy1, gz1], 0.22, K.steel, 6);
   });
   [
     [gx - 1.6, gz1 + 3.4],
     [gx + 1.6, gz1 + 3.4],
   ].forEach(function (p) {
-    SB.beam([p[0], 0, p[1] + 2.6], [p[0], gy1 - 1.2, gz1 + 2.2], 0.16, K.steel, 6);
+    SB.addBeam([p[0], 0, p[1] + 2.6], [p[0], gy1 - 1.2, gz1 + 2.2], 0.16, K.steel, 6);
   });
-  SB.bb(4.0, 0.34, 0.4, K.steel, gx, gy1 + 0.1, gz1);
-  SB.bb(1.6, 1.6, 1.2, K.steelD, gx, gy1 + 0.4, gz1 - 1.4);
-  SB.cb(0.5, 1.8, K.red, gx, gy1 + 0.5, gz1 - 1.4, 8, 0.5, [0, 0, Math.PI / 2]);
+  SB.addBox(4.0, 0.34, 0.4, K.steel, gx, gy1 + 0.1, gz1);
+  SB.addBox(1.6, 1.6, 1.2, K.steelD, gx, gy1 + 0.4, gz1 - 1.4);
+  SB.addCylinder(0.5, 1.8, K.red, gx, gy1 + 0.5, gz1 - 1.4, 8, 0.5, [0, 0, Math.PI / 2]);
   const gu = 0.55,
     gby = gy1 + (gy2 - gy1) * gu + 1.0,
     gbz = gz1 + (gz2 - gz1) * gu;
-  SB.add(GX.box, K.concD, gx, gby, gbz, [2.0, 1.8, 2.4], [Math.atan2(gy1 - gy2, gz2 - gz1), 0, 0]);
-  SB.beam([gx, gy1 + 0.3, gz1 + 0.1], [gx, gby + 0.5, gbz - 0.7], 0.07, K.black, 4);
-  SB.bb(2.6, 0.5, 1.8, K.concD, gx, 0, gz2 + 1.2);
+  SB.addGeometry(
+    GX.box,
+    K.concD,
+    gx,
+    gby,
+    gbz,
+    [2.0, 1.8, 2.4],
+    [Math.atan2(gy1 - gy2, gz2 - gz1), 0, 0],
+  );
+  SB.addBeam([gx, gy1 + 0.3, gz1 + 0.1], [gx, gby + 0.5, gbz - 0.7], 0.07, K.black, 4);
+  SB.addBox(2.6, 0.5, 1.8, K.concD, gx, 0, gz2 + 1.2);
 
   /* ---------- jazida de argila (600 m²) e tijolos ---------- */
-  SB.bb(30, 0.1, 19, 0xd9704c, -33, 0, 65.5);
+  SB.addBox(30, 0.1, 19, 0xd9704c, -33, 0, 65.5);
   for (let ccx = 0; ccx < 15; ccx++)
     for (let ccz = 0; ccz < 9.5; ccz++) {
       const cch = (R() * 3) | 0;
-      SB.bb(
+      SB.addBox(
         2,
         0.04 + cch * 0.015,
         Math.min(2, 19 - ccz * 2),
@@ -966,16 +796,17 @@ import { TANKS } from './data/sisteminha.js';
       );
     } /* células sem sobreposição: sem flicker */
   for (let cbk = 0; cbk < 24; cbk++)
-    SB.bb(1.2, 0.5, 0.6, 0xe6cfa6, -20 + (cbk % 6) * 1.3, ((cbk / 6) | 0) * 0.52, 58);
-  SB.bb(3.4, 2.4, 3.0, K.concD, -42, 0, 59);
-  SB.cn(2.4, 2.0, K.roofD, -42, 2.4, 59, 4, [0, Math.PI / 4, 0]);
-  SB.cb(0.4, 3.2, K.steelD, -42, 4.4, 59, 8);
+    SB.addBox(1.2, 0.5, 0.6, 0xe6cfa6, -20 + (cbk % 6) * 1.3, ((cbk / 6) | 0) * 0.52, 58);
+  SB.addBox(3.4, 2.4, 3.0, K.concD, -42, 0, 59);
+  SB.addCone(2.4, 2.0, K.roofD, -42, 2.4, 59, 4, [0, Math.PI / 4, 0]);
+  SB.addCylinder(0.4, 3.2, K.steelD, -42, 4.4, 59, 8);
 
   /* ---------- dutos de energia (Pelton + moinho → subsolo) ---------- */
   function duct(pts, y, col) {
     for (let i = 0; i < pts.length - 1; i++)
-      SB.beam([pts[i][0], y, pts[i][1]], [pts[i + 1][0], y, pts[i + 1][1]], 0.32, col, 6);
-    for (let i = 0; i < pts.length; i++) SB.ic(1, col, pts[i][0], y, pts[i][1], 0.46, 0.46, 0.46);
+      SB.addBeam([pts[i][0], y, pts[i][1]], [pts[i + 1][0], y, pts[i + 1][1]], 0.32, col, 6);
+    for (let i = 0; i < pts.length; i++)
+      SB.addSphere(1, col, pts[i][0], y, pts[i][1], 0.46, 0.46, 0.46);
   }
   duct(
     [
@@ -1006,17 +837,17 @@ import { TANKS } from './data/sisteminha.js';
     K.steelD,
   ); /* rede do núcleo Sisteminha */
   /* mergulham pela parede sul do bunker até o corredor técnico */
-  SB.beam([20, 0.36, -38.2], [20, FLOOR + 3.2, -38.2], 0.34, K.black, 6);
-  SB.ic(1, K.black, 20, FLOOR + 3.2, -38.2, 0.5, 0.5, 0.5);
-  SB.beam([16, 0.36, -38.2], [16, FLOOR + 2.8, -38.2], 0.16, K.steelD, 6);
-  SB.bb(1.6, 0.6, 1.2, K.steel, 18, 0, -40.4);
-  SB.bb(1.1, 0.35, 0.9, K.red, 18.2, 0.6, -40.4);
+  SB.addBeam([20, 0.36, -38.2], [20, FLOOR + 3.2, -38.2], 0.34, K.black, 6);
+  SB.addSphere(1, K.black, 20, FLOOR + 3.2, -38.2, 0.5, 0.5, 0.5);
+  SB.addBeam([16, 0.36, -38.2], [16, FLOOR + 2.8, -38.2], 0.16, K.steelD, 6);
+  SB.addBox(1.6, 0.6, 1.2, K.steel, 18, 0, -40.4);
+  SB.addBox(1.1, 0.35, 0.9, K.red, 18.2, 0.6, -40.4);
 
   /* ---------- cinturão vivo: ora-pro-nóbis e sebe facetada ---------- */
   const hcols = [0x2a8a3b, 0x35a047, 0x23762f, 0x41ad4e];
   let hix = 0;
   for (let hx = -48; hx <= 47; hx += 3.0, hix++)
-    SB.ic(
+    SB.addSphere(
       1,
       hcols[hix & 3],
       hx + rr(-0.3, 0.3),
@@ -1029,7 +860,7 @@ import { TANKS } from './data/sisteminha.js';
     );
   for (let hz = -72; hz <= 73; hz += 3.0, hix++)
     if (!(hz > 22 && hz < 33.5))
-      SB.ic(
+      SB.addSphere(
         1,
         hcols[hix & 3],
         -48.4 + rr(-0.3, 0.3),
@@ -1043,7 +874,16 @@ import { TANKS } from './data/sisteminha.js';
   for (let hf = 0; hf < 80; hf++) {
     const hfx = R() < 0.55 ? rr(-48, 47) : -48.4 + rr(-1.2, 1.2),
       hfz = hfx > -46.5 && R() < 0.9 ? -73.4 + rr(-1.4, 1.4) : rr(-72, 72);
-    SB.ic(1, [0xe03a86, 0xf064a6, 0xd0307a][hf % 3], hfx, rr(2.2, 3.2), hfz, 0.22, 0.22, 0.22);
+    SB.addSphere(
+      1,
+      [0xe03a86, 0xf064a6, 0xd0307a][hf % 3],
+      hfx,
+      rr(2.2, 3.2),
+      hfz,
+      0.22,
+      0.22,
+      0.22,
+    );
   }
 
   /* ================= FLORA: árvores facetadas, bambuzal, silvicultura, capim ================= */
@@ -1051,7 +891,7 @@ import { TANKS } from './data/sisteminha.js';
     const g = TG[(R() * 3) | 0],
       h = rr(3.2, 4.6) * s,
       cr = rr(2.4, 3.4) * s;
-    b.cb(
+    b.addCylinder(
       0.34 * s,
       h,
       [PAL.wood.walnut, 0x6b4527, PAL.wood.oak][(R() * 3) | 0],
@@ -1061,33 +901,68 @@ import { TANKS } from './data/sisteminha.js';
       6,
       0.24 * s,
     );
-    b.ic(cr, g[0], x, h + cr * 0.55, z, 1, 0.9, 1);
-    b.ic(cr * 0.78, g[1], x + rr(-0.9, 0.9) * s, h + cr * 1.1, z + rr(-0.9, 0.9) * s, 1, 0.9, 1);
-    b.ic(cr * 0.55, g[2], x + rr(-0.8, 0.8) * s, h + cr * 1.55, z + rr(-0.8, 0.8) * s, 1, 0.9, 1);
+    b.addSphere(cr, g[0], x, h + cr * 0.55, z, 1, 0.9, 1);
+    b.addSphere(
+      cr * 0.78,
+      g[1],
+      x + rr(-0.9, 0.9) * s,
+      h + cr * 1.1,
+      z + rr(-0.9, 0.9) * s,
+      1,
+      0.9,
+      1,
+    );
+    b.addSphere(
+      cr * 0.55,
+      g[2],
+      x + rr(-0.8, 0.8) * s,
+      h + cr * 1.55,
+      z + rr(-0.8, 0.8) * s,
+      1,
+      0.9,
+      1,
+    );
   }
   function fruit(b, x, z) {
     const h = rr(2.0, 2.6),
       cr = rr(1.7, 2.2),
       col = [PAL.flora.pumpkin, 0xf2c230, PAL.flora.tomatoRed, 0xff9e3a][(R() * 4) | 0];
-    b.cb(0.26, h, 0x6b4527, x, 0, z, 6, 0.2);
-    b.ic(cr, 0x3a9a40, x, h + cr * 0.5, z, 1, 0.85, 1);
-    b.ic(cr * 0.62, 0x52b552, x + 0.5, h + cr * 0.95, z - 0.4, 1, 0.85, 1);
+    b.addCylinder(0.26, h, 0x6b4527, x, 0, z, 6, 0.2);
+    b.addSphere(cr, 0x3a9a40, x, h + cr * 0.5, z, 1, 0.85, 1);
+    b.addSphere(cr * 0.62, 0x52b552, x + 0.5, h + cr * 0.95, z - 0.4, 1, 0.85, 1);
     for (let f = 0; f < 5; f++)
-      b.ic(1, col, x + rr(-1.5, 1.5), h + cr * rr(0.2, 0.8), z + rr(-1.5, 1.5), 0.2, 0.2, 0.2);
+      b.addSphere(
+        1,
+        col,
+        x + rr(-1.5, 1.5),
+        h + cr * rr(0.2, 0.8),
+        z + rr(-1.5, 1.5),
+        0.2,
+        0.2,
+        0.2,
+      );
   }
   function euca(b, x, z) {
     const h = rr(11, 15),
       cr = rr(1.7, 2.5),
       gc = [0x4d9a73, 0x5faa7e, 0x3f8c66][(R() * 3) | 0];
-    b.cb(0.34, h, [0xc9bfa3, 0xd8cfb6][(R() * 2) | 0], x, 0, z, 5, 0.2);
-    b.ic(cr, gc, x, h, z, 1, 1.9, 1);
-    b.ic(cr * 0.7, 0x6dbb8c, x + rr(-0.8, 0.8), h + cr * 1.3, z + rr(-0.8, 0.8), 1, 1.6, 1);
+    b.addCylinder(0.34, h, [0xc9bfa3, 0xd8cfb6][(R() * 2) | 0], x, 0, z, 5, 0.2);
+    b.addSphere(cr, gc, x, h, z, 1, 1.9, 1);
+    b.addSphere(cr * 0.7, 0x6dbb8c, x + rr(-0.8, 0.8), h + cr * 1.3, z + rr(-0.8, 0.8), 1, 1.6, 1);
   }
   function pine(b, x, z) {
     const h = rr(7, 10);
-    b.cb(0.3, h * 0.4, 0x6b4527, x, 0, z, 5);
+    b.addCylinder(0.3, h * 0.4, 0x6b4527, x, 0, z, 5);
     for (let i = 0; i < 4; i++)
-      b.cn(2.3 - i * 0.5, 3.2, [0x2a7a3f, 0x338c47, 0x3d9e50][i % 3], x, h * 0.28 + i * 1.9, z, 6);
+      b.addCone(
+        2.3 - i * 0.5,
+        3.2,
+        [0x2a7a3f, 0x338c47, 0x3d9e50][i % 3],
+        x,
+        h * 0.28 + i * 1.9,
+        z,
+        6,
+      );
   }
 
   const FB = new SB.constructor(); /* lote da flora (separado para facilitar ajustes) */
@@ -1117,11 +992,21 @@ import { TANKS } from './data/sisteminha.js';
         bz = z + rr(-0.5, 0.5),
         bh = rr(9, 14),
         bc = [0x8bc34a, 0x7bb83e, 0x9ccf56][(R() * 3) | 0];
-      FB.cb(0.2, bh, bc, bx, 0, bz, 5, 0.12);
-      for (let nd = 2; nd < bh - 0.4; nd += 2.4) FB.cb(0.25, 0.13, 0x5d8a2b, bx, nd, bz, 5);
-      FB.ic(1.0, 0x5fae3f, bx, bh + 0.2, bz, 1.0, 1.7, 1.0);
+      FB.addCylinder(0.2, bh, bc, bx, 0, bz, 5, 0.12);
+      for (let nd = 2; nd < bh - 0.4; nd += 2.4)
+        FB.addCylinder(0.25, 0.13, 0x5d8a2b, bx, nd, bz, 5);
+      FB.addSphere(1.0, 0x5fae3f, bx, bh + 0.2, bz, 1.0, 1.7, 1.0);
       if (R() < 0.5)
-        FB.ic(0.7, 0x7bc455, bx + rr(-0.5, 0.5), bh - 2.2, bz + rr(-0.5, 0.5), 1.0, 1.5, 1.0);
+        FB.addSphere(
+          0.7,
+          0x7bc455,
+          bx + rr(-0.5, 0.5),
+          bh - 2.2,
+          bz + rr(-0.5, 0.5),
+          1.0,
+          1.5,
+          1.0,
+        );
     }
   /* faixa de mata na borda esquerda e atrás das quadras */
   for (z = -70; z <= 72; z += 3.4)
@@ -1172,7 +1057,7 @@ import { TANKS } from './data/sisteminha.js';
       tz2 = rr(-73, 73);
     if (!free(tx2, tz2, 0.5)) continue;
     for (let sp = 0; sp < 3; sp++)
-      FB.cn(
+      FB.addCone(
         rr(0.14, 0.2),
         rr(0.5, 0.9),
         [K.tuft, 0x58b238, PAL.flora.fernGreen][sp],
@@ -1187,8 +1072,8 @@ import { TANKS } from './data/sisteminha.js';
     const fx = rr(-48, 42),
       fz = rr(-73, 73);
     if (!free(fx, fz, 0.5)) continue;
-    FB.cb(0.04, 0.5, PAL.flora.fernGreen, fx, 0, fz, 3);
-    FB.ic(
+    FB.addCylinder(0.04, 0.5, PAL.flora.fernGreen, fx, 0, fz, 3);
+    FB.addSphere(
       1,
       [PAL.light.white, PAL.flora.sunflower, 0xff7aa8, PAL.flora.lilac, 0xff8a3a][i % 5],
       fx,
@@ -1204,7 +1089,7 @@ import { TANKS } from './data/sisteminha.js';
     const kx = rr(-48, 42),
       kz = rr(-73, 73);
     if (!free(kx, kz, 1)) continue;
-    FB.ic(
+    FB.addSphere(
       1,
       [K.rock, 0xb7b4a8, 0x8f8d86][i % 3],
       kx,
@@ -1220,9 +1105,9 @@ import { TANKS } from './data/sisteminha.js';
   for (let cv = 0; cv < 6; cv++) {
     const cx = 16.2 + (cv % 3) * 1.6;
     const cz = -57.5 + ((cv / 3) | 0) * 2.6;
-    FB.bb(0.7, 0.5, 0.1, K.woodD, cx, 0.0, cz);
+    FB.addBox(0.7, 0.5, 0.1, K.woodD, cx, 0.0, cz);
     [0, 1, 2].forEach(function (l) {
-      FB.bb(
+      FB.addBox(
         0.95,
         0.34,
         0.85,
@@ -1232,12 +1117,12 @@ import { TANKS } from './data/sisteminha.js';
         cz,
       );
     });
-    FB.bb(1.05, 0.12, 0.95, 0xdfe3e6, cx, 1.58, cz);
-    FB.bb(0.5, 0.05, 0.07, K.black, cx, 0.62, cz + 0.45);
-    FB.bb(0.7, 0.14, 0.5, K.woodD, cx, 0.0, cz + 0.2);
+    FB.addBox(1.05, 0.12, 0.95, 0xdfe3e6, cx, 1.58, cz);
+    FB.addBox(0.5, 0.05, 0.07, K.black, cx, 0.62, cz + 0.45);
+    FB.addBox(0.7, 0.14, 0.5, K.woodD, cx, 0.0, cz + 0.2);
   }
   for (i = 0; i < 14; i++) {
-    FB.cb(0.04, 0.8, PAL.flora.fernGreen, rr(15.4, 19.6), 0, rr(-60.5, -52.5), 3);
+    FB.addCylinder(0.04, 0.8, PAL.flora.fernGreen, rr(15.4, 19.6), 0, rr(-60.5, -52.5), 3);
   }
   FB.build(surface);
 
@@ -1265,21 +1150,21 @@ import { TANKS } from './data/sisteminha.js';
     const glassC = PAL.glass.windowDeep;
     let i;
     /* paredes de pedra com 80 cm */
-    W1.bb(22, BH, 0.8, K.stone, 0, 0, -4.6);
-    W1.bb(0.8, BH, 10, K.stone, -10.6, 0, 0);
-    W1.bb(0.8, BH, 10, K.stone, 10.6, 0, 0);
-    W1.bb(7.5, BH, 0.8, K.stone, -7.25, 0, 4.6);
-    W1.bb(4.5, BH, 0.8, K.stone, 3.75, 0, 4.6);
-    W1.bb(3.6, BH, 0.8, K.stone, 9.2, 0, 4.6);
-    W1.bb(5.0, 0.8, 0.8, K.stone, -1, 4.0, 4.6);
-    W1.bb(1.4, 1.8, 0.8, K.stone, 6.7, 3.0, 4.6);
+    W1.addBox(22, BH, 0.8, K.stone, 0, 0, -4.6);
+    W1.addBox(0.8, BH, 10, K.stone, -10.6, 0, 0);
+    W1.addBox(0.8, BH, 10, K.stone, 10.6, 0, 0);
+    W1.addBox(7.5, BH, 0.8, K.stone, -7.25, 0, 4.6);
+    W1.addBox(4.5, BH, 0.8, K.stone, 3.75, 0, 4.6);
+    W1.addBox(3.6, BH, 0.8, K.stone, 9.2, 0, 4.6);
+    W1.addBox(5.0, 0.8, 0.8, K.stone, -1, 4.0, 4.6);
+    W1.addBox(1.4, 1.8, 0.8, K.stone, 6.7, 3.0, 4.6);
     [1, 2, 3, 4].forEach(function (y) {
-      W1.bb(22, 0.09, 0.05, K.stoneD, 0, y, -5.02);
-      W1.bb(0.05, 0.09, 10, K.stoneD, -11.02, y, 0);
-      W1.bb(0.05, 0.09, 10, K.stoneD, 11.02, y, 0);
-      W1.bb(7.5, 0.09, 0.05, K.stoneD, -7.25, y, 5.02);
-      W1.bb(4.5, 0.09, 0.05, K.stoneD, 3.75, y, 5.02);
-      W1.bb(3.6, 0.09, 0.05, K.stoneD, 9.2, y, 5.02);
+      W1.addBox(22, 0.09, 0.05, K.stoneD, 0, y, -5.02);
+      W1.addBox(0.05, 0.09, 10, K.stoneD, -11.02, y, 0);
+      W1.addBox(0.05, 0.09, 10, K.stoneD, 11.02, y, 0);
+      W1.addBox(7.5, 0.09, 0.05, K.stoneD, -7.25, y, 5.02);
+      W1.addBox(4.5, 0.09, 0.05, K.stoneD, 3.75, y, 5.02);
+      W1.addBox(3.6, 0.09, 0.05, K.stoneD, 9.2, y, 5.02);
     });
     for (i = 0; i < 5; i++)
       [
@@ -1288,7 +1173,7 @@ import { TANKS } from './data/sisteminha.js';
         [-1, 1],
         [1, 1],
       ].forEach(function (c) {
-        W1.bb(
+        W1.addBox(
           i % 2 ? 1.1 : 0.8,
           0.96,
           i % 2 ? 0.8 : 1.1,
@@ -1303,25 +1188,25 @@ import { TANKS } from './data/sisteminha.js';
       [-7.25, 5.02],
       [9.4, 5.02],
     ].forEach(function (p) {
-      W1.bb(1.8, 1.7, 0.1, K.ocre, p[0], 1.6, p[1]);
-      W1.bb(1.5, 1.4, 0.12, glassC, p[0], 1.75, p[1] + 0.02);
-      W1.bb(0.08, 1.4, 0.14, K.woodD, p[0], 1.75, p[1] + 0.03);
+      W1.addBox(1.8, 1.7, 0.1, K.ocre, p[0], 1.6, p[1]);
+      W1.addBox(1.5, 1.4, 0.12, glassC, p[0], 1.75, p[1] + 0.02);
+      W1.addBox(0.08, 1.4, 0.14, K.woodD, p[0], 1.75, p[1] + 0.03);
     });
     [-7, 0, 7].forEach(function (x) {
-      W1.bb(1.8, 1.7, 0.1, K.ocre, x, 1.8, -5.02);
-      W1.bb(1.5, 1.4, 0.12, glassC, x, 1.95, -5.03);
+      W1.addBox(1.8, 1.7, 0.1, K.ocre, x, 1.8, -5.02);
+      W1.addBox(1.5, 1.4, 0.12, glassC, x, 1.95, -5.03);
     });
     [-11.02, 11.02].forEach(function (x) {
       [-2, 2].forEach(function (z) {
-        W1.bb(0.1, 1.7, 1.8, K.ocre, x, 1.8, z);
-        W1.bb(0.12, 1.4, 1.5, glassC, x, 1.95, z);
+        W1.addBox(0.1, 1.7, 1.8, K.ocre, x, 1.8, z);
+        W1.addBox(0.12, 1.4, 1.5, glassC, x, 1.95, z);
       });
     });
-    W1.bb(0.5, 4.0, 1.1, K.woodD, -3.5, 0, 4.6);
-    W1.bb(0.5, 4.0, 1.1, K.woodD, 1.5, 0, 4.6);
-    W1.bb(1.3, 2.9, 0.2, K.wood, 6.7, 0, 4.75);
-    W1.bb(0.12, 2.9, 0.26, K.woodD, 6.7, 0, 4.78);
-    W1.bb(1.6, 0.14, 0.3, K.woodD, 6.7, 2.9, 4.76);
+    W1.addBox(0.5, 4.0, 1.1, K.woodD, -3.5, 0, 4.6);
+    W1.addBox(0.5, 4.0, 1.1, K.woodD, 1.5, 0, 4.6);
+    W1.addBox(1.3, 2.9, 0.2, K.wood, 6.7, 0, 4.75);
+    W1.addBox(0.12, 2.9, 0.26, K.woodD, 6.7, 0, 4.78);
+    W1.addBox(1.6, 0.14, 0.3, K.woodD, 6.7, 2.9, 4.76);
     W1.build(barnWalls);
 
     /* telhado de duas águas + 48 painéis solares na vertente frontal */
@@ -1331,7 +1216,7 @@ import { TANKS } from './data/sisteminha.js';
       slopeLen = Math.hypot(6.1, 3.6) + 0.3;
     [1, -1].forEach(function (sg) {
       const tm = slopeLen / 2 - 0.1;
-      R1.add(
+      R1.addGeometry(
         GX.box,
         K.roof,
         0,
@@ -1341,7 +1226,7 @@ import { TANKS } from './data/sisteminha.js';
         [sg * BTH, 0, 0],
       );
       for (let t = 0.6; t < slopeLen - 0.3; t += 0.75) {
-        R1.add(
+        R1.addGeometry(
           GX.box,
           K.roofD,
           0,
@@ -1357,7 +1242,7 @@ import { TANKS } from './data/sisteminha.js';
         const t = 1.5 + pr * 1.95,
           px = -9.6 + pc * 1.28,
           d = 0.26;
-        R1.add(
+        R1.addGeometry(
           GX.box,
           K.steel,
           px,
@@ -1366,7 +1251,7 @@ import { TANKS } from './data/sisteminha.js';
           [1.2, 0.08, 1.82],
           [BTH, 0, 0],
         );
-        R1.add(
+        R1.addGeometry(
           GX.box,
           [0x2c5aa6, 0x27509a][(pr + pc) % 2],
           px,
@@ -1376,7 +1261,7 @@ import { TANKS } from './data/sisteminha.js';
           [BTH, 0, 0],
         );
       }
-    R1.bb(24.4, 0.3, 0.55, K.roofD, 0, ridgeY - 0.02, 0);
+    R1.addBox(24.4, 0.3, 0.55, K.roofD, 0, ridgeY - 0.02, 0);
     const tri = new THREE.Shape();
     tri.moveTo(-5.4, 0);
     tri.lineTo(5.4, 0);
@@ -1384,21 +1269,21 @@ import { TANKS } from './data/sisteminha.js';
     const gg = new THREE.ExtrudeGeometry(tri, { depth: 0.8, bevelEnabled: false });
     gg.translate(0, 0, -0.4);
     gg.rotateY(Math.PI / 2);
-    R1.add(gg, K.stone, -10.6, BH, 0);
-    R1.add(gg, K.stone, 10.6, BH, 0);
-    R1.bb(1.4, 5.2, 1.4, K.stone, 7, BH - 0.2, -2.5);
-    R1.bb(1.8, 0.3, 1.8, K.stoneD, 7, BH + 5.0, -2.5);
+    R1.addGeometry(gg, K.stone, -10.6, BH, 0);
+    R1.addGeometry(gg, K.stone, 10.6, BH, 0);
+    R1.addBox(1.4, 5.2, 1.4, K.stone, 7, BH - 0.2, -2.5);
+    R1.addBox(1.8, 0.3, 1.8, K.stoneD, 7, BH + 5.0, -2.5);
     R1.build(barnRoofG);
 
     /* interior: engenho de 1850 à esquerda, oficina moderna à direita */
-    I1.bb(21.4, 0.16, 9.2, 0xcbc4b4, 0, 0, 0);
-    I1.beam([-10.4, 2.0, -3.2], [10.9, 2.0, -3.2], 0.14, K.steel, 8);
+    I1.addBox(21.4, 0.16, 9.2, 0xcbc4b4, 0, 0, 0);
+    I1.addBeam([-10.4, 2.0, -3.2], [10.9, 2.0, -3.2], 0.14, K.steel, 8);
     [-9, -4.5, 0, 4.5, 9].forEach(function (x) {
-      I1.bb(0.5, 0.4, 0.5, PAL.clay.ochreDark, x, 1.8, -3.2);
-      I1.bb(0.36, 1.8, 0.36, K.woodD, x, 0.16, -3.7);
+      I1.addBox(0.5, 0.4, 0.5, PAL.clay.ochreDark, x, 1.8, -3.2);
+      I1.addBox(0.36, 1.8, 0.36, K.woodD, x, 0.16, -3.7);
     });
     [-8, -4, 2, 6].forEach(function (x) {
-      I1.add(cylG(1, 16), K.woodL, x, 2.0, -3.2, [0.9, 0.34, 0.9], [0, 0, Math.PI / 2]);
+      I1.addGeometry(cylG(1, 16), K.woodL, x, 2.0, -3.2, [0.9, 0.34, 0.9], [0, 0, Math.PI / 2]);
     });
     [
       [-8, -8.2, -1.6],
@@ -1406,74 +1291,74 @@ import { TANKS } from './data/sisteminha.js';
       [2, -1.5, -1.8],
       [6, 4.0, -3.2],
     ].forEach(function (m) {
-      I1.beam([m[0], 1.7, -3.2], [m[1], 0.9, m[2]], 0.05, K.black, 4);
+      I1.addBeam([m[0], 1.7, -3.2], [m[1], 0.9, m[2]], 0.05, K.black, 4);
     });
     /* serra de fita */
-    I1.bb(0.5, 3.4, 1.3, K.steelD, -8.6, 0.16, -1.6);
-    I1.add(cylG(1, 16), K.steel, -8.6, 3.0, -1.6, [0.9, 0.18, 0.9], [Math.PI / 2, 0, 0]);
-    I1.add(cylG(1, 16), K.steel, -8.6, 0.8, -1.6, [0.9, 0.18, 0.9], [Math.PI / 2, 0, 0]);
-    I1.bb(0.05, 2.2, 0.1, K.black, -8.0, 0.8, -1.6);
-    I1.bb(3.0, 0.16, 2.2, K.woodL, -8.6, 1.1, -0.6);
-    I1.add(cylG(1, 8), K.woodD, -8.6, 1.55, -0.6, [0.38, 2.4, 0.38], [0, 0, Math.PI / 2]);
+    I1.addBox(0.5, 3.4, 1.3, K.steelD, -8.6, 0.16, -1.6);
+    I1.addGeometry(cylG(1, 16), K.steel, -8.6, 3.0, -1.6, [0.9, 0.18, 0.9], [Math.PI / 2, 0, 0]);
+    I1.addGeometry(cylG(1, 16), K.steel, -8.6, 0.8, -1.6, [0.9, 0.18, 0.9], [Math.PI / 2, 0, 0]);
+    I1.addBox(0.05, 2.2, 0.1, K.black, -8.0, 0.8, -1.6);
+    I1.addBox(3.0, 0.16, 2.2, K.woodL, -8.6, 1.1, -0.6);
+    I1.addGeometry(cylG(1, 8), K.woodD, -8.6, 1.55, -0.6, [0.38, 2.4, 0.38], [0, 0, Math.PI / 2]);
     /* moenda de pedra de 80 cm */
-    I1.bb(2.2, 0.8, 2.2, K.woodD, -4.2, 0.16, -1.9);
-    I1.cb(0.8, 0.3, K.concD, -4.2, 0.96, -1.9, 18);
-    I1.cb(0.72, 0.3, 0xb7b3a9, -4.2, 1.26, -1.9, 18);
-    I1.add(coneG(4), K.wood, -4.2, 2.1, -1.9, [0.8, 1.0, 0.8], [Math.PI, Math.PI / 4, 0]);
+    I1.addBox(2.2, 0.8, 2.2, K.woodD, -4.2, 0.16, -1.9);
+    I1.addCylinder(0.8, 0.3, K.concD, -4.2, 0.96, -1.9, 18);
+    I1.addCylinder(0.72, 0.3, 0xb7b3a9, -4.2, 1.26, -1.9, 18);
+    I1.addGeometry(coneG(4), K.wood, -4.2, 2.1, -1.9, [0.8, 1.0, 0.8], [Math.PI, Math.PI / 4, 0]);
     for (i = 0; i < 4; i++)
-      I1.bb(0.5, 0.6, 0.4, [0xdcc590, 0xd2b97f][i % 2], -2.6 + i * 0.55, 0.16, -0.6);
+      I1.addBox(0.5, 0.6, 0.4, [0xdcc590, 0xd2b97f][i % 2], -2.6 + i * 0.55, 0.16, -0.6);
     /* engenho de cana de 3 rolos (300 L/h) */
-    I1.bb(2.4, 0.35, 1.8, K.woodD, -1.4, 0.16, -2.0);
+    I1.addBox(2.4, 0.35, 1.8, K.woodD, -1.4, 0.16, -2.0);
     [
       [-1.4, -1.4],
       [-0.6, -2.4],
       [-2.2, -2.4],
     ].forEach(function (p) {
-      I1.cb(0.3, 1.5, PAL.clay.ochreDark, p[0], 0.5, p[1], 12);
-      I1.cb(0.42, 0.12, K.steel, p[0], 2.0, p[1], 10);
+      I1.addCylinder(0.3, 1.5, PAL.clay.ochreDark, p[0], 0.5, p[1], 12);
+      I1.addCylinder(0.42, 0.12, K.steel, p[0], 2.0, p[1], 10);
     });
-    I1.beam([-3.3, 0.5, -0.4], [-0.4, 1.1, -0.9], 0.1, 0x7fb544, 5);
-    I1.beam([-3.3, 0.7, -0.2], [-0.4, 1.3, -0.7], 0.1, 0x6aa238, 5);
-    I1.beam([-3.3, 0.9, -0.6], [-0.4, 1.0, -1.1], 0.1, 0x93c654, 5);
+    I1.addBeam([-3.3, 0.5, -0.4], [-0.4, 1.1, -0.9], 0.1, 0x7fb544, 5);
+    I1.addBeam([-3.3, 0.7, -0.2], [-0.4, 1.3, -0.7], 0.1, 0x6aa238, 5);
+    I1.addBeam([-3.3, 0.9, -0.6], [-0.4, 1.0, -1.1], 0.1, 0x93c654, 5);
     /* bomba de pistão duplo */
     [-9.3, -8.5].forEach(function (x) {
-      I1.cb(0.36, 1.3, K.red, x, 0.16, 2.6, 10);
-      I1.cb(0.07, 1.1, K.steel, x, 1.4, 2.6, 6);
+      I1.addCylinder(0.36, 1.3, K.red, x, 0.16, 2.6, 10);
+      I1.addCylinder(0.07, 1.1, K.steel, x, 1.4, 2.6, 6);
     });
-    I1.bb(1.4, 0.14, 0.14, K.steel, -8.9, 2.5, 2.6);
+    I1.addBox(1.4, 0.14, 0.14, K.steel, -8.9, 2.5, 2.6);
     /* forja de ferreiro com bigorna e fole */
-    I1.bb(2.4, 1.3, 1.8, PAL.clay.terracotta, -5.4, 0.16, 2.9);
-    I1.cn(1.1, 1.5, K.steelD, -5.4, 1.46, 2.9, 4);
-    I1.cb(0.22, 2.0, K.steelD, -5.4, 2.96, 2.9, 8);
-    U1.bb(1.6, 0.12, 1.0, PAL.flora.pumpkin, -5.4, 1.46, 2.9);
-    I1.cb(0.38, 0.8, K.woodD, -3.4, 0.16, 2.8, 8);
-    I1.bb(0.9, 0.28, 0.4, K.black, -3.4, 0.96, 2.8);
-    I1.bb(0.3, 0.2, 0.3, K.black, -2.9, 1.1, 2.8);
-    I1.bb(1.0, 0.7, 0.9, 0x8a5a30, -7, 0.16, 1.8);
+    I1.addBox(2.4, 1.3, 1.8, PAL.clay.terracotta, -5.4, 0.16, 2.9);
+    I1.addCone(1.1, 1.5, K.steelD, -5.4, 1.46, 2.9, 4);
+    I1.addCylinder(0.22, 2.0, K.steelD, -5.4, 2.96, 2.9, 8);
+    U1.addBox(1.6, 0.12, 1.0, PAL.flora.pumpkin, -5.4, 1.46, 2.9);
+    I1.addCylinder(0.38, 0.8, K.woodD, -3.4, 0.16, 2.8, 8);
+    I1.addBox(0.9, 0.28, 0.4, K.black, -3.4, 0.96, 2.8);
+    I1.addBox(0.3, 0.2, 0.3, K.black, -2.9, 1.1, 2.8);
+    I1.addBox(1.0, 0.7, 0.9, 0x8a5a30, -7, 0.16, 1.8);
     /* elevador oculto (3 × 5 m, 4,5 t) sob a porta da garagem */
-    I1.bb(3.0, 0.1, 5.0, K.yellow, -1, 0.16, 2.2);
-    for (i = 0; i < 6; i++) I1.bb(3.0, 0.12, 0.38, K.black, -1, 0.16, -0.1 + i * 0.9);
+    I1.addBox(3.0, 0.1, 5.0, K.yellow, -1, 0.16, 2.2);
+    for (i = 0; i < 6; i++) I1.addBox(3.0, 0.12, 0.38, K.black, -1, 0.16, -0.1 + i * 0.9);
     /* oficina moderna: torno Nardini, fresadora, solda, prensa de 30 t, bancada */
-    I1.bb(3.0, 0.9, 1.0, K.steelD, 4, 0.16, -3.2);
-    I1.bb(3.2, 0.5, 0.9, 0x3d6b9e, 4, 1.06, -3.2);
-    I1.bb(0.8, 0.9, 0.9, 0x2f5a8a, 2.8, 1.56, -3.2);
-    I1.cb(0.3, 0.5, K.steel, 2.5, 1.8, -3.2, 10, 0.3, [0, 0, Math.PI / 2]);
-    I1.bb(0.5, 0.6, 0.5, K.steel, 5.5, 1.56, -3.2);
-    I1.bb(1.2, 0.4, 1.2, PAL.fabric.emerald, 7.2, 0.16, -3.2);
-    I1.bb(0.5, 2.4, 0.5, PAL.fabric.emerald, 7.2, 0.56, -3.6);
-    I1.bb(0.9, 0.6, 1.2, PAL.fabric.emerald, 7.2, 2.8, -3.1);
-    I1.bb(1.5, 0.2, 1.0, K.steel, 7.2, 1.5, -2.9);
-    I1.bb(2.4, 0.18, 1.3, K.steelD, 8, 1.0, -0.6);
+    I1.addBox(3.0, 0.9, 1.0, K.steelD, 4, 0.16, -3.2);
+    I1.addBox(3.2, 0.5, 0.9, 0x3d6b9e, 4, 1.06, -3.2);
+    I1.addBox(0.8, 0.9, 0.9, 0x2f5a8a, 2.8, 1.56, -3.2);
+    I1.addCylinder(0.3, 0.5, K.steel, 2.5, 1.8, -3.2, 10, 0.3, [0, 0, Math.PI / 2]);
+    I1.addBox(0.5, 0.6, 0.5, K.steel, 5.5, 1.56, -3.2);
+    I1.addBox(1.2, 0.4, 1.2, PAL.fabric.emerald, 7.2, 0.16, -3.2);
+    I1.addBox(0.5, 2.4, 0.5, PAL.fabric.emerald, 7.2, 0.56, -3.6);
+    I1.addBox(0.9, 0.6, 1.2, PAL.fabric.emerald, 7.2, 2.8, -3.1);
+    I1.addBox(1.5, 0.2, 1.0, K.steel, 7.2, 1.5, -2.9);
+    I1.addBox(2.4, 0.18, 1.3, K.steelD, 8, 1.0, -0.6);
     [
       [-1, -0.5],
       [1, -0.5],
       [-1, 0.5],
       [1, 0.5],
     ].forEach(function (l) {
-      I1.bb(0.16, 0.9, 0.16, K.steelD, 8 + l[0], 0.16, -0.6 + l[1]);
+      I1.addBox(0.16, 0.9, 0.16, K.steelD, 8 + l[0], 0.16, -0.6 + l[1]);
     });
-    I1.bb(0.9, 1.0, 0.9, K.red, 9.4, 0.16, 0.6);
-    I1.beam([9.0, 1.0, 0.4], [8.0, 1.4, -0.6], 0.05, K.black, 4);
+    I1.addBox(0.9, 1.0, 0.9, K.red, 9.4, 0.16, 0.6);
+    I1.addBeam([9.0, 1.0, 0.4], [8.0, 1.4, -0.6], 0.05, K.black, 4);
     [
       [7.6, 1.3, -0.6, 0.16, PAL.light.white],
       [7.9, 1.45, -0.5, 0.12, 0x9fe3ff],
@@ -1481,33 +1366,33 @@ import { TANKS } from './data/sisteminha.js';
       [8.0, 1.5, -0.7, 0.1, PAL.light.white],
       [7.7, 1.55, -0.9, 0.08, PAL.flora.sunflower],
     ].forEach(function (s) {
-      U1.add(GX.ico0, s[4], s[0], s[1], s[2], s[3]);
+      U1.addGeometry(GX.ico0, s[4], s[0], s[1], s[2], s[3]);
     });
     [4.4, 6.0].forEach(function (x) {
-      I1.bb(0.28, 2.8, 0.28, K.red, x, 0.16, 1.4);
+      I1.addBox(0.28, 2.8, 0.28, K.red, x, 0.16, 1.4);
     });
-    I1.bb(2.0, 0.4, 0.4, K.red, 5.2, 2.6, 1.4);
-    I1.cb(0.22, 1.0, K.steel, 5.2, 1.6, 1.4, 8);
-    I1.bb(1.6, 0.2, 0.7, K.red, 5.2, 0.16, 1.4);
-    I1.bb(2.6, 0.14, 1.3, K.woodL, 7.2, 1.1, 3.7);
+    I1.addBox(2.0, 0.4, 0.4, K.red, 5.2, 2.6, 1.4);
+    I1.addCylinder(0.22, 1.0, K.steel, 5.2, 1.6, 1.4, 8);
+    I1.addBox(1.6, 0.2, 0.7, K.red, 5.2, 0.16, 1.4);
+    I1.addBox(2.6, 0.14, 1.3, K.woodL, 7.2, 1.1, 3.7);
     [
       [-1.1, -0.5],
       [1.1, -0.5],
       [-1.1, 0.5],
       [1.1, 0.5],
     ].forEach(function (l) {
-      I1.bb(0.12, 0.95, 0.12, K.woodD, 7.2 + l[0], 0.16, 3.7 + l[1]);
+      I1.addBox(0.12, 0.95, 0.12, K.woodD, 7.2 + l[0], 0.16, 3.7 + l[1]);
     });
-    I1.bb(0.8, 0.5, 0.1, K.black, 6.6, 1.24, 3.3);
-    U1.bb(0.7, 0.4, 0.02, 0x44ffb0, 6.6, 1.3, 3.36);
-    I1.bb(0.4, 0.04, 0.3, PAL.fabric.jade, 7.4, 1.24, 3.8);
-    I1.bb(0.3, 0.04, 0.25, PAL.fabric.jade, 7.9, 1.24, 3.5);
-    I1.bb(1.0, 0.5, 0.6, K.red, 9.8, 0.16, -3.8);
-    I1.bb(1.0, 0.5, 0.6, K.red, 9.8, 0.66, -3.8);
-    I1.bb(1.0, 0.5, 0.6, K.red, 8.7, 0.16, -3.8);
-    I1.bb(1.0, 0.5, 0.6, K.red, 9.5, 0.16, 3.0);
-    I1.bb(1.0, 0.5, 0.6, K.red, 9.5, 0.66, 3.0);
-    I1.bb(0.5, 0.12, 0.12, K.steel, 9.5, 1.2, 3.0);
+    I1.addBox(0.8, 0.5, 0.1, K.black, 6.6, 1.24, 3.3);
+    U1.addBox(0.7, 0.4, 0.02, 0x44ffb0, 6.6, 1.3, 3.36);
+    I1.addBox(0.4, 0.04, 0.3, PAL.fabric.jade, 7.4, 1.24, 3.8);
+    I1.addBox(0.3, 0.04, 0.25, PAL.fabric.jade, 7.9, 1.24, 3.5);
+    I1.addBox(1.0, 0.5, 0.6, K.red, 9.8, 0.16, -3.8);
+    I1.addBox(1.0, 0.5, 0.6, K.red, 9.8, 0.66, -3.8);
+    I1.addBox(1.0, 0.5, 0.6, K.red, 8.7, 0.16, -3.8);
+    I1.addBox(1.0, 0.5, 0.6, K.red, 9.5, 0.16, 3.0);
+    I1.addBox(1.0, 0.5, 0.6, K.red, 9.5, 0.66, 3.0);
+    I1.addBox(0.5, 0.12, 0.12, K.steel, 9.5, 1.2, 3.0);
     I1.build(barnG);
     U1.build(barnG, { unlit: true, outline: false });
   })();
@@ -1533,27 +1418,6 @@ import { TANKS } from './data/sisteminha.js';
   casaUp.position.y = UF;
   const roofMat = toonMat.clone();
   roofMat.side = THREE.DoubleSide;
-  function hipGeo(W, D, h) {
-    const L = W - D,
-      hw = W / 2,
-      hd = D / 2,
-      hl = L / 2;
-    const A = [-hw, 0, -hd],
-      B = [hw, 0, -hd],
-      Cc = [hw, 0, hd],
-      Dd = [-hw, 0, hd],
-      P = [-hl, h, 0],
-      Q = [hl, h, 0];
-    const tris = [Dd, Cc, Q, Dd, Q, P, B, A, P, B, P, Q, Cc, B, Q, A, Dd, P],
-      pos = [];
-    tris.forEach(function (v) {
-      pos.push(v[0], v[1], v[2]);
-    });
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.computeVertexNormals();
-    return g;
-  }
   function ccol(x1, z1, x2, z2, lv) {
     col(x1 + CASA_ORIGIN.x, z1 + CASA_ORIGIN.z, x2 + CASA_ORIGIN.x, z2 + CASA_ORIGIN.z, lv);
   } /* colisão em coordenadas locais da casa */
@@ -1561,8 +1425,8 @@ import { TANKS } from './data/sisteminha.js';
   function wall(B, axis, fixed, lo, hi, gaps, y0, h, th, color, lv, deco) {
     function box(a, b, ya, yb) {
       if (b - a < 0.02 || yb - ya < 0.02) return;
-      if (axis === 'x') B.bb(b - a, yb - ya, th, color, (a + b) / 2, y0 + ya, fixed);
-      else B.bb(th, yb - ya, b - a, color, fixed, y0 + ya, (a + b) / 2);
+      if (axis === 'x') B.addBox(b - a, yb - ya, th, color, (a + b) / 2, y0 + ya, fixed);
+      else B.addBox(th, yb - ya, b - a, color, fixed, y0 + ya, (a + b) / 2);
     }
     function cl(a, b) {
       if (!lv) return;
@@ -1590,7 +1454,7 @@ import { TANKS } from './data/sisteminha.js';
         if (axis === 'x') {
           const s = deco,
             hf = th / 2;
-          B.bb(
+          B.addBox(
             w + 0.5,
             0.22,
             th + 0.16,
@@ -1599,7 +1463,7 @@ import { TANKS } from './data/sisteminha.js';
             y0 + top - 0.04,
             fixed,
           ); /* verga (desce 4 cm: cobre a face inferior da parede) */
-          B.bb(
+          B.addBox(
             w + 0.4,
             0.15,
             th + 0.2,
@@ -1608,9 +1472,17 @@ import { TANKS } from './data/sisteminha.js';
             y0 + sill - 0.12,
             fixed,
           ); /* peitoril (topo 3 cm acima do muro) */
-          B.bb(w, hh - 0.05, 0.06, PAL.glass.windowDeep, m, y0 + sill + 0.01, fixed); /* vidro */
-          B.bb(0.16, hh - 0.02, th + 0.12, WHT, g[0] - 0.02, y0 + sill + 0.01, fixed);
-          B.bb(
+          B.addBox(
+            w,
+            hh - 0.05,
+            0.06,
+            PAL.glass.windowDeep,
+            m,
+            y0 + sill + 0.01,
+            fixed,
+          ); /* vidro */
+          B.addBox(0.16, hh - 0.02, th + 0.12, WHT, g[0] - 0.02, y0 + sill + 0.01, fixed);
+          B.addBox(
             0.16,
             hh - 0.02,
             th + 0.12,
@@ -1619,7 +1491,7 @@ import { TANKS } from './data/sisteminha.js';
             y0 + sill + 0.01,
             fixed,
           ); /* ombreiras */
-          B.bb(
+          B.addBox(
             0.06,
             hh - 0.06,
             0.08,
@@ -1628,7 +1500,7 @@ import { TANKS } from './data/sisteminha.js';
             y0 + sill + 0.03,
             fixed + 0.05 * s,
           ); /* montante */
-          B.add(
+          B.addGeometry(
             GX.box,
             WHT,
             m,
@@ -1638,7 +1510,7 @@ import { TANKS } from './data/sisteminha.js';
             [0, 0, 0],
           ); /* cornija */
           const sz2 = fixed + (hf + 0.06) * s;
-          B.bb(
+          B.addBox(
             w * 0.4,
             hh - 0.2,
             0.1,
@@ -1647,7 +1519,7 @@ import { TANKS } from './data/sisteminha.js';
             y0 + sill + 0.1,
             sz2,
           );
-          B.bb(
+          B.addBox(
             w * 0.4,
             hh - 0.2,
             0.1,
@@ -1679,10 +1551,10 @@ import { TANKS } from './data/sisteminha.js';
     const Y0 = GF,
       H = GHT;
     /* ---------- térreo: porão alto de pedra, paredes ocre, cunhais e cimalha brancos ---------- */
-    BS.bb(26.8, GF - 0.2, 20.8, K.stone, 0, 0, 0);
-    for (i = 0; i < 4; i++) BS.bb(26.9, 0.05, 20.9, K.stoneD, 0, 0.2 + i * 0.18, 0);
+    BS.addBox(26.8, GF - 0.2, 20.8, K.stone, 0, 0, 0);
+    for (i = 0; i < 4; i++) BS.addBox(26.9, 0.05, 20.9, K.stoneD, 0, 0.2 + i * 0.18, 0);
     [-9.5, -6.5, -3.5, 3.5, 6.5, 9.5].forEach(function (px) {
-      W2.bb(0.6, 0.44, 0.16, PAL.dark.charcoal, px, 0.3, 10.46);
+      W2.addBox(0.6, 0.44, 0.16, PAL.dark.charcoal, px, 0.3, 10.46);
     }); /* respiros gradeados do porão */
     /* paredes externas */
     wall(
@@ -1767,13 +1639,13 @@ import { TANKS } from './data/sisteminha.js';
       [-13, 10],
       [13, 10],
     ].forEach(function (c) {
-      W2.bb(0.9, H + 0.2, 0.9, WHT, c[0], GF - 0.2, c[1]);
-      W2.bb(1.0, 0.22, 1.0, K.stoneL, c[0], GF + H - 0.2, c[1]);
+      W2.addBox(0.9, H + 0.2, 0.9, WHT, c[0], GF - 0.2, c[1]);
+      W2.addBox(1.0, 0.22, 1.0, K.stoneL, c[0], GF + H - 0.2, c[1]);
     });
-    W2.bb(26.7, 0.32, 0.7, WHT, 0, GF + H - 0.28, 10.1);
-    W2.bb(26.7, 0.32, 0.7, WHT, 0, GF + H - 0.28, -10.1);
-    W2.bb(0.7, 0.32, 20.6, WHT, 13.1, GF + H - 0.28, 0);
-    W2.bb(0.7, 0.32, 20.6, WHT, -13.1, GF + H - 0.28, 0);
+    W2.addBox(26.7, 0.32, 0.7, WHT, 0, GF + H - 0.28, 10.1);
+    W2.addBox(26.7, 0.32, 0.7, WHT, 0, GF + H - 0.28, -10.1);
+    W2.addBox(0.7, 0.32, 20.6, WHT, 13.1, GF + H - 0.28, 0);
+    W2.addBox(0.7, 0.32, 20.6, WHT, -13.1, GF + H - 0.28, 0);
     /* paredes internas (0,3 m) */
     const T = 0.3;
     wall(W2, 'x', 2, -13, -7, [], Y0, H - 0.04, T, WHT, 's');
@@ -1819,7 +1691,7 @@ import { TANKS } from './data/sisteminha.js';
     W2.build(casaWalls);
     /* ---------- pisos térreo (não se sobrepõem): ladrilho hidráulico, tábua corrida, mármore ---------- */
     function fl(x1, z1, x2, z2, c) {
-      BS.bb(x2 - x1, 0.2, z2 - z1, c, (x1 + x2) / 2, GF - 0.2, (z1 + z2) / 2);
+      BS.addBox(x2 - x1, 0.2, z2 - z1, c, (x1 + x2) / 2, GF - 0.2, (z1 + z2) / 2);
     }
     fl(-13, 2, -7, 10, 0xcdb08a);
     fl(-7, 2, 7, 10, MARB);
@@ -1834,7 +1706,7 @@ import { TANKS } from './data/sisteminha.js';
     for (i = 0; i < 7; i++)
       for (j = 0; j < 8; j++)
         if ((i + j) % 2)
-          I2.bb(
+          I2.addBox(
             1.96,
             0.03,
             0.96,
@@ -1846,94 +1718,95 @@ import { TANKS } from './data/sisteminha.js';
     /* escada interna: lance único que sobe do hall ao sobrado */
     for (i = 0; i < 24; i++) {
       const sh = GF + ((i + 1) * (UF - GF)) / 24;
-      I2.bb(2.0, sh - GF + 0.0, 0.275, [MARB, 0xe4e2d8][i % 2], 0, GF, 9.4 - (i + 0.5) * 0.275);
+      I2.addBox(2.0, sh - GF + 0.0, 0.275, [MARB, 0xe4e2d8][i % 2], 0, GF, 9.4 - (i + 0.5) * 0.275);
     }
     [-1.05, 1.05].forEach(function (sx) {
-      I2.beam([sx, GF + 0.9, 9.6], [sx, UF + 0.9, 2.8], 0.04, IRON, 5);
+      I2.addBeam([sx, GF + 0.9, 9.6], [sx, UF + 0.9, 2.8], 0.04, IRON, 5);
       for (i = 0; i <= 24; i += 2)
-        I2.bb(0.05, 0.9, 0.05, IRON, sx, GF + (i * (UF - GF)) / 24, 9.4 - i * 0.275);
+        I2.addBox(0.05, 0.9, 0.05, IRON, sx, GF + (i * (UF - GF)) / 24, 9.4 - i * 0.275);
     });
     /* capela: altar de madeira entalhada e dourada, tapete, bancos */
-    I2.bb(3.0, 0.3, 1.2, K.woodD, -10, GF, 3.0);
-    I2.bb(2.6, 2.4, 0.4, K.woodD, -10, GF, 2.4);
-    I2.bb(2.2, 2.0, 0.1, PAL.clay.gold, -10, GF + 0.2, 2.65);
-    I2.bb(0.3, 0.9, 0.3, PAL.clay.gold, -10, GF + 2.4, 2.4);
-    I2.bb(1.1, 0.03, 5, PAL.fabric.brickRed, -10, GF, 6.2);
+    I2.addBox(3.0, 0.3, 1.2, K.woodD, -10, GF, 3.0);
+    I2.addBox(2.6, 2.4, 0.4, K.woodD, -10, GF, 2.4);
+    I2.addBox(2.2, 2.0, 0.1, PAL.clay.gold, -10, GF + 0.2, 2.65);
+    I2.addBox(0.3, 0.9, 0.3, PAL.clay.gold, -10, GF + 2.4, 2.4);
+    I2.addBox(1.1, 0.03, 5, PAL.fabric.brickRed, -10, GF, 6.2);
     for (i = 0; i < 3; i++) {
-      I2.bb(2.8, 0.5, 0.6, K.woodL, -10, GF, 5.2 + i * 1.3);
-      I2.bb(2.8, 0.5, 0.1, K.woodD, -10, GF + 0.5, 5.0 + i * 1.3);
+      I2.addBox(2.8, 0.5, 0.6, K.woodL, -10, GF, 5.2 + i * 1.3);
+      I2.addBox(2.8, 0.5, 0.1, K.woodD, -10, GF + 0.5, 5.0 + i * 1.3);
     }
     /* hall: bancos de ferro, relógio de pé, quadros (molduras) */
-    I2.bb(0.6, 2.2, 0.4, K.woodD, 5.6, GF, 2.4);
-    I2.bb(0.4, 0.5, 0.1, PAL.clay.gold, 5.6, GF + 1.2, 2.62);
-    I2.bb(1.4, 0.5, 0.5, IRON, -4.5, GF, 9.3);
-    I2.bb(1.4, 0.1, 0.55, K.woodL, -4.5, GF + 0.5, 9.3);
+    I2.addBox(0.6, 2.2, 0.4, K.woodD, 5.6, GF, 2.4);
+    I2.addBox(0.4, 0.5, 0.1, PAL.clay.gold, 5.6, GF + 1.2, 2.62);
+    I2.addBox(1.4, 0.5, 0.5, IRON, -4.5, GF, 9.3);
+    I2.addBox(1.4, 0.1, 0.55, K.woodL, -4.5, GF + 0.5, 9.3);
     [
       [-5, 2.2],
       [-3, 2.2],
       [3, 2.2],
     ].forEach(function (q, n) {
-      I2.bb(1.0, 1.3, 0.06, K.woodD, q[0], GF + 1.4, q[1] + 0.2);
-      I2.bb(0.82, 1.1, 0.04, [0x4a6b8f, 0x8f6b4a, 0x5f8f5a][n], q[0], GF + 1.5, q[1] + 0.24);
+      I2.addBox(1.0, 1.3, 0.06, K.woodD, q[0], GF + 1.4, q[1] + 0.2);
+      I2.addBox(0.82, 1.1, 0.04, [0x4a6b8f, 0x8f6b4a, 0x5f8f5a][n], q[0], GF + 1.5, q[1] + 0.24);
     });
     /* sala de jantar: mesa para 14, cadeiras, aparador */
-    I2.bb(6.0, 0.12, 1.8, K.woodD, 0, GF + 0.76, -7.4);
+    I2.addBox(6.0, 0.12, 1.8, K.woodD, 0, GF + 0.76, -7.4);
     [
       [-2.8, -8.1],
       [2.8, -8.1],
       [-2.8, -6.7],
       [2.8, -6.7],
     ].forEach(function (l) {
-      I2.bb(0.18, 0.76, 0.18, K.woodD, l[0], GF, l[1]);
+      I2.addBox(0.18, 0.76, 0.18, K.woodD, l[0], GF, l[1]);
     });
     for (i = 0; i < 7; i++) {
-      I2.bb(0.45, 0.5, 0.45, K.woodL, -2.7 + i * 0.9, GF, -8.5);
-      I2.bb(0.45, 0.5, 0.45, K.woodL, -2.7 + i * 0.9, GF, -6.3);
-      I2.bb(0.45, 0.55, 0.06, K.woodD, -2.7 + i * 0.9, GF + 0.5, -8.75);
+      I2.addBox(0.45, 0.5, 0.45, K.woodL, -2.7 + i * 0.9, GF, -8.5);
+      I2.addBox(0.45, 0.5, 0.45, K.woodL, -2.7 + i * 0.9, GF, -6.3);
+      I2.addBox(0.45, 0.55, 0.06, K.woodD, -2.7 + i * 0.9, GF + 0.5, -8.75);
     }
-    I2.bb(3.4, 0.9, 0.5, K.woodD, 0, GF, -9.6);
-    I2.bb(3.5, 0.06, 0.55, MARB, 0, GF + 0.9, -9.6);
+    I2.addBox(3.4, 0.9, 0.5, K.woodD, 0, GF, -9.6);
+    I2.addBox(3.5, 0.06, 0.55, MARB, 0, GF + 0.9, -9.6);
     [[-1.2], [0], [1.2]].forEach(function (c) {
-      I2.bb(0.5, 0.4, 0.2, PAL.clay.gold, c[0], GF + 1.4, -9.7);
+      I2.addBox(0.5, 0.4, 0.2, PAL.clay.gold, c[0], GF + 1.4, -9.7);
     });
     /* sala de visitas: sofá, poltronas, tapete, piano */
-    I2.cb(2.0, 0.03, PAL.fabric.brickRed, 0, GF, -1, 22);
-    I2.bb(3.0, 0.55, 0.9, PAL.fabric.burgundy, 0, GF, -2.9);
-    I2.bb(3.0, 0.6, 0.25, PAL.fabric.burgundy, 0, GF + 0.5, -3.3);
-    I2.bb(1.2, 0.4, 0.8, K.woodD, 0, GF, -0.8);
+    I2.addCylinder(2.0, 0.03, PAL.fabric.brickRed, 0, GF, -1, 22);
+    I2.addBox(3.0, 0.55, 0.9, PAL.fabric.burgundy, 0, GF, -2.9);
+    I2.addBox(3.0, 0.6, 0.25, PAL.fabric.burgundy, 0, GF + 0.5, -3.3);
+    I2.addBox(1.2, 0.4, 0.8, K.woodD, 0, GF, -0.8);
     [
       [-3.6, -0.5],
       [3.6, -0.5],
     ].forEach(function (p) {
-      I2.bb(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], GF, p[1]);
-      I2.bb(0.9, 0.5, 0.2, PAL.paint.shutterGreen, p[0], GF + 0.4, p[1] - 0.4);
+      I2.addBox(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], GF, p[1]);
+      I2.addBox(0.9, 0.5, 0.2, PAL.paint.shutterGreen, p[0], GF + 0.4, p[1] - 0.4);
     });
-    I2.bb(1.6, 0.9, 0.7, PAL.dark.charcoal, 5.3, GF, 0.8);
-    I2.bb(1.7, 0.06, 0.9, K.woodD, 5.3, GF + 0.9, 0.8);
+    I2.addBox(1.6, 0.9, 0.7, PAL.dark.charcoal, 5.3, GF, 0.8);
+    I2.addBox(1.7, 0.06, 0.9, K.woodD, 5.3, GF + 0.9, 0.8);
     /* cozinha de serviço: fogão a lenha de ferro com coifa, bancada, pia, mesa, azulejos portugueses nas paredes */
-    I2.bb(0.06, 1.6, 10.8, AZW, -12.72, GF + 0.9, -5.6);
+    I2.addBox(0.06, 1.6, 10.8, AZW, -12.72, GF + 0.9, -5.6);
     for (i = 0; i < 9; i++)
-      I2.bb(0.07, 0.4, 0.4, AZB, -12.7, GF + 0.9 + (i % 4) * 0.4, -10.4 + i * 1.2);
-    I2.bb(2.2, 1.0, 1.1, IRON, -11.4, GF, -9.2);
-    I2.cn(1.0, 1.0, IRON, -11.4, GF + 1.0, -9.2, 4, [0, Math.PI / 4, 0]);
-    I2.cb(0.2, 1.8, IRON, -11.4, GF + 2.0, -9.2, 8);
-    U2.bb(0.8, 0.25, 0.04, PAL.flora.pumpkin, -11.4, GF + 0.55, -8.62);
-    I2.bb(0.7, 0.9, 4.5, K.woodL, -12.3, GF, -4.8);
-    I2.bb(0.75, 0.06, 4.6, PAL.light.cream, -12.3, GF + 0.9, -4.8);
-    I2.bb(0.5, 0.12, 0.9, K.steel, -12.3, GF + 0.94, -4.2);
-    I2.bb(2.6, 0.14, 1.4, K.wood, -9.6, GF + 0.75, -5.0);
+      I2.addBox(0.07, 0.4, 0.4, AZB, -12.7, GF + 0.9 + (i % 4) * 0.4, -10.4 + i * 1.2);
+    I2.addBox(2.2, 1.0, 1.1, IRON, -11.4, GF, -9.2);
+    I2.addCone(1.0, 1.0, IRON, -11.4, GF + 1.0, -9.2, 4, [0, Math.PI / 4, 0]);
+    I2.addCylinder(0.2, 1.8, IRON, -11.4, GF + 2.0, -9.2, 8);
+    U2.addBox(0.8, 0.25, 0.04, PAL.flora.pumpkin, -11.4, GF + 0.55, -8.62);
+    I2.addBox(0.7, 0.9, 4.5, K.woodL, -12.3, GF, -4.8);
+    I2.addBox(0.75, 0.06, 4.6, PAL.light.cream, -12.3, GF + 0.9, -4.8);
+    I2.addBox(0.5, 0.12, 0.9, K.steel, -12.3, GF + 0.94, -4.2);
+    I2.addBox(2.6, 0.14, 1.4, K.wood, -9.6, GF + 0.75, -5.0);
     [
       [-1.1, -0.5],
       [1.1, -0.5],
       [-1.1, 0.5],
       [1.1, 0.5],
     ].forEach(function (l) {
-      I2.bb(0.14, 0.75, 0.14, K.woodD, -9.6 + l[0], GF, -5.0 + l[1]);
+      I2.addBox(0.14, 0.75, 0.14, K.woodD, -9.6 + l[0], GF, -5.0 + l[1]);
     });
-    for (i = 0; i < 5; i++) I2.cb(0.12, 0.2, K.copper, -12.4 + 0.0, GF + 2.1, -9.5 + i * 0.5, 6);
+    for (i = 0; i < 5; i++)
+      I2.addCylinder(0.12, 0.2, K.copper, -12.4 + 0.0, GF + 2.1, -9.5 + i * 0.5, 6);
     /* copa (balcão de passa-pratos) */
-    I2.bb(0.8, 0.95, 2.4, K.woodD, -12.4, GF, 0.5);
-    I2.bb(2.5, 0.9, 0.8, K.woodL, -8.5, GF, 0.6);
+    I2.addBox(0.8, 0.95, 2.4, K.woodD, -12.4, GF, 0.5);
+    I2.addBox(2.5, 0.9, 0.8, K.woodL, -8.5, GF, 0.6);
     /* despensa de catástrofe (42 m²): prateleiras, barris, galões, freezer */
     function jarc(k) {
       return [
@@ -1947,32 +1820,33 @@ import { TANKS } from './data/sisteminha.js';
     }
     function sItem(B, x, y, z, k) {
       const m = k % 5;
-      if (m === 0 || m === 3) B.cb(0.12, 0.3, jarc(k), x, y, z, 6);
-      else if (m === 1) B.cb(0.09, 0.2, K.steel, x, y, z, 6);
-      else if (m === 2) B.bb(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
-      else B.bb(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][k % 3], x, y, z);
+      if (m === 0 || m === 3) B.addCylinder(0.12, 0.3, jarc(k), x, y, z, 6);
+      else if (m === 1) B.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
+      else if (m === 2) B.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
+      else
+        B.addBox(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][k % 3], x, y, z);
     }
     function shelfX(B, x1, x2, z, y0, t) {
       const L = x2 - x1,
         n = Math.floor(L / 0.5),
         nu = Math.max(1, Math.round(L / 1.5));
       for (let a = 0; a < 3; a++) {
-        B.bb(L, 0.06, 0.5, K.woodL, (x1 + x2) / 2, y0 + 0.55 + a * 0.7, z);
+        B.addBox(L, 0.06, 0.5, K.woodL, (x1 + x2) / 2, y0 + 0.55 + a * 0.7, z);
         for (let b = 0; b < n; b++)
           sItem(B, x1 + 0.25 + b * 0.5, y0 + 0.61 + a * 0.7, z, b + a * 2 + (t || 0));
       }
-      for (let c = 0; c <= nu; c++) B.bb(0.08, 2.3, 0.54, K.woodD, x1 + (c * L) / nu, y0, z);
+      for (let c = 0; c <= nu; c++) B.addBox(0.08, 2.3, 0.54, K.woodD, x1 + (c * L) / nu, y0, z);
     }
     function shelfZ(B, z1, z2, x, y0, t) {
       const L = z2 - z1,
         n = Math.floor(L / 0.5),
         nu = Math.max(1, Math.round(L / 1.5));
       for (let a = 0; a < 3; a++) {
-        B.bb(0.5, 0.06, L, K.woodL, x, y0 + 0.55 + a * 0.7, (z1 + z2) / 2);
+        B.addBox(0.5, 0.06, L, K.woodL, x, y0 + 0.55 + a * 0.7, (z1 + z2) / 2);
         for (let b = 0; b < n; b++)
           sItem(B, x, y0 + 0.61 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3 + (t || 0));
       }
-      for (let c = 0; c <= nu; c++) B.bb(0.54, 2.3, 0.08, K.woodD, x, y0, z1 + (c * L) / nu);
+      for (let c = 0; c <= nu; c++) B.addBox(0.54, 2.3, 0.08, K.woodD, x, y0, z1 + (c * L) / nu);
     }
     shelfX(I2, 7.4, 12.7, -9.6, GF);
     shelfZ(I2, -9.4, -3.4, 7.4, GF);
@@ -1983,11 +1857,11 @@ import { TANKS } from './data/sisteminha.js';
       [9.0, -5.6],
       [10.0, -5.6],
     ].forEach(function (b) {
-      I2.cb(0.45, 0.9, K.wood, b[0], GF, b[1], 10, 0.42);
-      I2.cb(0.47, 0.06, K.steelD, b[0], GF + 0.45, b[1], 10);
+      I2.addCylinder(0.45, 0.9, K.wood, b[0], GF, b[1], 10, 0.42);
+      I2.addCylinder(0.47, 0.06, K.steelD, b[0], GF + 0.45, b[1], 10);
     });
     for (i = 0; i < 12; i++) {
-      I2.cb(
+      I2.addCylinder(
         0.22,
         0.5,
         PAL.flora.cornflower,
@@ -1997,33 +1871,33 @@ import { TANKS } from './data/sisteminha.js';
         8,
       );
     }
-    I2.bb(2.0, 0.85, 0.8, K.white, 11.4, GF, -5.0);
-    I2.bb(2.05, 0.08, 0.85, K.steel, 11.4, GF + 0.85, -5.0);
+    I2.addBox(2.0, 0.85, 0.8, K.white, 11.4, GF, -5.0);
+    I2.addBox(2.05, 0.08, 0.85, K.steel, 11.4, GF + 0.85, -5.0);
     /* banheiros coletivos (azulejo azul e branco, louças) */
     function toilet(B, x, y, z, ry) {
-      B.at(x, 0, z, ry || 0);
-      B.bb(0.42, 0.42, 0.6, K.white, 0, y, 0);
-      B.bb(0.4, 0.55, 0.2, K.white, 0, y, -0.38);
-      B.bb(0.44, 0.05, 0.5, K.steel, 0, y + 0.42, 0.02);
-      B.at(0, 0, 0, 0);
+      B.setOrigin(x, 0, z, ry || 0);
+      B.addBox(0.42, 0.42, 0.6, K.white, 0, y, 0);
+      B.addBox(0.4, 0.55, 0.2, K.white, 0, y, -0.38);
+      B.addBox(0.44, 0.05, 0.5, K.steel, 0, y + 0.42, 0.02);
+      B.setOrigin(0, 0, 0, 0);
     }
     function sink(B, x, y, z, ry) {
-      B.at(x, 0, z, ry || 0);
-      B.cb(0.1, 0.7, K.white, 0, y, 0, 6);
-      B.bb(0.65, 0.14, 0.48, K.white, 0, y + 0.7, 0);
-      B.cb(0.035, 0.3, K.steel, 0, y + 0.84, -0.17, 5);
-      B.bb(0.7, 0.7, 0.04, 0x9bd9f1, 0, y + 1.3, -0.3);
-      B.at(0, 0, 0, 0);
+      B.setOrigin(x, 0, z, ry || 0);
+      B.addCylinder(0.1, 0.7, K.white, 0, y, 0, 6);
+      B.addBox(0.65, 0.14, 0.48, K.white, 0, y + 0.7, 0);
+      B.addCylinder(0.035, 0.3, K.steel, 0, y + 0.84, -0.17, 5);
+      B.addBox(0.7, 0.7, 0.04, 0x9bd9f1, 0, y + 1.3, -0.3);
+      B.setOrigin(0, 0, 0, 0);
     }
     /* chuveiro orientado: haste e ducha no lado (x - sx*0.5, z + sz*0.5), vidro do lado oposto em x */
     function shower2(B, x, y, z, sx, sz) {
-      B.bb(1.1, 0.08, 1.1, 0xeaf3f7, x, y, z);
-      B.cb(0.03, 1.9, K.steel, x - sx * 0.5, y + 0.08, z + sz * 0.5, 5);
-      B.bb(0.3, 0.05, 0.3, K.steel, x - sx * 0.38, y + 1.85, z + sz * 0.45);
-      B.bb(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + sx * 0.55, y + 0.08, z);
+      B.addBox(1.1, 0.08, 1.1, 0xeaf3f7, x, y, z);
+      B.addCylinder(0.03, 1.9, K.steel, x - sx * 0.5, y + 0.08, z + sz * 0.5, 5);
+      B.addBox(0.3, 0.05, 0.3, K.steel, x - sx * 0.38, y + 1.85, z + sz * 0.45);
+      B.addBox(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + sx * 0.55, y + 0.08, z);
     }
-    I2.bb(0.06, 1.5, 4.8, AZB, 12.72, GF, -0.5);
-    I2.bb(0.06, 0.48, 4.8, AZW, 12.7, GF + 1.01, -0.5);
+    I2.addBox(0.06, 1.5, 4.8, AZB, 12.72, GF, -0.5);
+    I2.addBox(0.06, 0.48, 4.8, AZW, 12.7, GF + 1.01, -0.5);
     toilet(I2, 8.0, GF, 1.35, Math.PI);
     toilet(I2, 9.4, GF, 1.35, Math.PI);
     sink(I2, 10.8, GF, 1.5, Math.PI);
@@ -2031,16 +1905,16 @@ import { TANKS } from './data/sisteminha.js';
     shower2(I2, 8.6, GF, -2.2, 1, -1);
     shower2(I2, 11.0, GF, -2.2, 1, -1);
     /* escritório: escrivaninha, estante, mapa */
-    I2.bb(2.2, 0.1, 1.0, K.woodD, 10.0, GF + 0.76, 8.6);
-    I2.bb(2.2, 0.76, 0.12, K.woodD, 10.0, GF, 8.2);
-    I2.bb(0.5, 0.5, 0.5, K.woodL, 10.0, GF, 7.6);
+    I2.addBox(2.2, 0.1, 1.0, K.woodD, 10.0, GF + 0.76, 8.6);
+    I2.addBox(2.2, 0.76, 0.12, K.woodD, 10.0, GF, 8.2);
+    I2.addBox(0.5, 0.5, 0.5, K.woodL, 10.0, GF, 7.6);
     shelfZ(I2, 3.2, 6.6, 12.7, GF, 4);
-    I2.bb(1.6, 1.1, 0.05, 0xe8d9b0, 10.0, GF + 1.2, 9.7);
+    I2.addBox(1.6, 1.1, 0.05, 0xe8d9b0, 10.0, GF + 1.2, 9.7);
     I2.build(casaG);
     U2.build(casaG, { unlit: true, outline: false });
 
     /* ---------- sobrado: paredes, balcão de ferro, 6 suítes, sala central ---------- */
-    UW.bb(26.7, 0.2, 0.0, K.black, 0, -9, 0); /* (sem efeito) */
+    UW.addBox(26.7, 0.2, 0.0, K.black, 0, -9, 0); /* (sem efeito) */
     wall(
       UW,
       'x',
@@ -2126,16 +2000,16 @@ import { TANKS } from './data/sisteminha.js';
       [-13, 10],
       [13, 10],
     ].forEach(function (c) {
-      UW.bb(0.9, UHT + 0.02, 0.9, WHT, c[0], 0, c[1]);
+      UW.addBox(0.9, UHT + 0.02, 0.9, WHT, c[0], 0, c[1]);
     });
-    UW.bb(26.7, 0.34, 0.7, WHT, 0, UHT - 0.3, 10.1);
-    UW.bb(26.7, 0.34, 0.7, WHT, 0, UHT - 0.3, -10.1);
-    UW.bb(0.7, 0.34, 20.6, WHT, 13.1, UHT - 0.3, 0);
-    UW.bb(0.7, 0.34, 20.6, WHT, -13.1, UHT - 0.3, 0);
+    UW.addBox(26.7, 0.34, 0.7, WHT, 0, UHT - 0.3, 10.1);
+    UW.addBox(26.7, 0.34, 0.7, WHT, 0, UHT - 0.3, -10.1);
+    UW.addBox(0.7, 0.34, 20.6, WHT, 13.1, UHT - 0.3, 0);
+    UW.addBox(0.7, 0.34, 20.6, WHT, -13.1, UHT - 0.3, 0);
     [-11.1, -8.4, -5.7, -3.0, 3.0, 5.7, 8.4, 11.1].forEach(function (px) {
-      UW.bb(2.0, 0.18, 0.14, WHT, px, 3.1, 10.34);
-      UW.add(GX.box, WHT, px, 3.1 + 0.18 + 0.2, 10.34, [2.0, 0.4, 0.1], [0, 0, 0]);
-      UW.bb(0.9, 0.9, 0.08, PAL.glass.windowDeep, px, 0.0, 10.28);
+      UW.addBox(2.0, 0.18, 0.14, WHT, px, 3.1, 10.34);
+      UW.addGeometry(GX.box, WHT, px, 3.1 + 0.18 + 0.2, 10.34, [2.0, 0.4, 0.1], [0, 0, 0]);
+      UW.addBox(0.9, 0.9, 0.08, PAL.glass.windowDeep, px, 0.0, 10.28);
     });
     /* partições do sobrado */
     wall(
@@ -2219,7 +2093,7 @@ import { TANKS } from './data/sisteminha.js';
       const ry = sz > 0 ? 0 : Math.PI;
       toilet(UI, xo + sx * 0.45, 0.04, zw + sz * 0.5, ry);
       sink(UI, xo + sx * 1.5, 0.04, zw + sz * 0.35, ry);
-      UI.bb(
+      UI.addBox(
         2.38,
         0.04,
         2.38,
@@ -2229,7 +2103,7 @@ import { TANKS } from './data/sisteminha.js';
         zw + sz * 1.2,
       ); /* piso de ladrilho branco */
       shower2(UI, xo + sx * 0.7, 0.08, zw + sz * 1.7, sx, sz);
-      UI.bb(
+      UI.addBox(
         0.06,
         1.4,
         2.3,
@@ -2247,30 +2121,30 @@ import { TANKS } from './data/sisteminha.js';
     pbath(12.75, -1, -1.15, -1, [0.7, 1.6]);
     UW.build(casaUpW);
     /* laje do sobrado com o vão da escada (x -1,1…1,1 · z 2,8…9,8) e balcão de ferro fundido */
-    UI.bb(12.2, 0.2, 20.6, K.woodD, -7.2, -0.2, 0);
-    UI.bb(12.2, 0.2, 20.6, K.woodD, 7.2, -0.2, 0);
-    UI.bb(2.2, 0.2, 13.1, K.woodD, 0, -0.2, -3.75);
-    UI.bb(2.2, 0.2, 0.5, K.woodD, 0, -0.2, 10.05);
-    UI.bb(27.2, 0.2, 2.0, K.woodD, 0, -0.2, 11.4);
-    UI.bb(27.2, 0.12, 0.2, IRON, 0, 0.0, 12.4);
-    for (i = 0; i <= 54; i++) UI.bb(0.05, 1.0, 0.05, IRON, -13.5 + i * 0.5, 0, 12.4);
-    UI.bb(27.2, 0.07, 0.1, IRON, 0, 1.0, 12.4);
-    UI.bb(27.2, 0.05, 0.07, IRON, 0, 0.5, 12.4);
+    UI.addBox(12.2, 0.2, 20.6, K.woodD, -7.2, -0.2, 0);
+    UI.addBox(12.2, 0.2, 20.6, K.woodD, 7.2, -0.2, 0);
+    UI.addBox(2.2, 0.2, 13.1, K.woodD, 0, -0.2, -3.75);
+    UI.addBox(2.2, 0.2, 0.5, K.woodD, 0, -0.2, 10.05);
+    UI.addBox(27.2, 0.2, 2.0, K.woodD, 0, -0.2, 11.4);
+    UI.addBox(27.2, 0.12, 0.2, IRON, 0, 0.0, 12.4);
+    for (i = 0; i <= 54; i++) UI.addBox(0.05, 1.0, 0.05, IRON, -13.5 + i * 0.5, 0, 12.4);
+    UI.addBox(27.2, 0.07, 0.1, IRON, 0, 1.0, 12.4);
+    UI.addBox(27.2, 0.05, 0.07, IRON, 0, 0.5, 12.4);
     for (i = 0; i <= 26; i++)
-      if (i % 3 === 0) UI.ic(0.14, IRON, -13 + i, 1.15, 12.4, 1, 1, 1); /* rebites grossos */
+      if (i % 3 === 0) UI.addSphere(0.14, IRON, -13 + i, 1.15, 12.4, 1, 1, 1); /* rebites grossos */
     [-13.5, 13.5].forEach(function (px) {
-      UI.bb(0.22, 1.0, 0.22, IRON, px, 0, 12.4);
+      UI.addBox(0.22, 1.0, 0.22, IRON, px, 0, 12.4);
     });
     [-9.5, -3.2, 3.2, 9.5].forEach(function (px) {
-      UI.bb(0.24, 1.0, 0.24, IRON, px, 0, 12.4);
+      UI.addBox(0.24, 1.0, 0.24, IRON, px, 0, 12.4);
     });
     [-1.1, 1.1].forEach(function (sx) {
-      UI.bb(0.06, 1.0, 7.0, IRON, sx, 0, 6.3);
+      UI.addBox(0.06, 1.0, 7.0, IRON, sx, 0, 6.3);
     });
-    UI.bb(2.2, 0.06, 0.06, IRON, 0, 1.0, 9.8);
+    UI.addBox(2.2, 0.06, 0.06, IRON, 0, 1.0, 9.8);
     /* chão do sobrado: tábua larga e ladrilho; cada peça sem sobreposição */
     function uf(x1, z1, x2, z2, c) {
-      UI.bb(x2 - x1, 0.04, z2 - z1, c, (x1 + x2) / 2, 0, (z1 + z2) / 2);
+      UI.addBox(x2 - x1, 0.04, z2 - z1, c, (x1 + x2) / 2, 0, (z1 + z2) / 2);
     }
     uf(-13, 2.5, -7.5, 10, PAL.wood.floorBoard);
     uf(-7.5, 2.5, -2, 10, PAL.wood.floorBoard);
@@ -2284,18 +2158,18 @@ import { TANKS } from './data/sisteminha.js';
     uf(1, 2.5, 2, 10, PAL.wood.floorBoard);
     uf(-1, 9.8, 1, 10, PAL.wood.floorBoard);
     function bedU(bx, bz, c) {
-      UI.bb(2.0, 0.5, 2.2, K.woodD, bx, 0.04, bz);
-      UI.bb(1.9, 0.28, 2.1, PAL.light.ivory, bx, 0.54, bz);
-      UI.bb(1.9, 0.12, 1.3, c, bx, 0.82, bz + 0.4);
-      UI.bb(1.4, 0.18, 0.5, K.white, bx, 0.82, bz - 0.8);
-      UI.bb(2.1, 1.3, 0.14, K.woodD, bx, 0.04, bz - 1.15);
-      UI.bb(0.5, 0.45, 0.5, K.woodL, bx + 1.5, 0.04, bz - 0.8);
+      UI.addBox(2.0, 0.5, 2.2, K.woodD, bx, 0.04, bz);
+      UI.addBox(1.9, 0.28, 2.1, PAL.light.ivory, bx, 0.54, bz);
+      UI.addBox(1.9, 0.12, 1.3, c, bx, 0.82, bz + 0.4);
+      UI.addBox(1.4, 0.18, 0.5, K.white, bx, 0.82, bz - 0.8);
+      UI.addBox(2.1, 1.3, 0.14, K.woodD, bx, 0.04, bz - 1.15);
+      UI.addBox(0.5, 0.45, 0.5, K.woodL, bx + 1.5, 0.04, bz - 0.8);
     }
     function wardrobe(wx, wz, wrot) {
-      UI.at(wx, 0, wz, wrot || 0);
-      UI.bb(1.6, 2.3, 0.6, K.woodD, 0, 0.04, 0);
-      UI.bb(0.03, 2.0, 0.05, PAL.clay.gold, 0, 0.2, 0.32);
-      UI.at(0, 0, 0, 0);
+      UI.setOrigin(wx, 0, wz, wrot || 0);
+      UI.addBox(1.6, 2.3, 0.6, K.woodD, 0, 0.04, 0);
+      UI.addBox(0.03, 2.0, 0.05, PAL.clay.gold, 0, 0.2, 0.32);
+      UI.setOrigin(0, 0, 0, 0);
     }
     /* suítes de frente (A, B, C, D) */
     const sc = [
@@ -2319,15 +2193,15 @@ import { TANKS } from './data/sisteminha.js';
     wardrobe(-11.0, -9.45, 0);
     bedU(8.2, -6.5, sc[5]);
     wardrobe(11.0, -9.45, 0);
-    UI.cb(2.4, 0.03, PAL.fabric.rust, 0, 0.04, -5.5, 22);
-    UI.bb(2.8, 0.55, 0.9, PAL.fabric.royalBlue, 0, 0.04, -8.4);
-    UI.bb(2.8, 0.6, 0.25, PAL.fabric.royalBlue, 0, 0.5, -8.8);
-    UI.bb(1.2, 0.4, 0.8, K.woodD, 0, 0.04, -5.5);
+    UI.addCylinder(2.4, 0.03, PAL.fabric.rust, 0, 0.04, -5.5, 22);
+    UI.addBox(2.8, 0.55, 0.9, PAL.fabric.royalBlue, 0, 0.04, -8.4);
+    UI.addBox(2.8, 0.6, 0.25, PAL.fabric.royalBlue, 0, 0.5, -8.8);
+    UI.addBox(1.2, 0.4, 0.8, K.woodD, 0, 0.04, -5.5);
     [
       [-2.4, -6],
       [2.4, -6],
     ].forEach(function (p) {
-      UI.bb(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], 0.04, p[1]);
+      UI.addBox(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], 0.04, p[1]);
     });
     /* lustres de ferro e lampiões */
     [
@@ -2336,31 +2210,31 @@ import { TANKS } from './data/sisteminha.js';
       [0, -5],
       [0, 0.7],
     ].forEach(function (p) {
-      UI.cb(0.03, 1.0, IRON, p[0], UHT - 1.0, p[1], 4);
-      UI.cb(0.4, 0.06, IRON, p[0], UHT - 1.05, p[1], 10);
-      UU.ic(0.14, PAL.light.warmGlow, p[0], UHT - 1.1, p[1], 1, 1, 1);
+      UI.addCylinder(0.03, 1.0, IRON, p[0], UHT - 1.0, p[1], 4);
+      UI.addCylinder(0.4, 0.06, IRON, p[0], UHT - 1.05, p[1], 10);
+      UU.addSphere(0.14, PAL.light.warmGlow, p[0], UHT - 1.1, p[1], 1, 1, 1);
     });
     UI.build(casaUp);
     UU.build(casaUp, { unlit: true, outline: false });
 
     /* ---------- varanda térrea, colunas e escadaria de mármore com espelhos de azulejo e gradil de ferro ---------- */
-    P2.bb(26.8, GF - 0.2, 3.4, K.stone, 0, 0, 11.9);
-    P2.bb(26.8, 0.2, 3.4, MARB, 0, GF - 0.2, 11.9);
+    P2.addBox(26.8, GF - 0.2, 3.4, K.stone, 0, 0, 11.9);
+    P2.addBox(26.8, 0.2, 3.4, MARB, 0, GF - 0.2, 11.9);
     for (i = 0; i <= 8; i++) {
       const cx = -12 + i * 3.0;
       if (Math.abs(cx) < 0.1) continue;
-      P2.cb(0.28, UF - GF - 0.12, WHT, cx, GF, 12.4, 10, 0.22);
-      P2.bb(0.7, 0.22, 0.7, WHT, cx, GF, 12.4);
-      P2.bb(0.6, 0.24, 0.6, K.stoneL, cx, UF - 0.28, 12.4);
+      P2.addCylinder(0.28, UF - GF - 0.12, WHT, cx, GF, 12.4, 10, 0.22);
+      P2.addBox(0.7, 0.22, 0.7, WHT, cx, GF, 12.4);
+      P2.addBox(0.6, 0.24, 0.6, K.stoneL, cx, UF - 0.28, 12.4);
     }
     [-1.5, 1.5].forEach(function (cx) {
-      P2.cb(0.3, UF - GF - 0.12, WHT, cx, GF, 12.4, 10, 0.24);
-      P2.bb(0.8, 0.24, 0.8, WHT, cx, GF, 12.4);
+      P2.addCylinder(0.3, UF - GF - 0.12, WHT, cx, GF, 12.4, 10, 0.24);
+      P2.addBox(0.8, 0.24, 0.8, WHT, cx, GF, 12.4);
     });
-    P2.bb(27, 0.3, 0.5, WHT, 0, UF - 0.38, 12.4);
+    P2.addBox(27, 0.3, 0.5, WHT, 0, UF - 0.38, 12.4);
     for (i = 0; i < 7; i++) {
-      P2.bb(6.2 - i * 0.0, 0.14, 0.45, MARB, 0, i * (GF / 7), 13.6 + (6 - i) * 0.45);
-      P2.bb(
+      P2.addBox(6.2 - i * 0.0, 0.14, 0.45, MARB, 0, i * (GF / 7), 13.6 + (6 - i) * 0.45);
+      P2.addBox(
         6.2,
         GF / 7,
         0.04,
@@ -2371,23 +2245,23 @@ import { TANKS } from './data/sisteminha.js';
       );
     }
     [-3.2, 3.2].forEach(function (sx) {
-      P2.beam([sx, 0.9, 13.4], [sx, GF + 0.9, 16.8], 0.05, IRON, 5);
-      P2.bb(0.2, 0.9, 0.2, WHT, sx, 0, 16.8);
-      P2.ic(0.22, K.stoneL, sx, 0.9 + 0.2, 16.8, 1, 1.4, 1);
-      P2.ic(0.22, K.stoneL, sx, GF + 1.1, 13.4, 1, 1.4, 1);
+      P2.addBeam([sx, 0.9, 13.4], [sx, GF + 0.9, 16.8], 0.05, IRON, 5);
+      P2.addBox(0.2, 0.9, 0.2, WHT, sx, 0, 16.8);
+      P2.addSphere(0.22, K.stoneL, sx, 0.9 + 0.2, 16.8, 1, 1.4, 1);
+      P2.addSphere(0.22, K.stoneL, sx, GF + 1.1, 13.4, 1, 1.4, 1);
     });
     for (i = 0; i <= 6; i++)
       [-3.2, 3.2].forEach(function (sx) {
-        P2.bb(0.04, 0.8, 0.04, IRON, sx, i * (GF / 7), 16.8 - i * 0.45);
+        P2.addBox(0.04, 0.8, 0.04, IRON, sx, i * (GF / 7), 16.8 - i * 0.45);
       });
     for (i = 0; i <= 26; i++)
-      if (Math.abs(i - 13) > 3) P2.bb(0.05, 0.9, 0.05, IRON, -13 + i, GF, 13.55);
-    P2.bb(10.5, 0.07, 0.07, IRON, -8.2, GF + 0.9, 13.55);
-    P2.bb(10.5, 0.07, 0.07, IRON, 8.2, GF + 0.9, 13.55);
+      if (Math.abs(i - 13) > 3) P2.addBox(0.05, 0.9, 0.05, IRON, -13 + i, GF, 13.55);
+    P2.addBox(10.5, 0.07, 0.07, IRON, -8.2, GF + 0.9, 13.55);
+    P2.addBox(10.5, 0.07, 0.07, IRON, 8.2, GF + 0.9, 13.55);
     /* lampiões de ferro e refletores (noite) */
     [-12, -6, 6, 12].forEach(function (cx) {
-      P2.bb(0.18, 0.5, 0.18, IRON, cx, UF - 1.0, 11.2);
-      UP.ic(0.17, 0xffe3a0, cx, UF - 1.2, 11.2, 1, 1.3, 1);
+      P2.addBox(0.18, 0.5, 0.18, IRON, cx, UF - 1.0, 11.2);
+      UP.addSphere(0.17, 0xffe3a0, cx, UF - 1.2, 11.2, 1, 1.3, 1);
     });
     P2.build(casaG);
     UP.build(casaG, { unlit: true, outline: false });
@@ -2408,8 +2282,8 @@ import { TANKS } from './data/sisteminha.js';
       RH = 4.6,
       RW = 30.2,
       RD = 24.2;
-    R2.add(hipGeo(RW, RD, RH), K.roof, 0, RB, 0);
-    R2.bb(RW + 0.4, 0.3, RD + 0.4, K.woodD, 0, RB - 0.3, 0);
+    R2.addGeometry(hipGeo(RW, RD, RH), K.roof, 0, RB, 0);
+    R2.addBox(RW + 0.4, 0.3, RD + 0.4, K.woodD, 0, RB - 0.3, 0);
     const th = Math.atan2(RH, RD / 2),
       sn = Math.sin(th),
       cs = Math.cos(th);
@@ -2419,7 +2293,7 @@ import { TANKS } from './data/sisteminha.js';
         [1, 1],
         [-1, -1],
       ].forEach(function (sg) {
-        R2.add(
+        R2.addGeometry(
           GX.box,
           K.roofD,
           0,
@@ -2430,28 +2304,36 @@ import { TANKS } from './data/sisteminha.js';
         );
       });
     }
-    R2.bb(RW - RD + 0.6, 0.3, 0.55, K.roofD, 0, RB + RH - 0.02, 0);
+    R2.addBox(RW - RD + 0.6, 0.3, 0.55, K.roofD, 0, RB + RH - 0.02, 0);
     const tri = new THREE.Shape();
     tri.moveTo(-4.4, 0);
     tri.lineTo(4.4, 0);
     tri.lineTo(0, 3.0);
     const gg = new THREE.ExtrudeGeometry(tri, { depth: 0.6, bevelEnabled: false });
     gg.translate(0, 0, -0.3);
-    R2.add(gg, WHT, 0, RB - 0.1, 10.6);
-    R2.add(gg, K.stoneL, 0, RB - 0.1, 10.2, [1.06, 1.06, 0.4]);
-    R2.cb(0.85, 0.14, WHT, 0, RB + 1.0, 10.98, 24, 0.85, [Math.PI / 2, 0, 0]);
-    R2.cb(0.7, 0.15, 0x1d3566, 0, RB + 1.0, 11.0, 24, 0.7, [Math.PI / 2, 0, 0]);
-    R2.bb(0.06, 0.55, 0.05, WHT, 0, RB + 1.0, 11.1);
-    R2.bb(0.4, 0.06, 0.05, WHT, 0.1, RB + 1.0, 11.1);
+    R2.addGeometry(gg, WHT, 0, RB - 0.1, 10.6);
+    R2.addGeometry(gg, K.stoneL, 0, RB - 0.1, 10.2, [1.06, 1.06, 0.4]);
+    R2.addCylinder(0.85, 0.14, WHT, 0, RB + 1.0, 10.98, 24, 0.85, [Math.PI / 2, 0, 0]);
+    R2.addCylinder(0.7, 0.15, 0x1d3566, 0, RB + 1.0, 11.0, 24, 0.7, [Math.PI / 2, 0, 0]);
+    R2.addBox(0.06, 0.55, 0.05, WHT, 0, RB + 1.0, 11.1);
+    R2.addBox(0.4, 0.06, 0.05, WHT, 0.1, RB + 1.0, 11.1);
     [-4.5, 4.5].forEach(function (ax) {
-      R2.ic(0.3, K.stoneL, ax, RB + 0.1, 10.6, 1, 1.3, 1);
+      R2.addSphere(0.3, K.stoneL, ax, RB + 0.1, 10.6, 1, 1.3, 1);
     });
-    R2.ic(0.3, K.stoneL, 0, RB + 3.1, 10.6, 1, 1.3, 1); /* acrotérios */
+    R2.addSphere(0.3, K.stoneL, 0, RB + 3.1, 10.6, 1, 1.3, 1); /* acrotérios */
     for (i = 0; i <= 12; i++)
-      R2.bb(0.12, 0.5, 0.06, K.woodD, -12 + i * 2, RB - 0.7, 12.1); /* lambrequins sob o beiral */
-    R2.bb(1.4, 3.4, 1.4, CW, 6, RB + 1.3, -3);
-    R2.bb(1.8, 0.3, 1.8, K.stoneD, 6, RB + 4.5, -3);
-    R2.bb(0.8, 0.9, 0.8, K.stone, 6, RB + 4.8, -3);
+      R2.addBox(
+        0.12,
+        0.5,
+        0.06,
+        K.woodD,
+        -12 + i * 2,
+        RB - 0.7,
+        12.1,
+      ); /* lambrequins sob o beiral */
+    R2.addBox(1.4, 3.4, 1.4, CW, 6, RB + 1.3, -3);
+    R2.addBox(1.8, 0.3, 1.8, K.stoneD, 6, RB + 4.5, -3);
+    R2.addBox(0.8, 0.9, 0.8, K.stone, 6, RB + 4.8, -3);
     R2.build(casaRoofG, { mat: roofMat });
   })();
 
@@ -2462,11 +2344,11 @@ import { TANKS } from './data/sisteminha.js';
     return [x0 + lx * Math.cos(ry) + lz * Math.sin(ry), z0 - lx * Math.sin(ry) + lz * Math.cos(ry)];
   }
   function track(b, x, len, h, w) {
-    b.bb(w, h, len, K.black, x, 0.0, 0);
-    b.add(cylG(1, 12), K.black, x, h / 2, len / 2, [h / 2, w, h / 2], [0, 0, Math.PI / 2]);
-    b.add(cylG(1, 12), K.black, x, h / 2, -len / 2, [h / 2, w, h / 2], [0, 0, Math.PI / 2]);
+    b.addBox(w, h, len, K.black, x, 0.0, 0);
+    b.addGeometry(cylG(1, 12), K.black, x, h / 2, len / 2, [h / 2, w, h / 2], [0, 0, Math.PI / 2]);
+    b.addGeometry(cylG(1, 12), K.black, x, h / 2, -len / 2, [h / 2, w, h / 2], [0, 0, Math.PI / 2]);
     for (let k = 0; k < 4; k++)
-      b.add(
+      b.addGeometry(
         cylG(1, 8),
         K.steelD,
         x,
@@ -2477,129 +2359,137 @@ import { TANKS } from './data/sisteminha.js';
       );
   }
   function stripedCone(b, x, z) {
-    b.cn(0.34, 0.9, K.orange, x, 0, z, 8);
-    b.cb(0.27, 0.14, K.white, x, 0.3, z, 8, 0.23);
-    b.bb(0.8, 0.06, 0.8, K.black, x, 0, z);
+    b.addCone(0.34, 0.9, K.orange, x, 0, z, 8);
+    b.addCylinder(0.27, 0.14, K.white, x, 0.3, z, 8, 0.23);
+    b.addBox(0.8, 0.06, 0.8, K.black, x, 0, z);
   }
   function pallet(b, x, z, n, ry) {
-    b.at(x, 0, z, ry || 0);
+    b.setOrigin(x, 0, z, ry || 0);
     for (let l = 0; l < n; l++) {
-      b.bb(1.2, 0.14, 1.0, K.woodL, 0, l * 0.42, 0);
+      b.addBox(1.2, 0.14, 1.0, K.woodL, 0, l * 0.42, 0);
       for (let f = 0; f < 3; f++)
-        b.bb(1.2, 0.1, 0.18, K.woodD, 0, l * 0.42 + 0.14, -0.38 + f * 0.38);
+        b.addBox(1.2, 0.1, 0.18, K.woodD, 0, l * 0.42 + 0.14, -0.38 + f * 0.38);
       for (let c = 0; c < 3; c++)
-        b.bb(0.12, 0.14, 1.0, K.woodD, -0.5 + c * 0.5, l * 0.42 + 0.24, 0);
+        b.addBox(0.12, 0.14, 1.0, K.woodD, -0.5 + c * 0.5, l * 0.42 + 0.24, 0);
     }
-    b.at(0, 0, 0, 0);
+    b.setOrigin(0, 0, 0, 0);
   }
   function toolbox(b, x, z, ry, lv) {
-    b.at(x, 0, z, ry || 0);
+    b.setOrigin(x, 0, z, ry || 0);
     for (let l = 0; l < (lv || 2); l++) {
-      b.bb(1.0, 0.5, 0.55, K.red, 0, l * 0.5, 0);
-      b.bb(0.55, 0.06, 0.07, K.steel, 0, l * 0.5 + 0.4, 0.3);
-      b.bb(1.02, 0.04, 0.57, K.redD || 0xa82a20, 0, l * 0.5 + 0.24, 0);
+      b.addBox(1.0, 0.5, 0.55, K.red, 0, l * 0.5, 0);
+      b.addBox(0.55, 0.06, 0.07, K.steel, 0, l * 0.5 + 0.4, 0.3);
+      b.addBox(1.02, 0.04, 0.57, K.redD || 0xa82a20, 0, l * 0.5 + 0.24, 0);
     }
-    b.at(0, 0, 0, 0);
+    b.setOrigin(0, 0, 0, 0);
   }
   function beacon(x, y, z, col) {
-    YB.cb(0.2, 0.12, K.black, x, y, z, 8);
+    YB.addCylinder(0.2, 0.12, K.black, x, y, z, 8);
     beacons.push({ x: x, y: y + 0.12, z: z, col: col });
   }
 
   /* laje de concreto cinza-claro e faixas de sinalização */
-  YB.bb(18, 0.2, 19, K.conc, 30, 0, -22.5);
-  YB.bb(18.2, 0.08, 0.3, K.concD, 30, 0.2, -13.2);
-  for (let ys = 0; ys < 9; ys++) YB.bb(1.3, 0.03, 0.22, K.yellow, 21.8 + ys * 2.0, 0.2, -31.8);
-  YB.bb(0.2, 0.03, 9, K.white, 24, 0.2, -20);
-  YB.bb(0.2, 0.03, 9, K.white, 36.5, 0.2, -20);
-  YB.bb(12, 0.03, 0.2, K.white, 30, 0.2, -16);
+  YB.addBox(18, 0.2, 19, K.conc, 30, 0, -22.5);
+  YB.addBox(18.2, 0.08, 0.3, K.concD, 30, 0.2, -13.2);
+  for (let ys = 0; ys < 9; ys++) YB.addBox(1.3, 0.03, 0.22, K.yellow, 21.8 + ys * 2.0, 0.2, -31.8);
+  YB.addBox(0.2, 0.03, 9, K.white, 24, 0.2, -20);
+  YB.addBox(0.2, 0.03, 9, K.white, 36.5, 0.2, -20);
+  YB.addBox(12, 0.03, 0.2, K.white, 30, 0.2, -16);
   [
     [22, -14.5],
     [38, -14.5],
   ].forEach(function (p) {
-    YB.cb(0.12, 6.0, K.steelD, p[0], 0.2, p[1], 6);
-    YB.bb(0.8, 0.2, 0.5, K.steel, p[0], 6.0, p[1]);
-    YB.bb(0.6, 0.06, 0.3, 0xfff6c9, p[0], 5.94, p[1]);
+    YB.addCylinder(0.12, 6.0, K.steelD, p[0], 0.2, p[1], 6);
+    YB.addBox(0.8, 0.2, 0.5, K.steel, p[0], 6.0, p[1]);
+    YB.addBox(0.6, 0.06, 0.3, 0xfff6c9, p[0], 5.94, p[1]);
   });
 
   /* minicarregadeira (skid steer) — amarelo Caterpillar, esteiras pretas */
   (function (b, X, Z, RY) {
-    b.at(X, 0, Z, RY);
+    b.setOrigin(X, 0, Z, RY);
     track(b, -0.95, 2.5, 0.85, 0.5);
     track(b, 0.95, 2.5, 0.85, 0.5);
-    b.bb(1.5, 0.9, 2.2, K.yellow, 0, 0.55, -0.1);
-    b.bb(1.6, 0.2, 2.3, K.black, 0, 0.45, -0.1);
-    b.bb(1.2, 0.5, 0.9, K.black, 0, 1.45, -0.8);
-    b.bb(1.3, 0.08, 1.3, K.yellow, 0, 2.72, 0.1);
+    b.addBox(1.5, 0.9, 2.2, K.yellow, 0, 0.55, -0.1);
+    b.addBox(1.6, 0.2, 2.3, K.black, 0, 0.45, -0.1);
+    b.addBox(1.2, 0.5, 0.9, K.black, 0, 1.45, -0.8);
+    b.addBox(1.3, 0.08, 1.3, K.yellow, 0, 2.72, 0.1);
     [
       [-0.62, -0.58],
       [0.62, -0.58],
       [-0.62, 0.62],
       [0.62, 0.62],
     ].forEach(function (p) {
-      b.bb(0.1, 1.3, 0.1, K.yellow, p[0], 1.45, p[1]);
+      b.addBox(0.1, 1.3, 0.1, K.yellow, p[0], 1.45, p[1]);
     });
-    b.bb(1.1, 1.0, 1.1, PAL.glass.paleBlue, 0, 1.45, 0.0);
-    b.bb(1.4, 0.1, 0.1, K.black, 0, 1.1, 0.62);
-    b.beam([-0.82, 1.0, -0.7], [-0.82, 0.9, 1.9], 0.1, K.yellow, 6);
-    b.beam([0.82, 1.0, -0.7], [0.82, 0.9, 1.9], 0.1, K.yellow, 6);
-    b.bb(1.9, 0.5, 0.7, K.black, 0, 0.45, 2.15);
-    b.bb(1.9, 0.7, 0.1, K.black, 0, 0.9, 2.45);
-    b.bb(1.9, 0.14, 0.5, K.steel, 0, 0.3, 2.4);
-    b.beam([-0.6, 1.2, -0.9], [-0.5, 0.6, 1.2], 0.07, K.steelD, 5);
-    b.at(0, 0, 0, 0);
+    b.addBox(1.1, 1.0, 1.1, PAL.glass.paleBlue, 0, 1.45, 0.0);
+    b.addBox(1.4, 0.1, 0.1, K.black, 0, 1.1, 0.62);
+    b.addBeam([-0.82, 1.0, -0.7], [-0.82, 0.9, 1.9], 0.1, K.yellow, 6);
+    b.addBeam([0.82, 1.0, -0.7], [0.82, 0.9, 1.9], 0.1, K.yellow, 6);
+    b.addBox(1.9, 0.5, 0.7, K.black, 0, 0.45, 2.15);
+    b.addBox(1.9, 0.7, 0.1, K.black, 0, 0.9, 2.45);
+    b.addBox(1.9, 0.14, 0.5, K.steel, 0, 0.3, 2.4);
+    b.addBeam([-0.6, 1.2, -0.9], [-0.5, 0.6, 1.2], 0.07, K.steelD, 5);
+    b.setOrigin(0, 0, 0, 0);
     const p = lw(X, Z, RY, 0.6, -0.1);
     beacon(p[0], 2.8, p[1], K.orange);
   })(YB, 30.7, -26.6, Math.PI);
 
   /* miniescavadeira com lâmina niveladora */
   (function (b, X, Z, RY) {
-    b.at(X, 0, Z, RY);
+    b.setOrigin(X, 0, Z, RY);
     track(b, -1.0, 3.2, 0.8, 0.65);
     track(b, 1.0, 3.2, 0.8, 0.65);
-    b.bb(2.2, 0.4, 2.4, K.black, 0, 0.7, 0);
-    b.bb(2.2, 0.18, 0.5, K.orange, 0, 0.3, 1.95);
-    b.beam([-1.0, 0.6, 0.8], [-1.0, 0.5, 1.9], 0.08, K.steelD, 5);
-    b.beam([1.0, 0.6, 0.8], [1.0, 0.5, 1.9], 0.08, K.steelD, 5);
-    b.at(X, 0, Z, RY - 0.55);
-    b.add(cylG(1, 16), K.black, 0, 1.15, 0, [1.3, 0.12, 1.3]);
-    b.bb(2.0, 1.0, 2.3, K.orange, 0, 1.2, -0.3);
-    b.bb(1.8, 0.8, 0.9, K.black, 0, 2.2, -1.1);
-    b.bb(1.0, 1.5, 1.0, PAL.glass.paleBlue, -0.5, 2.2, 0.4);
-    b.bb(1.2, 0.1, 1.2, K.orange, -0.5, 3.7, 0.4);
-    b.bb(0.1, 1.5, 0.1, K.orange, -0.95, 2.2, 0.85);
-    b.bb(1.2, 0.7, 0.5, K.black, 0, 1.4, -1.5);
-    b.beam([0.5, 1.7, 0.5], [0.5, 3.5, 2.5], 0.18, K.orange, 6);
-    b.beam([0.5, 3.5, 2.5], [0.5, 2.0, 4.0], 0.14, K.orange, 6);
-    b.beam([0.5, 1.9, 0.1], [0.5, 3.2, 1.6], 0.07, K.steel, 5);
-    b.add(GX.box, K.black, 0.5, 1.55, 4.3, [0.6, 0.9, 0.6], [0.6, 0, 0]);
-    b.add(GX.box, K.steel, 0.5, 1.2, 4.6, [0.62, 0.16, 0.35], [0.6, 0, 0]);
-    b.at(0, 0, 0, 0);
+    b.addBox(2.2, 0.4, 2.4, K.black, 0, 0.7, 0);
+    b.addBox(2.2, 0.18, 0.5, K.orange, 0, 0.3, 1.95);
+    b.addBeam([-1.0, 0.6, 0.8], [-1.0, 0.5, 1.9], 0.08, K.steelD, 5);
+    b.addBeam([1.0, 0.6, 0.8], [1.0, 0.5, 1.9], 0.08, K.steelD, 5);
+    b.setOrigin(X, 0, Z, RY - 0.55);
+    b.addGeometry(cylG(1, 16), K.black, 0, 1.15, 0, [1.3, 0.12, 1.3]);
+    b.addBox(2.0, 1.0, 2.3, K.orange, 0, 1.2, -0.3);
+    b.addBox(1.8, 0.8, 0.9, K.black, 0, 2.2, -1.1);
+    b.addBox(1.0, 1.5, 1.0, PAL.glass.paleBlue, -0.5, 2.2, 0.4);
+    b.addBox(1.2, 0.1, 1.2, K.orange, -0.5, 3.7, 0.4);
+    b.addBox(0.1, 1.5, 0.1, K.orange, -0.95, 2.2, 0.85);
+    b.addBox(1.2, 0.7, 0.5, K.black, 0, 1.4, -1.5);
+    b.addBeam([0.5, 1.7, 0.5], [0.5, 3.5, 2.5], 0.18, K.orange, 6);
+    b.addBeam([0.5, 3.5, 2.5], [0.5, 2.0, 4.0], 0.14, K.orange, 6);
+    b.addBeam([0.5, 1.9, 0.1], [0.5, 3.2, 1.6], 0.07, K.steel, 5);
+    b.addGeometry(GX.box, K.black, 0.5, 1.55, 4.3, [0.6, 0.9, 0.6], [0.6, 0, 0]);
+    b.addGeometry(GX.box, K.steel, 0.5, 1.2, 4.6, [0.62, 0.16, 0.35], [0.6, 0, 0]);
+    b.setOrigin(0, 0, 0, 0);
     const p = lw(X, Z, RY - 0.55, -0.5, 0.4);
     beacon(p[0], 3.75, p[1], K.orange);
   })(YB, 36.2, -23.2, -0.6);
 
   /* carrinhos utilitários elétricos de ferramentas */
   function cart(b, X, Z, RY, col) {
-    b.at(X, 0, Z, RY);
-    b.bb(1.9, 0.14, 1.0, col, 0, 0.36, 0);
-    b.bb(0.14, 0.7, 1.0, K.black, -0.95, 0.4, 0);
-    b.bb(1.9, 0.5, 0.12, K.black, 0, 0.5, -0.5);
+    b.setOrigin(X, 0, Z, RY);
+    b.addBox(1.9, 0.14, 1.0, col, 0, 0.36, 0);
+    b.addBox(0.14, 0.7, 1.0, K.black, -0.95, 0.4, 0);
+    b.addBox(1.9, 0.5, 0.12, K.black, 0, 0.5, -0.5);
     [
       [-0.7, -0.5],
       [0.7, -0.5],
       [-0.7, 0.5],
       [0.7, 0.5],
     ].forEach(function (w) {
-      b.add(cylG(1, 10), K.black, w[0], 0.24, w[1], [0.24, 0.16, 0.24], [Math.PI / 2, 0, 0]);
+      b.addGeometry(
+        cylG(1, 10),
+        K.black,
+        w[0],
+        0.24,
+        w[1],
+        [0.24, 0.16, 0.24],
+        [Math.PI / 2, 0, 0],
+      );
     });
-    b.bb(0.8, 0.5, 0.55, K.red, 0.3, 0.5, 0.05);
-    b.bb(0.8, 0.04, 0.57, K.steel, 0.3, 1.0, 0.05);
-    b.bb(0.5, 0.3, 0.4, K.blue, -0.4, 0.5, 0.1);
-    b.bb(0.04, 0.9, 0.04, K.black, -1.0, 0.5, -0.4);
-    b.bb(0.04, 0.9, 0.04, K.black, -1.0, 0.5, 0.4);
-    b.bb(0.06, 0.06, 0.9, K.black, -1.0, 1.4, 0);
-    b.at(0, 0, 0, 0);
+    b.addBox(0.8, 0.5, 0.55, K.red, 0.3, 0.5, 0.05);
+    b.addBox(0.8, 0.04, 0.57, K.steel, 0.3, 1.0, 0.05);
+    b.addBox(0.5, 0.3, 0.4, K.blue, -0.4, 0.5, 0.1);
+    b.addBox(0.04, 0.9, 0.04, K.black, -1.0, 0.5, -0.4);
+    b.addBox(0.04, 0.9, 0.04, K.black, -1.0, 0.5, 0.4);
+    b.addBox(0.06, 0.06, 0.9, K.black, -1.0, 1.4, 0);
+    b.setOrigin(0, 0, 0, 0);
   }
   cart(YB, 25.6, -28.6, 0.35, K.orange);
   cart(YB, 27.6, -21.6, -0.5, K.yellow);
@@ -2607,35 +2497,35 @@ import { TANKS } from './data/sisteminha.js';
 
   /* van Asia Towner e moto de 175 cc */
   (function (b, X, Z, RY) {
-    b.at(X, 0, Z, RY);
-    b.bb(1.9, 1.5, 3.1, K.white, 0, 0.5, -0.6);
-    b.bb(1.85, 1.0, 1.3, K.white, 0, 0.5, 1.6);
-    b.bb(1.7, 0.6, 0.1, PAL.glass.paleBlue, 0, 1.35, 2.25);
-    b.bb(1.95, 0.12, 4.6, K.blue, 0, 0.7, 0.2);
-    b.bb(1.6, 0.5, 0.1, PAL.glass.paleBlue, 0, 1.4, 0.95);
-    b.bb(0.1, 0.5, 1.0, PAL.glass.paleBlue, 0.93, 1.2, 1.6);
-    b.bb(0.1, 0.5, 1.0, PAL.glass.paleBlue, -0.93, 1.2, 1.6);
+    b.setOrigin(X, 0, Z, RY);
+    b.addBox(1.9, 1.5, 3.1, K.white, 0, 0.5, -0.6);
+    b.addBox(1.85, 1.0, 1.3, K.white, 0, 0.5, 1.6);
+    b.addBox(1.7, 0.6, 0.1, PAL.glass.paleBlue, 0, 1.35, 2.25);
+    b.addBox(1.95, 0.12, 4.6, K.blue, 0, 0.7, 0.2);
+    b.addBox(1.6, 0.5, 0.1, PAL.glass.paleBlue, 0, 1.4, 0.95);
+    b.addBox(0.1, 0.5, 1.0, PAL.glass.paleBlue, 0.93, 1.2, 1.6);
+    b.addBox(0.1, 0.5, 1.0, PAL.glass.paleBlue, -0.93, 1.2, 1.6);
     [
       [-0.95, 1.5],
       [0.95, 1.5],
       [-0.95, -1.2],
       [0.95, -1.2],
     ].forEach(function (w) {
-      b.add(cylG(1, 12), K.black, w[0], 0.4, w[1], [0.4, 0.26, 0.4], [0, 0, Math.PI / 2]);
-      b.add(cylG(1, 8), K.steel, w[0], 0.4, w[1], [0.2, 0.28, 0.2], [0, 0, Math.PI / 2]);
+      b.addGeometry(cylG(1, 12), K.black, w[0], 0.4, w[1], [0.4, 0.26, 0.4], [0, 0, Math.PI / 2]);
+      b.addGeometry(cylG(1, 8), K.steel, w[0], 0.4, w[1], [0.2, 0.28, 0.2], [0, 0, Math.PI / 2]);
     });
-    b.bb(1.5, 0.2, 0.1, K.black, 0, 0.5, 2.3);
-    b.at(0, 0, 0, 0);
+    b.addBox(1.5, 0.2, 0.1, K.black, 0, 0.5, 2.3);
+    b.setOrigin(0, 0, 0, 0);
   })(YB, 24.6, -18.6, 0.18);
   (function (b, X, Z, RY) {
-    b.at(X, 0, Z, RY);
-    b.add(cylG(1, 12), K.black, 0, 0.45, 0.8, [0.45, 0.16, 0.45], [0, 0, Math.PI / 2]);
-    b.add(cylG(1, 12), K.black, 0, 0.45, -0.8, [0.45, 0.16, 0.45], [0, 0, Math.PI / 2]);
-    b.bb(0.3, 0.5, 1.2, K.red, 0, 0.55, 0);
-    b.bb(0.34, 0.14, 0.9, K.black, 0, 1.0, -0.2);
-    b.bb(0.7, 0.08, 0.08, K.steel, 0, 1.35, 0.55);
-    b.bb(0.16, 0.3, 0.2, K.white, 0, 1.1, 0.8);
-    b.at(0, 0, 0, 0);
+    b.setOrigin(X, 0, Z, RY);
+    b.addGeometry(cylG(1, 12), K.black, 0, 0.45, 0.8, [0.45, 0.16, 0.45], [0, 0, Math.PI / 2]);
+    b.addGeometry(cylG(1, 12), K.black, 0, 0.45, -0.8, [0.45, 0.16, 0.45], [0, 0, Math.PI / 2]);
+    b.addBox(0.3, 0.5, 1.2, K.red, 0, 0.55, 0);
+    b.addBox(0.34, 0.14, 0.9, K.black, 0, 1.0, -0.2);
+    b.addBox(0.7, 0.08, 0.08, K.steel, 0, 1.35, 0.55);
+    b.addBox(0.16, 0.3, 0.2, K.white, 0, 1.1, 0.8);
+    b.setOrigin(0, 0, 0, 0);
   })(YB, 22.6, -16.0, 1.2);
 
   /* paletes, caixas de ferramenta vermelhas empilhadas, cones listrados */
@@ -2661,18 +2551,18 @@ import { TANKS } from './data/sisteminha.js';
     [38.2, -16.4],
     [39.1, -17.0],
   ].forEach(function (p) {
-    YB.cb(0.45, 1.0, [K.blue, K.red, K.blue][((p[1] * 2) | 0) & 1], p[0], 0.2, p[1], 10);
-    YB.cb(0.46, 0.1, K.black, p[0], 0.8, p[1], 10);
+    YB.addCylinder(0.45, 1.0, [K.blue, K.red, K.blue][((p[1] * 2) | 0) & 1], p[0], 0.2, p[1], 10);
+    YB.addCylinder(0.46, 0.1, K.black, p[0], 0.8, p[1], 10);
   });
-  YB.bb(1.4, 2.2, 0.16, K.white, 39.2, 0.2, -23.3);
-  YB.bb(1.3, 0.5, 0.18, K.yellow, 39.2, 1.7, -23.3);
-  YB.bb(0.2, 0.2, 0.2, K.black, 39.2, 1.0, -23.3);
-  YB.bb(3.8, 2.6, 3.6, K.stone, 41, 0, -17);
-  YB.bb(4.3, 0.3, 4.1, K.roofD, 41, 2.6, -17);
-  YB.cb(0.8, 1.3, K.copper, 39.0, 0, -17, 10);
-  YB.cb(0.2, 1.5, K.steelD, 39.0, 1.3, -17, 8);
-  YB.beam([43.6, 3.0, -22.5], [41.9, 1.6, -18.8], 0.3, K.steelD, 8);
-  YB.bb(1.0, 0.8, 1.0, K.steel, 43.2, 2.6, -23);
+  YB.addBox(1.4, 2.2, 0.16, K.white, 39.2, 0.2, -23.3);
+  YB.addBox(1.3, 0.5, 0.18, K.yellow, 39.2, 1.7, -23.3);
+  YB.addBox(0.2, 0.2, 0.2, K.black, 39.2, 1.0, -23.3);
+  YB.addBox(3.8, 2.6, 3.6, K.stone, 41, 0, -17);
+  YB.addBox(4.3, 0.3, 4.1, K.roofD, 41, 2.6, -17);
+  YB.addCylinder(0.8, 1.3, K.copper, 39.0, 0, -17, 10);
+  YB.addCylinder(0.2, 1.5, K.steelD, 39.0, 1.3, -17, 8);
+  YB.addBeam([43.6, 3.0, -22.5], [41.9, 1.6, -18.8], 0.3, K.steelD, 8);
+  YB.addBox(1.0, 0.8, 1.0, K.steel, 43.2, 2.6, -23);
   YB.build(surface);
   beacons.forEach(function (bc) {
     const m = new THREE.Mesh(
@@ -2704,18 +2594,18 @@ import { TANKS } from './data/sisteminha.js';
     const WW = 3.0;
     const dark = PAL.wood.ebony;
     [-WW / 2, WW / 2].forEach(function (z) {
-      b.add(GX.tor, dark, 0, 0, z, [WR, WR, 3.0]);
-      b.add(GX.tor, dark, 0, 0, z, [WR - 0.5, WR - 0.5, 3.0]);
+      b.addGeometry(GX.tor, dark, 0, 0, z, [WR, WR, 3.0]);
+      b.addGeometry(GX.tor, dark, 0, 0, z, [WR - 0.5, WR - 0.5, 3.0]);
       for (let k = 0; k < 8; k++) {
         const a = (k / 8) * Math.PI * 2;
-        b.beam([0, 0, z], [Math.cos(a) * WR, Math.sin(a) * WR, z], 0.11, K.woodD, 5);
+        b.addBeam([0, 0, z], [Math.cos(a) * WR, Math.sin(a) * WR, z], 0.11, K.woodD, 5);
       }
     });
-    b.add(cylG(1, 10), K.steelD, 0, 0, 0, [0.34, WW + 1.4, 0.34], [Math.PI / 2, 0, 0]);
-    b.add(cylG(1, 10), K.copper, 0, 0, 0, [0.52, 0.5, 0.52], [Math.PI / 2, 0, 0]);
+    b.addGeometry(cylG(1, 10), K.steelD, 0, 0, 0, [0.34, WW + 1.4, 0.34], [Math.PI / 2, 0, 0]);
+    b.addGeometry(cylG(1, 10), K.copper, 0, 0, 0, [0.52, 0.5, 0.52], [Math.PI / 2, 0, 0]);
     for (i = 0; i < 16; i++) {
       const a2 = (i / 16) * Math.PI * 2;
-      b.add(
+      b.addGeometry(
         GX.box,
         [K.wood, K.woodD][i % 2],
         Math.cos(a2) * (WR - 0.1),
@@ -2732,21 +2622,21 @@ import { TANKS } from './data/sisteminha.js';
   (function () {
     const b = new Batch();
     [43.3, 47.7].forEach(function (x) {
-      b.bb(0.5, 2.8, 0.5, K.woodD, x, -1.4, -41.2);
-      b.bb(0.9, 0.5, 0.9, K.stone, x, -1.4, -41.2);
-      b.beam([x, -1.2, -43.2], [x, 2.2, -41.4], 0.14, K.woodD, 5);
-      b.beam([x, -1.2, -39.2], [x, 2.2, -41.0], 0.14, K.woodD, 5);
-      b.bb(0.5, 0.4, 0.5, K.copper, x, 1.9, -41.2);
+      b.addBox(0.5, 2.8, 0.5, K.woodD, x, -1.4, -41.2);
+      b.addBox(0.9, 0.5, 0.9, K.stone, x, -1.4, -41.2);
+      b.addBeam([x, -1.2, -43.2], [x, 2.2, -41.4], 0.14, K.woodD, 5);
+      b.addBeam([x, -1.2, -39.2], [x, 2.2, -41.0], 0.14, K.woodD, 5);
+      b.addBox(0.5, 0.4, 0.5, K.copper, x, 1.9, -41.2);
     });
-    b.bb(1.8, 0.25, 12, K.wood, 45.5, 4.9, -48.4);
-    b.bb(0.18, 0.55, 12, K.woodD, 44.7, 4.9, -48.4);
-    b.bb(0.18, 0.55, 12, K.woodD, 46.3, 4.9, -48.4);
-    b.bb(1.6, 0.06, 12, K.water, 45.5, 5.14, -48.4);
+    b.addBox(1.8, 0.25, 12, K.wood, 45.5, 4.9, -48.4);
+    b.addBox(0.18, 0.55, 12, K.woodD, 44.7, 4.9, -48.4);
+    b.addBox(0.18, 0.55, 12, K.woodD, 46.3, 4.9, -48.4);
+    b.addBox(1.6, 0.06, 12, K.water, 45.5, 5.14, -48.4);
     [-53, -49, -44].forEach(function (z) {
-      b.bb(0.3, 5.0, 0.3, K.woodD, 44.5, 0, z);
-      b.bb(0.3, 5.0, 0.3, K.woodD, 46.5, 0, z);
+      b.addBox(0.3, 5.0, 0.3, K.woodD, 44.5, 0, z);
+      b.addBox(0.3, 5.0, 0.3, K.woodD, 46.5, 0, z);
     });
-    b.beam([42.9, 2.0, -41.2], [44.4, 2.0, -41.2], 0.28, K.steelD, 8);
+    b.addBeam([42.9, 2.0, -41.2], [44.4, 2.0, -41.2], 0.28, K.steelD, 8);
     b.build(surface);
   })();
 
@@ -2760,24 +2650,24 @@ import { TANKS } from './data/sisteminha.js';
   (function () {
     const b = new Batch();
     let i;
-    b.bb(5.4, 0.5, 5.4, K.concD, 0, 0, 0);
-    b.cb(2.1, 12.8, 0xc9684a, 0, 0.5, 0, 10, 1.2);
+    b.addBox(5.4, 0.5, 5.4, K.concD, 0, 0, 0);
+    b.addCylinder(2.1, 12.8, 0xc9684a, 0, 0.5, 0, 10, 1.2);
     for (i = 0; i < 6; i++)
-      b.cb(2.1 - i * 0.15, 0.22, K.stoneL, 0, 1.2 + i * 2.1, 0, 10, 2.0 - i * 0.15);
-    b.bb(1.2, 2.0, 0.2, K.woodD, 0, 0.5, 2.0);
-    b.bb(0.7, 1.4, 0.1, K.wood, 0, 0.5, 2.1);
-    b.cb(1.7, 1.4, K.wood, 0, 13.3, 0, 10, 1.4);
-    b.cn(1.9, 1.8, K.roofD, 0, 14.6, 0, 10);
-    b.bb(1.7, 1.6, 2.6, K.steelD, 0, 13.5, 1.2);
-    b.bb(0.25, 0.7, 0.25, K.black, 0, 15.0, -0.2);
-    b.bb(1.4, 0.5, 0.1, K.black, 0, 13.9, 2.5);
+      b.addCylinder(2.1 - i * 0.15, 0.22, K.stoneL, 0, 1.2 + i * 2.1, 0, 10, 2.0 - i * 0.15);
+    b.addBox(1.2, 2.0, 0.2, K.woodD, 0, 0.5, 2.0);
+    b.addBox(0.7, 1.4, 0.1, K.wood, 0, 0.5, 2.1);
+    b.addCylinder(1.7, 1.4, K.wood, 0, 13.3, 0, 10, 1.4);
+    b.addCone(1.9, 1.8, K.roofD, 0, 14.6, 0, 10);
+    b.addBox(1.7, 1.6, 2.6, K.steelD, 0, 13.5, 1.2);
+    b.addBox(0.25, 0.7, 0.25, K.black, 0, 15.0, -0.2);
+    b.addBox(1.4, 0.5, 0.1, K.black, 0, 13.9, 2.5);
     b.build(windG);
     const r = new Batch();
-    r.add(cylG(0.55, 10), K.steelD, 0, 0, 0, [0.55, 1.1, 0.55], [Math.PI / 2, 0, 0]);
-    r.add(coneG(8), K.white, 0, 0, 0.95, [0.5, 0.9, 0.5], [Math.PI / 2, 0, 0]);
+    r.addGeometry(cylG(0.55, 10), K.steelD, 0, 0, 0, [0.55, 1.1, 0.55], [Math.PI / 2, 0, 0]);
+    r.addGeometry(coneG(8), K.white, 0, 0, 0.95, [0.5, 0.9, 0.5], [Math.PI / 2, 0, 0]);
     for (i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      r.add(
+      r.addGeometry(
         GX.box,
         [0xf4f7f8, 0xdfe4e8][i % 2],
         Math.cos(a) * 1.55,
@@ -2786,7 +2676,7 @@ import { TANKS } from './data/sisteminha.js';
         [0.34, 2.1, 0.07],
         [0, 0, a - Math.PI / 2],
       );
-      r.add(
+      r.addGeometry(
         GX.box,
         K.steel,
         Math.cos(a) * 0.62,
@@ -2803,46 +2693,62 @@ import { TANKS } from './data/sisteminha.js';
   function animalMesh(kind) {
     const b = new Batch();
     if (kind === 'pig') {
-      b.bb(1.5, 0.9, 0.85, K.pink, 0, 0.5, 0);
-      b.bb(0.6, 0.65, 0.7, 0xf6b7c6, 0.9, 0.62, 0);
-      b.bb(0.28, 0.28, 0.4, PAL.animal.pigPink, 1.25, 0.7, 0);
-      b.add(GX.ico0, PAL.animal.pigPink, -0.78, 0.85, 0, [0.12, 0.12, 0.12]);
+      b.addBox(1.5, 0.9, 0.85, K.pink, 0, 0.5, 0);
+      b.addBox(0.6, 0.65, 0.7, 0xf6b7c6, 0.9, 0.62, 0);
+      b.addBox(0.28, 0.28, 0.4, PAL.animal.pigPink, 1.25, 0.7, 0);
+      b.addGeometry(GX.ico0, PAL.animal.pigPink, -0.78, 0.85, 0, [0.12, 0.12, 0.12]);
       [
         [-0.5, -0.3],
         [-0.5, 0.3],
         [0.5, -0.3],
         [0.5, 0.3],
       ].forEach(function (l) {
-        b.cb(0.11, 0.5, PAL.animal.pigPink, l[0], 0, l[1], 6);
+        b.addCylinder(0.11, 0.5, PAL.animal.pigPink, l[0], 0, l[1], 6);
       });
-      b.bb(0.1, 0.22, 0.15, PAL.animal.pigPink, 0.95, 1.18, -0.25);
-      b.bb(0.1, 0.22, 0.15, PAL.animal.pigPink, 0.95, 1.18, 0.25);
-      b.bb(0.07, 0.07, 0.07, K.black, 1.2, 0.88, -0.2);
-      b.bb(0.07, 0.07, 0.07, K.black, 1.2, 0.88, 0.2);
+      b.addBox(0.1, 0.22, 0.15, PAL.animal.pigPink, 0.95, 1.18, -0.25);
+      b.addBox(0.1, 0.22, 0.15, PAL.animal.pigPink, 0.95, 1.18, 0.25);
+      b.addBox(0.07, 0.07, 0.07, K.black, 1.2, 0.88, -0.2);
+      b.addBox(0.07, 0.07, 0.07, K.black, 1.2, 0.88, 0.2);
     } else if (kind === 'hen') {
-      b.bb(0.45, 0.4, 0.36, K.white, 0, 0.32, 0);
-      b.bb(0.22, 0.3, 0.24, K.white, 0.26, 0.55, 0);
-      b.add(coneG(3), K.yellow, 0.43, 0.62, 0, [0.07, 0.16, 0.07], [0, 0, -Math.PI / 2]);
-      b.add(GX.ico0, K.red, 0.3, 0.84, 0, [0.07, 0.08, 0.05]);
-      b.add(coneG(3), K.white, -0.28, 0.55, 0, [0.18, 0.34, 0.2], [0, 0, (Math.PI / 2) * 1.15]);
-      b.cb(0.025, 0.25, K.yellow, 0, 0.0, -0.1, 4);
-      b.cb(0.025, 0.25, K.yellow, 0, 0.0, 0.1, 4);
+      b.addBox(0.45, 0.4, 0.36, K.white, 0, 0.32, 0);
+      b.addBox(0.22, 0.3, 0.24, K.white, 0.26, 0.55, 0);
+      b.addGeometry(coneG(3), K.yellow, 0.43, 0.62, 0, [0.07, 0.16, 0.07], [0, 0, -Math.PI / 2]);
+      b.addGeometry(GX.ico0, K.red, 0.3, 0.84, 0, [0.07, 0.08, 0.05]);
+      b.addGeometry(
+        coneG(3),
+        K.white,
+        -0.28,
+        0.55,
+        0,
+        [0.18, 0.34, 0.2],
+        [0, 0, (Math.PI / 2) * 1.15],
+      );
+      b.addCylinder(0.025, 0.25, K.yellow, 0, 0.0, -0.1, 4);
+      b.addCylinder(0.025, 0.25, K.yellow, 0, 0.0, 0.1, 4);
     } else {
-      b.bb(1.2, 0.7, 0.5, 0xcfcac0, 0, 0.7, 0);
-      b.bb(0.4, 0.6, 0.38, 0xb9b3a6, 0.7, 1.1, 0);
-      b.bb(0.25, 0.22, 0.3, PAL.animal.grey, 0.95, 1.15, 0);
-      b.add(coneG(3), PAL.animal.horn, 0.8, 1.62, -0.1, [0.07, 0.28, 0.07]);
-      b.add(coneG(3), PAL.animal.horn, 0.8, 1.62, 0.1, [0.07, 0.28, 0.07]);
-      b.add(GX.ico0, PAL.animal.horn, 0.82, 0.85, 0, [0.08, 0.22, 0.08]);
+      b.addBox(1.2, 0.7, 0.5, 0xcfcac0, 0, 0.7, 0);
+      b.addBox(0.4, 0.6, 0.38, 0xb9b3a6, 0.7, 1.1, 0);
+      b.addBox(0.25, 0.22, 0.3, PAL.animal.grey, 0.95, 1.15, 0);
+      b.addGeometry(coneG(3), PAL.animal.horn, 0.8, 1.62, -0.1, [0.07, 0.28, 0.07]);
+      b.addGeometry(coneG(3), PAL.animal.horn, 0.8, 1.62, 0.1, [0.07, 0.28, 0.07]);
+      b.addGeometry(GX.ico0, PAL.animal.horn, 0.82, 0.85, 0, [0.08, 0.22, 0.08]);
       [
         [-0.45, -0.16],
         [-0.45, 0.16],
         [0.45, -0.16],
         [0.45, 0.16],
       ].forEach(function (l) {
-        b.cb(0.07, 0.7, 0x7b756b, l[0], 0, l[1], 5);
+        b.addCylinder(0.07, 0.7, 0x7b756b, l[0], 0, l[1], 5);
       });
-      b.add(coneG(3), PAL.animal.grey, -0.7, 1.0, 0, [0.1, 0.3, 0.1], [0, 0, (Math.PI / 2) * 1.2]);
+      b.addGeometry(
+        coneG(3),
+        PAL.animal.grey,
+        -0.7,
+        1.0,
+        0,
+        [0.1, 0.3, 0.1],
+        [0, 0, (Math.PI / 2) * 1.2],
+      );
     }
     const g = new THREE.Group();
     b.build(g);
@@ -2897,13 +2803,21 @@ import { TANKS } from './data/sisteminha.js';
   const fishList = [];
   (function () {
     const b = new Batch();
-    b.add(coneG(3), K.orange, 0.15, 0.1, 0, [0.28, 0.9, 0.14], [0, 0, -Math.PI / 2]);
-    b.add(coneG(3), 0xffd9a0, -0.6, 0.1, 0, [0.22, 0.4, 0.1], [0, 0, Math.PI / 2]);
+    b.addGeometry(coneG(3), K.orange, 0.15, 0.1, 0, [0.28, 0.9, 0.14], [0, 0, -Math.PI / 2]);
+    b.addGeometry(coneG(3), 0xffd9a0, -0.6, 0.1, 0, [0.22, 0.4, 0.1], [0, 0, Math.PI / 2]);
     const f1 = new THREE.Group();
     b.build(f1);
     const b2 = new Batch();
-    b2.add(coneG(3), K.white, 0.15, 0.1, 0, [0.28, 0.9, 0.14], [0, 0, -Math.PI / 2]);
-    b2.add(coneG(3), PAL.glass.iceBlue, -0.6, 0.1, 0, [0.22, 0.4, 0.1], [0, 0, Math.PI / 2]);
+    b2.addGeometry(coneG(3), K.white, 0.15, 0.1, 0, [0.28, 0.9, 0.14], [0, 0, -Math.PI / 2]);
+    b2.addGeometry(
+      coneG(3),
+      PAL.glass.iceBlue,
+      -0.6,
+      0.1,
+      0,
+      [0.22, 0.4, 0.1],
+      [0, 0, Math.PI / 2],
+    );
     const f2 = new THREE.Group();
     b2.build(f2);
     for (let i = 0; i < 8; i++) {
@@ -3135,33 +3049,33 @@ import { TANKS } from './data/sisteminha.js';
       bcol('z', x, z1, z2, gaps, 0.3);
     }
     function tile(x1, z1, x2, z2, c) {
-      LI.bb(x2 - x1, 0.06, z2 - z1, c, (x1 + x2) / 2, FL, (z1 + z2) / 2);
+      LI.addBox(x2 - x1, 0.06, z2 - z1, c, (x1 + x2) / 2, FL, (z1 + z2) / 2);
     }
     function D(c, w) {
       return [c - w / 2, c + w / 2, 0, 2.5];
     }
 
     /* ---------- casca ---------- */
-    LW.bb(40, 0.2, 35, 0xb8c0c7, 8, FLOOR, -55.5);
-    LW.bb(0.6, WB, 35, WALLC, -11.7, FL, -55.5);
-    LW.bb(0.6, WB, 35, WALLC, 27.7, FL, -55.5);
-    LW.bb(40, WB, 0.6, WALLC, 8, FL, -72.7);
-    LW.bb(40, WB, 0.6, WALLC, 8, FL, -38.3);
+    LW.addBox(40, 0.2, 35, 0xb8c0c7, 8, FLOOR, -55.5);
+    LW.addBox(0.6, WB, 35, WALLC, -11.7, FL, -55.5);
+    LW.addBox(0.6, WB, 35, WALLC, 27.7, FL, -55.5);
+    LW.addBox(40, WB, 0.6, WALLC, 8, FL, -72.7);
+    LW.addBox(40, WB, 0.6, WALLC, 8, FL, -38.3);
     col(-12.2, -73.2, -11.4, -37.8, 'u');
     col(27.4, -73.2, 28.2, -37.8, 'u');
     col(-12.2, -73.2, 28.2, -72.4, 'u');
     col(-12.2, -38.6, 28.2, -37.8, 'u');
     /* cobertura (laje + terra + grama): vira vidro com a abertura do corte */
-    CAP.bb(40, 0.8, 35, 0xaab2b9, 8, -5.1, -55.5);
+    CAP.addBox(40, 0.8, 35, 0xaab2b9, 8, -5.1, -55.5);
     [
       [-5, -2.4, 0x946037],
       [-2.4, -0.4, 0x6e4527],
     ].forEach(function (b) {
       const y0 = Math.max(b[0], -4.3),
         y1 = Math.min(b[1], -0.4);
-      if (y1 > y0 + 0.01) CAP.bb(40, y1 - y0, 35, b[2], 8, y0, -55.5);
+      if (y1 > y0 + 0.01) CAP.addBox(40, y1 - y0, 35, b[2], 8, y0, -55.5);
     });
-    CAP.bb(40, 0.4, 35, K.grass, 8, -0.4, -55.5);
+    CAP.addBox(40, 0.4, 35, K.grass, 8, -0.4, -55.5);
     capMat.transparent = false;
     bunkCapMesh = CAP.build(surface, { mat: capMat, outline: false });
 
@@ -3201,41 +3115,41 @@ import { TANKS } from './data/sisteminha.js';
     tile(12.4, ZB, 20.4, Z2, 0x2c4a3a);
     tile(20.4, ZB, X2, Z2, PAL.light.tileGrey);
     /* corredor: neon e dutos */
-    UN.bb(38.6, 0.05, 0.05, NEON, 8, FL + 3.3, ZA + 0.2);
-    UN.bb(38.6, 0.05, 0.05, CY, 8, FL + 3.3, ZB - 0.2);
-    LI.add(cylG(1, 16), K.steel, 8, FL + 3.0, -54.5, [0.18, 38, 0.18], [0, 0, Math.PI / 2]);
-    LI.add(cylG(1, 16), K.blue, 8, FL + 2.65, -54.5, [0.14, 38, 0.14], [0, 0, Math.PI / 2]);
+    UN.addBox(38.6, 0.05, 0.05, NEON, 8, FL + 3.3, ZA + 0.2);
+    UN.addBox(38.6, 0.05, 0.05, CY, 8, FL + 3.3, ZB - 0.2);
+    LI.addGeometry(cylG(1, 16), K.steel, 8, FL + 3.0, -54.5, [0.18, 38, 0.18], [0, 0, Math.PI / 2]);
+    LI.addGeometry(cylG(1, 16), K.blue, 8, FL + 2.65, -54.5, [0.14, 38, 0.14], [0, 0, Math.PI / 2]);
     /* escada de emergência: poço com escada de ferro até a escotilha na superfície */
-    LI.bb(1.4, 0.1, 1.4, K.steelD, 26.5, FL, -54.5);
+    LI.addBox(1.4, 0.1, 1.4, K.steelD, 26.5, FL, -54.5);
     [-0.5, 0.5].forEach(function (o) {
-      LI.beam([26.5 + o, FL, -54.5], [26.5 + o, -0.2, -54.5], 0.05, K.steelD, 5);
+      LI.addBeam([26.5 + o, FL, -54.5], [26.5 + o, -0.2, -54.5], 0.05, K.steelD, 5);
     });
-    for (i = 0; i < 14; i++) LI.bb(1.0, 0.04, 0.04, K.steelD, 26.5, FL + 0.4 + i * 0.55, -54.5);
-    HB.bb(1.8, 0.12, 1.8, K.steelD, 26.5, 0, -54.5);
-    HB.bb(1.5, 0.06, 1.5, K.red, 26.5, 0.12, -54.5);
-    HB.cb(0.07, 0.12, K.steel, 26.5, 0.18, -54.5, 6);
+    for (i = 0; i < 14; i++) LI.addBox(1.0, 0.04, 0.04, K.steelD, 26.5, FL + 0.4 + i * 0.55, -54.5);
+    HB.addBox(1.8, 0.12, 1.8, K.steelD, 26.5, 0, -54.5);
+    HB.addBox(1.5, 0.06, 1.5, K.red, 26.5, 0.12, -54.5);
+    HB.addCylinder(0.07, 0.12, K.steel, 26.5, 0.18, -54.5, 6);
 
     /* helpers de louça e móveis */
     function toilet(x, z, ry) {
-      LI.at(x, 0, z, ry || 0);
-      LI.bb(0.42, 0.42, 0.6, K.white, 0, FL + 0.06, 0);
-      LI.bb(0.4, 0.55, 0.2, K.white, 0, FL + 0.06, -0.38);
-      LI.bb(0.44, 0.05, 0.5, K.steel, 0, FL + 0.48, 0.02);
-      LI.at(0, 0, 0, 0);
+      LI.setOrigin(x, 0, z, ry || 0);
+      LI.addBox(0.42, 0.42, 0.6, K.white, 0, FL + 0.06, 0);
+      LI.addBox(0.4, 0.55, 0.2, K.white, 0, FL + 0.06, -0.38);
+      LI.addBox(0.44, 0.05, 0.5, K.steel, 0, FL + 0.48, 0.02);
+      LI.setOrigin(0, 0, 0, 0);
     }
     function sink(x, z, ry) {
-      LI.at(x, 0, z, ry || 0);
-      LI.cb(0.1, 0.7, K.white, 0, FL + 0.06, 0, 6);
-      LI.bb(0.65, 0.14, 0.48, K.white, 0, FL + 0.76, 0);
-      LI.cb(0.035, 0.3, K.steel, 0, FL + 0.9, -0.17, 5);
-      LI.bb(0.7, 0.7, 0.04, 0x9bd9f1, 0, FL + 1.36, -0.3);
-      LI.at(0, 0, 0, 0);
+      LI.setOrigin(x, 0, z, ry || 0);
+      LI.addCylinder(0.1, 0.7, K.white, 0, FL + 0.06, 0, 6);
+      LI.addBox(0.65, 0.14, 0.48, K.white, 0, FL + 0.76, 0);
+      LI.addCylinder(0.035, 0.3, K.steel, 0, FL + 0.9, -0.17, 5);
+      LI.addBox(0.7, 0.7, 0.04, 0x9bd9f1, 0, FL + 1.36, -0.3);
+      LI.setOrigin(0, 0, 0, 0);
     }
     function shower(x, z, sz) {
-      LI.bb(1.1, 0.08, 1.1, 0xeaf3f7, x, FL + 0.06, z);
-      LI.cb(0.03, 1.9, K.steel, x - 0.5, FL + 0.14, z + sz * 0.5, 5);
-      LI.bb(0.3, 0.05, 0.3, K.steel, x - 0.38, FL + 1.99, z + sz * 0.45);
-      LI.bb(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + 0.55, FL + 0.14, z);
+      LI.addBox(1.1, 0.08, 1.1, 0xeaf3f7, x, FL + 0.06, z);
+      LI.addCylinder(0.03, 1.9, K.steel, x - 0.5, FL + 0.14, z + sz * 0.5, 5);
+      LI.addBox(0.3, 0.05, 0.3, K.steel, x - 0.38, FL + 1.99, z + sz * 0.45);
+      LI.addBox(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + 0.55, FL + 0.14, z);
     }
     /* banheiro nos fundos (zw = parede dos fundos, sz = +1): paredes com porta voltada ao quarto */
     function pb(xo, bw, zw, dxa, dxb, sideWall) {
@@ -3262,45 +3176,45 @@ import { TANKS } from './data/sisteminha.js';
       toilet(xo + 0.55, zw + 0.5, 0);
       sink(xo + 1.6, zw + 0.35, 0);
       shower(xo + 0.65, zw + 1.7, 1);
-      LI.bb(0.06, 1.4, 2.3, AZB, xo + 0.04, FL + 0.06, zw + 1.2);
+      LI.addBox(0.06, 1.4, 2.3, AZB, xo + 0.04, FL + 0.06, zw + 1.2);
     }
     function bedK(bx, bz, c) {
-      LI.bb(2.0, 0.5, 2.2, K.woodD, bx, FL + 0.06, bz);
-      LI.bb(1.9, 0.28, 2.1, PAL.light.ivory, bx, FL + 0.56, bz);
-      LI.bb(1.9, 0.12, 1.3, c, bx, FL + 0.84, bz + 0.4);
-      LI.bb(1.4, 0.18, 0.5, K.white, bx, FL + 0.84, bz - 0.8);
-      LI.bb(2.1, 1.3, 0.14, K.woodD, bx, FL + 0.06, bz - 1.15);
-      LI.bb(0.5, 0.45, 0.5, K.woodL, bx + 1.5, FL + 0.06, bz - 0.8);
-      LI.bb(0.5, 0.45, 0.5, K.woodL, bx - 1.5, FL + 0.06, bz - 0.8);
+      LI.addBox(2.0, 0.5, 2.2, K.woodD, bx, FL + 0.06, bz);
+      LI.addBox(1.9, 0.28, 2.1, PAL.light.ivory, bx, FL + 0.56, bz);
+      LI.addBox(1.9, 0.12, 1.3, c, bx, FL + 0.84, bz + 0.4);
+      LI.addBox(1.4, 0.18, 0.5, K.white, bx, FL + 0.84, bz - 0.8);
+      LI.addBox(2.1, 1.3, 0.14, K.woodD, bx, FL + 0.06, bz - 1.15);
+      LI.addBox(0.5, 0.45, 0.5, K.woodL, bx + 1.5, FL + 0.06, bz - 0.8);
+      LI.addBox(0.5, 0.45, 0.5, K.woodL, bx - 1.5, FL + 0.06, bz - 0.8);
     }
     function bedS(bx, bz, c) {
-      LI.bb(1.1, 0.4, 2.0, K.woodD, bx, FL + 0.06, bz);
-      LI.bb(1.0, 0.22, 1.9, PAL.light.ivory, bx, FL + 0.46, bz);
-      LI.bb(1.0, 0.1, 1.2, c, bx, FL + 0.68, bz + 0.35);
-      LI.bb(1.2, 1.0, 0.12, K.woodD, bx, FL + 0.06, bz - 1.05);
+      LI.addBox(1.1, 0.4, 2.0, K.woodD, bx, FL + 0.06, bz);
+      LI.addBox(1.0, 0.22, 1.9, PAL.light.ivory, bx, FL + 0.46, bz);
+      LI.addBox(1.0, 0.1, 1.2, c, bx, FL + 0.68, bz + 0.35);
+      LI.addBox(1.2, 1.0, 0.12, K.woodD, bx, FL + 0.06, bz - 1.05);
     }
     function wardrobe(wx, wz, r) {
-      LI.at(wx, 0, wz, r || 0);
-      LI.bb(1.6, 2.3, 0.6, K.woodD, 0, FL + 0.06, 0);
-      LI.bb(0.03, 2.0, 0.05, PAL.clay.gold, 0, FL + 0.26, 0.32);
-      LI.at(0, 0, 0, 0);
+      LI.setOrigin(wx, 0, wz, r || 0);
+      LI.addBox(1.6, 2.3, 0.6, K.woodD, 0, FL + 0.06, 0);
+      LI.addBox(0.03, 2.0, 0.05, PAL.clay.gold, 0, FL + 0.26, 0.32);
+      LI.setOrigin(0, 0, 0, 0);
     }
     function desk(x, z, len, rot) {
-      LI.at(x, 0, z, rot || 0);
-      LI.bb(len, 0.05, 0.8, K.woodL, 0, FL + 0.76, 0);
-      LI.bb(0.06, 0.7, 0.7, K.woodD, -len / 2 + 0.05, FL + 0.06, 0);
-      LI.bb(0.06, 0.7, 0.7, K.woodD, len / 2 - 0.05, FL + 0.06, 0);
-      LI.at(0, 0, 0, 0);
+      LI.setOrigin(x, 0, z, rot || 0);
+      LI.addBox(len, 0.05, 0.8, K.woodL, 0, FL + 0.76, 0);
+      LI.addBox(0.06, 0.7, 0.7, K.woodD, -len / 2 + 0.05, FL + 0.06, 0);
+      LI.addBox(0.06, 0.7, 0.7, K.woodD, len / 2 - 0.05, FL + 0.06, 0);
+      LI.setOrigin(0, 0, 0, 0);
     }
     function chair(x, z, c) {
-      LI.bb(0.5, 0.1, 0.5, c || PAL.dark.deviceBlack, x, FL + 0.5, z);
-      LI.bb(0.5, 0.8, 0.08, c || PAL.dark.deviceBlack, x, FL + 0.55, z - 0.26);
-      LI.cb(0.05, 0.44, K.steelD, x, FL + 0.06, z, 6);
-      LI.cb(0.28, 0.04, K.steelD, x, FL + 0.06, z, 8);
+      LI.addBox(0.5, 0.1, 0.5, c || PAL.dark.deviceBlack, x, FL + 0.5, z);
+      LI.addBox(0.5, 0.8, 0.08, c || PAL.dark.deviceBlack, x, FL + 0.55, z - 0.26);
+      LI.addCylinder(0.05, 0.44, K.steelD, x, FL + 0.06, z, 6);
+      LI.addCylinder(0.28, 0.04, K.steelD, x, FL + 0.06, z, 8);
     }
     function plant(x, z, s) {
-      LI.cb(0.22 * s, 0.35 * s, PAL.clay.terracotta, x, FL + 0.06, z, 8);
-      LI.ic(0.4 * s, 0x3fae52, x, FL + 0.6 * s + 0.2, z, 1, 1.2, 1);
+      LI.addCylinder(0.22 * s, 0.35 * s, PAL.clay.terracotta, x, FL + 0.06, z, 8);
+      LI.addSphere(0.4 * s, 0x3fae52, x, FL + 0.6 * s + 0.2, z, 1, 1.2, 1);
     }
 
     /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
@@ -3311,11 +3225,11 @@ import { TANKS } from './data/sisteminha.js';
       pb(-7.35, 2.8, Z1, -5.6, -4.7, false); /* banheiro-cabine no canto leste dos fundos */
       wardrobe(x0 + 0.3, -57.2, Math.PI / 2);
       wardrobe(x0 + 0.3, -58.8, Math.PI / 2);
-      LI.bb(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
-      UN.bb(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
-      LI.bb(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
+      LI.addBox(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
+      UN.addBox(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
+      LI.addBox(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
       for (i = 0; i < 5; i++)
-        LI.bb(
+        LI.addBox(
           0.3,
           0.1,
           0.18,
@@ -3327,7 +3241,7 @@ import { TANKS } from './data/sisteminha.js';
       /* estação dev: mesa em L, 3 monitores curvos, PC com RGB, rack e cadeira gamer */
       desk(x0 + 0.5, -62.2, 3.8, Math.PI / 2);
       [-63.5, -62.2, -60.9].forEach(function (mz, n) {
-        LI.bb(
+        LI.addBox(
           0.08,
           0.62,
           1.28,
@@ -3336,50 +3250,51 @@ import { TANKS } from './data/sisteminha.js';
           FL + 1.0,
           mz + (n === 0 ? 0.08 : n === 2 ? -0.08 : 0),
         );
-        UN.bb(0.04, 0.56, 1.2, [CY, NEON, GRN][n], x0 + 0.28, FL + 1.03, mz);
+        UN.addBox(0.04, 0.56, 1.2, [CY, NEON, GRN][n], x0 + 0.28, FL + 1.03, mz);
       });
-      LI.bb(0.3, 0.5, 0.6, PAL.dark.navyBlack, x0 + 0.5, FL + 0.81, -64.0);
-      UN.bb(0.02, 0.4, 0.5, CY, x0 + 0.66, FL + 0.86, -64.0);
-      LI.bb(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
+      LI.addBox(0.3, 0.5, 0.6, PAL.dark.navyBlack, x0 + 0.5, FL + 0.81, -64.0);
+      UN.addBox(0.02, 0.4, 0.5, CY, x0 + 0.66, FL + 0.86, -64.0);
+      LI.addBox(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
       chair(x0 + 1.7, -62.2, PAL.dark.deviceBlack);
-      LI.bb(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
+      LI.addBox(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
       for (i = 0; i < 9; i++)
-        UN.bb(0.05, 0.05, 0.5, [CY, GRN, NEON][i % 3], x0 + 0.92, FL + 0.3 + i * 0.19, -65.4);
-      UN.bb(0.04, 0.04, 3.6, CY, x0 + 0.08, FL + 0.72, -62.2);
+        UN.addBox(0.05, 0.05, 0.5, [CY, GRN, NEON][i % 3], x0 + 0.92, FL + 0.3 + i * 0.19, -65.4);
+      UN.addBox(0.04, 0.04, 3.6, CY, x0 + 0.08, FL + 0.72, -62.2);
       /* mesa holográfica e área de lounge */
-      LI.cb(0.9, 0.6, DARK, -6.9, FL + 0.06, -61.6, 16);
-      UN.cb(0.95, 0.04, CY, -6.9, FL + 0.66, -61.6, 16);
-      UN.ic(0.55, CY, -6.9, FL + 1.6, -61.6, 1, 1, 1, 1);
-      UN.cb(1.0, 0.03, NEON, -6.9, FL + 0.07, -61.6, 22);
-      LI.bb(0.9, 0.5, 2.4, PAL.fabric.indigo, x1 - 0.5, FL + 0.06, -61.6);
-      LI.bb(0.3, 0.8, 2.4, PAL.fabric.indigo, x1 - 0.2, FL + 0.06, -61.6);
-      LI.cb(0.5, 0.4, PAL.flora.violet, -9.2, FL + 0.06, -59.9, 10);
-      LI.cb(0.5, 0.4, PAL.neon.cyan, -9.2, FL + 0.06, -65.3, 10);
-      LI.bb(0.9, 1.8, 0.8, PAL.dark.slate, -9.2, FL + 0.06, -56.8);
-      UN.bb(0.7, 0.5, 0.04, NEON, -9.2, FL + 1.2, -56.4); /* fliperama (ao lado da porta) */
+      LI.addCylinder(0.9, 0.6, DARK, -6.9, FL + 0.06, -61.6, 16);
+      UN.addCylinder(0.95, 0.04, CY, -6.9, FL + 0.66, -61.6, 16);
+      UN.addSphere(0.55, CY, -6.9, FL + 1.6, -61.6, 1, 1, 1, 1);
+      UN.addCylinder(1.0, 0.03, NEON, -6.9, FL + 0.07, -61.6, 22);
+      LI.addBox(0.9, 0.5, 2.4, PAL.fabric.indigo, x1 - 0.5, FL + 0.06, -61.6);
+      LI.addBox(0.3, 0.8, 2.4, PAL.fabric.indigo, x1 - 0.2, FL + 0.06, -61.6);
+      LI.addCylinder(0.5, 0.4, PAL.flora.violet, -9.2, FL + 0.06, -59.9, 10);
+      LI.addCylinder(0.5, 0.4, PAL.neon.cyan, -9.2, FL + 0.06, -65.3, 10);
+      LI.addBox(0.9, 1.8, 0.8, PAL.dark.slate, -9.2, FL + 0.06, -56.8);
+      UN.addBox(0.7, 0.5, 0.04, NEON, -9.2, FL + 1.2, -56.4); /* fliperama (ao lado da porta) */
       /* cama-casulo redonda com mosquiteiro, cabeceira em arco e anel de neon */
       const bx = -8.1,
         bz = -67.9;
-      LI.cb(1.95, 0.3, 0x15171f, bx, FL + 0.06, bz, 28);
-      LI.cb(1.7, 0.3, 0xf0eef6, bx, FL + 0.36, bz, 28);
-      UN.cb(2.0, 0.03, NEON, bx, FL + 0.07, bz, 32);
-      LI.cb(0.55, 0.18, PAL.flora.violet, bx - 0.6, FL + 0.66, bz - 0.8, 10, 0.45);
-      LI.cb(0.55, 0.18, PAL.neon.cyan, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
-      LI.cb(1.0, 0.06, PAL.dark.slate, bx, FL + 0.66, bz + 0.5, 20, 0.9);
+      LI.addCylinder(1.95, 0.3, 0x15171f, bx, FL + 0.06, bz, 28);
+      LI.addCylinder(1.7, 0.3, 0xf0eef6, bx, FL + 0.36, bz, 28);
+      UN.addCylinder(2.0, 0.03, NEON, bx, FL + 0.07, bz, 32);
+      LI.addCylinder(0.55, 0.18, PAL.flora.violet, bx - 0.6, FL + 0.66, bz - 0.8, 10, 0.45);
+      LI.addCylinder(0.55, 0.18, PAL.neon.cyan, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
+      LI.addCylinder(1.0, 0.06, PAL.dark.slate, bx, FL + 0.66, bz + 0.5, 20, 0.9);
       for (let th = -Math.PI / 2 - 1.1; th <= -Math.PI / 2 + 1.11; th += 0.275) {
         const sx = bx + 2.25 * Math.cos(th),
           sz = bz + 2.25 * Math.sin(th),
           rr2 = Math.atan2(-Math.cos(th), -Math.sin(th));
-        LI.bb(0.48, 1.7, 0.12, DARK, sx, FL + 0.06, sz, rr2);
-        UN.bb(0.04, 1.5, 0.04, NEON, sx, FL + 0.16, sz + (sz < bz ? 0.07 : -0.07));
+        LI.addBox(0.48, 1.7, 0.12, DARK, sx, FL + 0.06, sz, [0, rr2, 0]);
+        UN.addBox(0.04, 1.5, 0.04, NEON, sx, FL + 0.16, sz + (sz < bz ? 0.07 : -0.07));
       }
       for (i = 0; i < 16; i++) {
         const a2 = (i / 16) * Math.PI * 2,
           cx2 = bx + 2.15 * Math.cos(a2),
           cz2 = bz + 2.15 * Math.sin(a2);
-        UN.bb(0.5, 0.05, 0.1, CY, cx2, FL + 3.0, cz2, Math.atan2(-Math.cos(a2), -Math.sin(a2)));
+        const giroY = Math.atan2(-Math.cos(a2), -Math.sin(a2));
+        UN.addBox(0.5, 0.05, 0.1, CY, cx2, FL + 3.0, cz2, [0, giroY, 0]);
       }
-      NT.cb(
+      NT.addCylinder(
         2.1,
         2.9,
         0xeeeaff,
@@ -3389,23 +3304,23 @@ import { TANKS } from './data/sisteminha.js';
         28,
         0.35,
       ); /* mosquiteiro translúcido em cúpula */
-      LI.cb(0.04, 0.5, K.steelD, bx, FL + 3.0, bz, 6);
-      UN.ic(0.14, PAL.light.warmGlow, bx, FL + 3.1, bz, 1, 1, 1, 1);
+      LI.addCylinder(0.04, 0.5, K.steelD, bx, FL + 3.0, bz, 6);
+      UN.addSphere(0.14, PAL.light.warmGlow, bx, FL + 3.1, bz, 1, 1, 1, 1);
       /* parede aquário, skyline e prateleiras */
-      LI.bb(3.6, 1.5, 0.3, 0x0a2a3a, -9.45, FL + 0.5, -72.2);
-      UN.bb(3.4, 1.3, 0.05, 0x1a6fd0, -9.45, FL + 0.6, -72.0);
+      LI.addBox(3.6, 1.5, 0.3, 0x0a2a3a, -9.45, FL + 0.5, -72.2);
+      UN.addBox(3.4, 1.3, 0.05, 0x1a6fd0, -9.45, FL + 0.6, -72.0);
       [
         [-10.5, 0.9, 0xffa14a],
         [-9.4, 1.2, PAL.neon.magenta],
         [-8.4, 0.8, PAL.neon.yellow],
         [-9.9, 1.5, PAL.neon.mint],
       ].forEach(function (f) {
-        UN.ic(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
+        UN.addSphere(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
       });
-      LI.bb(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
+      LI.addBox(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
       for (i = 0; i < 18; i++) {
         const skh = 0.5 + (((i * 37) % 17) / 17) * 1.9;
-        UN.bb(
+        UN.addBox(
           0.08,
           skh,
           0.26,
@@ -3416,9 +3331,9 @@ import { TANKS } from './data/sisteminha.js';
         );
       }
       for (i = 0; i < 3; i++) {
-        LI.bb(0.3, 0.05, 1.6, K.woodD, x1 - 0.2, FL + 1.0 + i * 0.5, -68.4);
+        LI.addBox(0.3, 0.05, 1.6, K.woodD, x1 - 0.2, FL + 1.0 + i * 0.5, -68.4);
         for (j = 0; j < 4; j++)
-          LI.ic(
+          LI.addSphere(
             0.1,
             [PAL.neon.magenta, PAL.neon.cyan, PAL.neon.yellow, PAL.flora.lime][(i + j) % 4],
             x1 - 0.2,
@@ -3429,9 +3344,9 @@ import { TANKS } from './data/sisteminha.js';
             1,
           );
       }
-      LI.bb(0.9, 0.8, 0.5, PAL.dark.slate, x1 - 0.4, FL + 0.06, -65.5);
-      LI.bb(0.5, 0.1, 0.4, K.black, x1 - 0.4, FL + 0.86, -65.5);
-      LI.cb(
+      LI.addBox(0.9, 0.8, 0.5, PAL.dark.slate, x1 - 0.4, FL + 0.06, -65.5);
+      LI.addBox(0.5, 0.1, 0.4, K.black, x1 - 0.4, FL + 0.86, -65.5);
+      LI.addCylinder(
         0.2,
         0.04,
         PAL.dark.deviceBlack,
@@ -3440,12 +3355,20 @@ import { TANKS } from './data/sisteminha.js';
         -65.5,
         16,
       ); /* aparador com vitrola */
-      LI.bb(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -64.6);
-      LI.bb(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -66.4); /* caixas de som */
+      LI.addBox(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -64.6);
+      LI.addBox(
+        0.4,
+        1.4,
+        0.3,
+        PAL.dark.deviceBlack,
+        x1 - 0.2,
+        FL + 0.06,
+        -66.4,
+      ); /* caixas de som */
       plant(x0 + 0.45, -70.5, 1.2);
       plant(x1 - 0.4, -69.9, 1.0);
-      UN.bb(6.4, 0.05, 0.05, NEON, -7.9, FL + 3.4, -62);
-      UN.bb(6.4, 0.05, 0.05, CY, -7.9, FL + 3.4, -67);
+      UN.addBox(6.4, 0.05, 0.05, NEON, -7.9, FL + 3.4, -62);
+      UN.addBox(6.4, 0.05, 0.05, CY, -7.9, FL + 3.4, -67);
     })();
     /* ---- SUÍTE DOS PAIS (4,5 × 16,6 m): cama king, poltrona de leitura, penteadeira, adega, TV, banheiro ---- */
     (function () {
@@ -3454,23 +3377,23 @@ import { TANKS } from './data/sisteminha.js';
       pb(x0, 2.6, Z1, -2.7, -1.8, true);
       wardrobe(-0.9, -72.1, 0);
       bedK(-1.9, -65.6, PAL.flora.grass);
-      LI.bb(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
-      UN.bb(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
-      LI.bb(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
-      UN.cb(0.06, 0.05, PAL.light.warmGlow, -3.9, FL + 1.1, -67.3, 6);
-      LI.bb(1.6, 0.9, 0.5, K.woodD, x1 - 0.3, FL + 0.06, -60.8);
-      LI.bb(0.08, 1.1, 1.6, PAL.dark.void, x1 - 0.08, FL + 0.9, -60.8);
-      UN.bb(0.03, 1.0, 1.5, PAL.neon.blue, x1 - 0.14, FL + 0.95, -60.8);
-      LI.bb(1.0, 0.8, 0.5, K.woodL, x0 + 0.35, FL + 0.06, -57.3);
-      LI.bb(0.04, 1.4, 0.9, PAL.glass.showerGlass, x0 + 0.1, FL + 0.9, -57.3);
-      UN.bb(0.02, 1.4, 0.04, PAL.light.warmGlow, x0 + 0.12, FL + 0.9, -56.8);
-      LI.bb(0.9, 0.5, 0.9, PAL.fabric.burgundy, x0 + 0.7, FL + 0.06, -61.5);
-      LI.bb(0.2, 0.6, 0.9, PAL.fabric.burgundy, x0 + 0.3, FL + 0.06, -61.5);
-      LI.cb(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
-      UN.ic(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
-      LI.bb(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
+      LI.addBox(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
+      UN.addBox(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
+      LI.addBox(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
+      UN.addCylinder(0.06, 0.05, PAL.light.warmGlow, -3.9, FL + 1.1, -67.3, 6);
+      LI.addBox(1.6, 0.9, 0.5, K.woodD, x1 - 0.3, FL + 0.06, -60.8);
+      LI.addBox(0.08, 1.1, 1.6, PAL.dark.void, x1 - 0.08, FL + 0.9, -60.8);
+      UN.addBox(0.03, 1.0, 1.5, PAL.neon.blue, x1 - 0.14, FL + 0.95, -60.8);
+      LI.addBox(1.0, 0.8, 0.5, K.woodL, x0 + 0.35, FL + 0.06, -57.3);
+      LI.addBox(0.04, 1.4, 0.9, PAL.glass.showerGlass, x0 + 0.1, FL + 0.9, -57.3);
+      UN.addBox(0.02, 1.4, 0.04, PAL.light.warmGlow, x0 + 0.12, FL + 0.9, -56.8);
+      LI.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, x0 + 0.7, FL + 0.06, -61.5);
+      LI.addBox(0.2, 0.6, 0.9, PAL.fabric.burgundy, x0 + 0.3, FL + 0.06, -61.5);
+      LI.addCylinder(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
+      UN.addSphere(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
+      LI.addBox(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
       for (i = 0; i < 6; i++)
-        LI.cb(
+        LI.addCylinder(
           0.07,
           0.3,
           [PAL.fabric.wine, 0x2a4a1f, PAL.fabric.wine][i % 3],
@@ -3479,29 +3402,39 @@ import { TANKS } from './data/sisteminha.js';
           -70.75,
           6,
         );
-      LI.cb(1.2, 0.03, PAL.stone.sandstone, -1.9, FL + 0.06, -63.2, 20);
-      UN.bb(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
+      LI.addCylinder(1.2, 0.03, PAL.stone.sandstone, -1.9, FL + 0.06, -63.2, 20);
+      UN.addBox(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
     })();
     /* ---- IRMÃ (3,5 m) · SOBRINHA 11 anos (2,9 m) · CONVIDADO (2,7 m) ---- */
     pb(0.25, 2.4, Z1, 1.0, 1.9, true);
     bedK(2.4, -64.0, PAL.flora.salmon);
     wardrobe(3.45, -60.6, -Math.PI / 2);
     desk(0.7, -58.2, 1.3, 0);
-    LI.bb(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
+    LI.addBox(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
     chair(0.7, -57.6, PAL.flora.purple);
     plant(3.4, -57.0, 1.0);
-    LI.cb(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
+    LI.addCylinder(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
     pb(4.05, 2.9, Z1, 5.0, 5.9, false);
     bedS(6.0, -64.0, PAL.flora.violet);
     wardrobe(4.35, -60.5, Math.PI / 2);
-    LI.bb(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
-    LI.bb(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
+    LI.addBox(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
+    LI.addBox(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
     chair(5.6, -56.9, 0xff7ac8);
-    UN.bb(2.6, 0.05, 0.05, 0xffd98a, 5.5, FL + 3.2, -70);
-    LI.cn(0.7, 1.5, 0xe8c9a0, 4.8, FL + 0.06, -61.6, 6);
-    UN.ic(0.1, PAL.light.warmGlow, 4.8, FL + 0.6, -61.6, 1, 1, 1, 1); /* cabaninha de leitura */
+    UN.addBox(2.6, 0.05, 0.05, 0xffd98a, 5.5, FL + 3.2, -70);
+    LI.addCone(0.7, 1.5, 0xe8c9a0, 4.8, FL + 0.06, -61.6, 6);
+    UN.addSphere(
+      0.1,
+      PAL.light.warmGlow,
+      4.8,
+      FL + 0.6,
+      -61.6,
+      1,
+      1,
+      1,
+      1,
+    ); /* cabaninha de leitura */
     for (i = 0; i < 10; i++)
-      UN.bb(
+      UN.addBox(
         0.06,
         0.06,
         0.06,
@@ -3528,17 +3461,17 @@ import { TANKS } from './data/sisteminha.js';
       [11.5, -59.4],
       [14.5, -59.4],
     ].forEach(function (t, n) {
-      LI.bb(2.2, 1.0, 1.4, K.steel, t[0], FL, t[1]);
-      LI.bb(2.0, 0.1, 1.2, 0x2c6f78, t[0], FL + 1.0, t[1]);
-      LG.bb(1.8, 0.05, 1.0, 0x35e0b0, t[0], FL + 1.1, t[1]);
-      LA.bb(1.4, 0.06, 0.04, [CY, GRN][n % 2], t[0], FL + 0.6, t[1] + 0.72);
+      LI.addBox(2.2, 1.0, 1.4, K.steel, t[0], FL, t[1]);
+      LI.addBox(2.0, 0.1, 1.2, 0x2c6f78, t[0], FL + 1.0, t[1]);
+      LG.addBox(1.8, 0.05, 1.0, 0x35e0b0, t[0], FL + 1.1, t[1]);
+      LA.addBox(1.4, 0.06, 0.04, [CY, GRN][n % 2], t[0], FL + 0.6, t[1] + 0.72);
     });
     for (i = 0; i < 5; i++) {
       const rx = 10.95 + i * 1.1;
-      LI.bb(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
+      LI.addBox(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
       for (j = 0; j < 10; j++)
         for (k = 0; k < 3; k++)
-          [LA, LB, LC][(i + j + k) % 3].bb(
+          [LA, LB, LC][(i + j + k) % 3].addBox(
             0.12,
             0.07,
             0.04,
@@ -3549,94 +3482,110 @@ import { TANKS } from './data/sisteminha.js';
           );
     }
     /* laboratórios */
-    LI.bb(0.9, 0.95, 12, K.white, 16.6, FL, -64.2);
-    LI.bb(1.0, 0.07, 12.1, PAL.metal.blueSteel, 16.6, FL + 0.95, -64.2);
-    LI.bb(0.9, 0.95, 12, K.white, 19.5, FL, -64.2);
-    LI.bb(1.0, 0.07, 12.1, PAL.metal.blueSteel, 19.5, FL + 0.95, -64.2);
+    LI.addBox(0.9, 0.95, 12, K.white, 16.6, FL, -64.2);
+    LI.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 16.6, FL + 0.95, -64.2);
+    LI.addBox(0.9, 0.95, 12, K.white, 19.5, FL, -64.2);
+    LI.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 19.5, FL + 0.95, -64.2);
     [-70.5, -67.5, -64.5, -61.5].forEach(function (z, n) {
-      LI.cb(0.2, 1.0, K.white, 16.6, FL + 1.02, z, 10);
-      LI.ic(0.35, PAL.glass.showerGlass, 16.6, FL + 1.7, z, 1, 1, 1, 1);
-      LI.bb(0.6, 0.5, 0.6, [K.steelD, K.white][n % 2], 19.5, FL + 1.02, z);
-      LG.bb(0.3, 0.3, 0.04, CY, 19.2, FL + 1.3, z);
+      LI.addCylinder(0.2, 1.0, K.white, 16.6, FL + 1.02, z, 10);
+      LI.addSphere(0.35, PAL.glass.showerGlass, 16.6, FL + 1.7, z, 1, 1, 1, 1);
+      LI.addBox(0.6, 0.5, 0.6, [K.steelD, K.white][n % 2], 19.5, FL + 1.02, z);
+      LG.addBox(0.3, 0.3, 0.04, CY, 19.2, FL + 1.3, z);
     });
-    LI.bb(1.2, 1.9, 1.0, K.steel, 18.0, FL, -57.2);
+    LI.addBox(1.2, 1.9, 1.0, K.steel, 18.0, FL, -57.2);
     /* sala limpa */
-    LI.bb(1.4, 0.9, 3.0, 0x191c22, 21.6, FL, -69.6);
-    LI.bb(0.7, 0.5, 0.9, K.white, 21.4, FL + 0.9, -70.2);
-    LG.bb(0.6, 0.04, 0.8, PAL.neon.violet, 21.4, FL + 0.9, -70.2);
-    LI.bb(0.2, 1.2, 0.2, K.steelD, 21.4, FL + 1.4, -70.2);
-    LI.cb(0.5, 3.0, PAL.light.tileGrey, 22.4, FL, -64.6, 12);
-    LI.bb(1.1, 1.1, 1.1, K.white, 21.6, FL, -59.4);
-    LC.bb(0.2, 0.06, 6, PAL.neon.violet, 21.5, FL + 3.2, -64);
+    LI.addBox(1.4, 0.9, 3.0, 0x191c22, 21.6, FL, -69.6);
+    LI.addBox(0.7, 0.5, 0.9, K.white, 21.4, FL + 0.9, -70.2);
+    LG.addBox(0.6, 0.04, 0.8, PAL.neon.violet, 21.4, FL + 0.9, -70.2);
+    LI.addBox(0.2, 1.2, 0.2, K.steelD, 21.4, FL + 1.4, -70.2);
+    LI.addCylinder(0.5, 3.0, PAL.light.tileGrey, 22.4, FL, -64.6, 12);
+    LI.addBox(1.1, 1.1, 1.1, K.white, 21.6, FL, -59.4);
+    LC.addBox(0.2, 0.06, 6, PAL.neon.violet, 21.5, FL + 3.2, -64);
     /* suporte de vida e baterias térmicas */
     [-70.6, -68.2, -65.8, -63.4].forEach(function (bz) {
-      LI.add(cylG(1, 16), K.steel, 25.2, FL + 1.0, bz, [0.7, 3.0, 0.7], [0, 0, Math.PI / 2]);
-      LI.add(cylG(1, 16), K.orange, 23.7, FL + 1.0, bz, [0.55, 0.14, 0.55], [0, 0, Math.PI / 2]);
-      LI.bb(0.2, 1.0, 0.2, K.steelD, 24.4, FL, bz);
-      LI.bb(0.2, 1.0, 0.2, K.steelD, 26.0, FL, bz);
-      LC.bb(0.12, 0.9, 0.9, 0xff7a2a, 23.6, FL + 0.55, bz);
+      LI.addGeometry(
+        cylG(1, 16),
+        K.steel,
+        25.2,
+        FL + 1.0,
+        bz,
+        [0.7, 3.0, 0.7],
+        [0, 0, Math.PI / 2],
+      );
+      LI.addGeometry(
+        cylG(1, 16),
+        K.orange,
+        23.7,
+        FL + 1.0,
+        bz,
+        [0.55, 0.14, 0.55],
+        [0, 0, Math.PI / 2],
+      );
+      LI.addBox(0.2, 1.0, 0.2, K.steelD, 24.4, FL, bz);
+      LI.addBox(0.2, 1.0, 0.2, K.steelD, 26.0, FL, bz);
+      LC.addBox(0.12, 0.9, 0.9, 0xff7a2a, 23.6, FL + 0.55, bz);
     });
     [
       [24.2, -60.6],
       [25.4, -60.6],
       [26.6, -60.6],
     ].forEach(function (t) {
-      LI.cb(0.5, 2.4, K.blue, t[0], FL, t[1], 12);
-      LI.cb(0.52, 0.2, K.steel, t[0], FL + 2.4, t[1], 12);
+      LI.addCylinder(0.5, 2.4, K.blue, t[0], FL, t[1], 12);
+      LI.addCylinder(0.52, 0.2, K.steel, t[0], FL + 2.4, t[1], 12);
     });
     for (i = 0; i < 4; i++) {
-      LI.cb(0.24, 0.9, K.red, 24.0 + i * 0.7, FL, -58.2, 8);
-      LI.cb(0.18, 0.2, K.white, 24.0 + i * 0.7, FL + 0.9, -58.2, 8);
+      LI.addCylinder(0.24, 0.9, K.red, 24.0 + i * 0.7, FL, -58.2, 8);
+      LI.addCylinder(0.18, 0.2, K.white, 24.0 + i * 0.7, FL + 0.9, -58.2, 8);
     }
 
     /* =================== FILEIRA DA FRENTE (x −11,4 → 27,4) =================== */
     /* estar, jantar e cozinha (13,6 × 14,6 m) */
-    LI.bb(8.0, 0.9, 0.7, PAL.light.linen, -4.4, FL + 0.06, -52.7);
-    LI.bb(8.1, 0.06, 0.8, PAL.light.cream, -4.4, FL + 0.96, -52.7);
-    LI.bb(0.8, 0.12, 0.5, K.steel, -6.4, FL + 1.0, -52.7);
-    LI.cb(0.035, 0.3, K.steel, -6.4, FL + 1.12, -52.5, 5);
-    LI.bb(0.9, 0.1, 0.6, K.black, -3.4, FL + 1.02, -52.7);
-    LI.bb(0.9, 1.9, 0.8, K.white, 0.9, FL + 0.06, -52.7);
-    LI.bb(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
-    LI.bb(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
-    LI.bb(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
-    for (i = 0; i < 4; i++) LI.cb(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
-    LI.bb(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
+    LI.addBox(8.0, 0.9, 0.7, PAL.light.linen, -4.4, FL + 0.06, -52.7);
+    LI.addBox(8.1, 0.06, 0.8, PAL.light.cream, -4.4, FL + 0.96, -52.7);
+    LI.addBox(0.8, 0.12, 0.5, K.steel, -6.4, FL + 1.0, -52.7);
+    LI.addCylinder(0.035, 0.3, K.steel, -6.4, FL + 1.12, -52.5, 5);
+    LI.addBox(0.9, 0.1, 0.6, K.black, -3.4, FL + 1.02, -52.7);
+    LI.addBox(0.9, 1.9, 0.8, K.white, 0.9, FL + 0.06, -52.7);
+    LI.addBox(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
+    LI.addBox(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
+    LI.addBox(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
+    for (i = 0; i < 4; i++) LI.addCylinder(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
+    LI.addBox(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
     [
       [-1.5, -0.5],
       [1.5, -0.5],
       [-1.5, 0.5],
       [1.5, 0.5],
     ].forEach(function (l) {
-      LI.bb(0.12, 0.7, 0.12, K.woodD, -4.6 + l[0], FL + 0.06, -44.6 + l[1]);
+      LI.addBox(0.12, 0.7, 0.12, K.woodD, -4.6 + l[0], FL + 0.06, -44.6 + l[1]);
     });
     for (i = 0; i < 4; i++) {
-      LI.bb(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -46.0);
-      LI.bb(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -43.2);
+      LI.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -46.0);
+      LI.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -43.2);
     }
-    LI.bb(0.42, 0.5, 0.42, K.woodL, -7.7, FL + 0.06, -44.6);
-    LI.bb(0.42, 0.5, 0.42, K.woodL, -1.5, FL + 0.06, -44.6);
-    LI.bb(1.0, 0.5, 3.8, PAL.fabric.royalBlue, -9.6, FL + 0.06, -41.9);
-    LI.bb(0.3, 0.8, 3.8, PAL.fabric.royalBlue, -10.4, FL + 0.06, -41.9);
-    LI.bb(3.2, 0.5, 1.0, PAL.fabric.royalBlue, -7.8, FL + 0.06, -39.9);
-    LI.bb(1.0, 0.4, 1.0, K.woodD, -8.2, FL + 0.06, -42.2);
-    LI.cb(1.6, 0.03, PAL.fabric.rust, -8.4, FL + 0.06, -43.0, 22);
-    LI.bb(0.1, 1.5, 3.2, PAL.dark.void, -11.15, FL + 1.0, -47.5);
-    UN.bb(0.02, 1.4, 3.1, PAL.neon.blue, -11.05, FL + 1.05, -47.5);
-    LI.bb(0.5, 0.4, 2.6, K.woodD, -10.9, FL + 0.06, -47.5);
-    LI.bb(2.2, 1.1, 0.5, PAL.dark.slate, 0.4, FL + 0.06, -40.2);
-    UN.bb(1.8, 0.04, 0.04, PAL.neon.amber, 0.4, FL + 0.9, -39.9);
+    LI.addBox(0.42, 0.5, 0.42, K.woodL, -7.7, FL + 0.06, -44.6);
+    LI.addBox(0.42, 0.5, 0.42, K.woodL, -1.5, FL + 0.06, -44.6);
+    LI.addBox(1.0, 0.5, 3.8, PAL.fabric.royalBlue, -9.6, FL + 0.06, -41.9);
+    LI.addBox(0.3, 0.8, 3.8, PAL.fabric.royalBlue, -10.4, FL + 0.06, -41.9);
+    LI.addBox(3.2, 0.5, 1.0, PAL.fabric.royalBlue, -7.8, FL + 0.06, -39.9);
+    LI.addBox(1.0, 0.4, 1.0, K.woodD, -8.2, FL + 0.06, -42.2);
+    LI.addCylinder(1.6, 0.03, PAL.fabric.rust, -8.4, FL + 0.06, -43.0, 22);
+    LI.addBox(0.1, 1.5, 3.2, PAL.dark.void, -11.15, FL + 1.0, -47.5);
+    UN.addBox(0.02, 1.4, 3.1, PAL.neon.blue, -11.05, FL + 1.05, -47.5);
+    LI.addBox(0.5, 0.4, 2.6, K.woodD, -10.9, FL + 0.06, -47.5);
+    LI.addBox(2.2, 1.1, 0.5, PAL.dark.slate, 0.4, FL + 0.06, -40.2);
+    UN.addBox(1.8, 0.04, 0.04, PAL.neon.amber, 0.4, FL + 0.9, -39.9);
     [[-0.4], [0.4], [1.2]].forEach(function (s) {
-      LI.cb(0.2, 0.5, K.woodD, s[0], FL + 0.06, -41.0, 8);
+      LI.addCylinder(0.2, 0.5, K.woodD, s[0], FL + 0.06, -41.0, 8);
     }); /* bar com bancos */
     plant(-10.8, -52.6, 1.3);
     plant(1.7, -45.0, 1.3);
-    UN.bb(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
+    UN.addBox(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
     /* despensa 90 dias */
     function bItem(x, y, z, n) {
       const m = n % 5;
       if (m === 0 || m === 3)
-        LI.cb(
+        LI.addCylinder(
           0.12,
           0.3,
           [
@@ -3652,9 +3601,10 @@ import { TANKS } from './data/sisteminha.js';
           z,
           6,
         );
-      else if (m === 1) LI.cb(0.09, 0.2, K.steel, x, y, z, 6);
-      else if (m === 2) LI.bb(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
-      else LI.bb(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][n % 3], x, y, z);
+      else if (m === 1) LI.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
+      else if (m === 2) LI.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
+      else
+        LI.addBox(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][n % 3], x, y, z);
     }
     function shelfZ(z1, z2, x) {
       const L = z2 - z1;
@@ -3664,42 +3614,52 @@ import { TANKS } from './data/sisteminha.js';
       let b;
       let c;
       for (a = 0; a < 3; a++) {
-        LI.bb(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
+        LI.addBox(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
         for (b = 0; b < n; b++) bItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
       }
-      for (c = 0; c <= nu; c++) LI.bb(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);
+      for (c = 0; c <= nu; c++)
+        LI.addBox(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);
     }
     shelfZ(-52.4, -39.4, 2.6);
     shelfZ(-52.4, -39.4, 5.4);
     for (i = 0; i < 4; i++)
-      LI.cb(0.4, 0.9, K.wood, 3.5 + (i % 2) * 1.0, FL + 0.06, -47 + ((i / 2) | 0) * 1.0, 10, 0.37);
-    LI.bb(1.4, 0.85, 0.7, K.white, 4.0, FL + 0.06, -40.6);
+      LI.addCylinder(
+        0.4,
+        0.9,
+        K.wood,
+        3.5 + (i % 2) * 1.0,
+        FL + 0.06,
+        -47 + ((i / 2) | 0) * 1.0,
+        10,
+        0.37,
+      );
+    LI.addBox(1.4, 0.85, 0.7, K.white, 4.0, FL + 0.06, -40.6);
     /* cinema e jogos */
-    LI.bb(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
-    UN.bb(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
+    LI.addBox(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
+    UN.addBox(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
     [-50.0, -47.8].forEach(function (z, n) {
       for (i = 0; i < 3; i++) {
-        LI.bb(0.9, 0.5, 0.9, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.06 + n * 0.3, z);
-        LI.bb(0.9, 0.7, 0.2, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.4 + n * 0.3, z + 0.45);
+        LI.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.06 + n * 0.3, z);
+        LI.addBox(0.9, 0.7, 0.2, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.4 + n * 0.3, z + 0.45);
       }
     });
-    LI.bb(2.4, 0.8, 1.3, 0x1a5a3a, 8.6, FL + 0.06, -42.4);
-    LI.bb(2.5, 0.1, 1.4, K.woodD, 8.6, FL + 0.8, -42.4);
-    LI.cb(0.1, 0.1, PAL.light.white, 8.2, FL + 0.92, -42.4, 8);
-    LI.cb(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
-    LI.bb(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
-    UN.bb(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
+    LI.addBox(2.4, 0.8, 1.3, 0x1a5a3a, 8.6, FL + 0.06, -42.4);
+    LI.addBox(2.5, 0.1, 1.4, K.woodD, 8.6, FL + 0.8, -42.4);
+    LI.addCylinder(0.1, 0.1, PAL.light.white, 8.2, FL + 0.92, -42.4, 8);
+    LI.addCylinder(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
+    LI.addBox(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
+    UN.addBox(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
     for (i = 0; i < 2; i++) {
-      LI.bb(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
-      UN.bb(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
+      LI.addBox(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
+      UN.addBox(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
     }
-    UN.bb(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
+    UN.addBox(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
     /* hidroponia */
     [14.2, 16.4, 18.6].forEach(function (hx) {
       for (j = 0; j < 4; j++) {
-        LI.bb(1.0, 0.08, 12.4, K.steelD, hx, FL + 0.5 + j * 0.7, -46.2);
+        LI.addBox(1.0, 0.08, 12.4, K.steelD, hx, FL + 0.5 + j * 0.7, -46.2);
         for (k = 0; k < 19; k++)
-          LI.ic(
+          LI.addSphere(
             0.26,
             [PAL.flora.cropGreenA, PAL.flora.cropGreenC, PAL.flora.lime][(k + j) % 3],
             hx + (k % 2 ? 0.2 : -0.2),
@@ -3709,31 +3669,31 @@ import { TANKS } from './data/sisteminha.js';
             0.8,
             1,
           );
-        UN.bb(0.9, 0.03, 12.0, 0xd44cff, hx, FL + 0.38 + j * 0.7, -46.2);
+        UN.addBox(0.9, 0.03, 12.0, 0xd44cff, hx, FL + 0.38 + j * 0.7, -46.2);
       }
-      LI.bb(0.1, 3.0, 12.4, K.steelD, hx - 0.55, FL, -46.2);
-      LI.bb(0.1, 3.0, 12.4, K.steelD, hx + 0.55, FL, -46.2);
+      LI.addBox(0.1, 3.0, 12.4, K.steelD, hx - 0.55, FL, -46.2);
+      LI.addBox(0.1, 3.0, 12.4, K.steelD, hx + 0.55, FL, -46.2);
     });
-    LI.cb(0.5, 1.4, K.blue, 13.0, FL, -39.8, 10);
-    LI.cb(0.5, 1.4, K.blue, 19.6, FL, -39.8, 10);
+    LI.addCylinder(0.5, 1.4, K.blue, 13.0, FL, -39.8, 10);
+    LI.addCylinder(0.5, 1.4, K.blue, 19.6, FL, -39.8, 10);
     /* oficina maker */
-    LI.bb(0.8, 0.95, 10, K.woodL, 26.8, FL, -46.2);
-    LI.bb(0.9, 0.06, 10.1, PAL.light.cream, 26.8, FL + 0.95, -46.2);
+    LI.addBox(0.8, 0.95, 10, K.woodL, 26.8, FL, -46.2);
+    LI.addBox(0.9, 0.06, 10.1, PAL.light.cream, 26.8, FL + 0.95, -46.2);
     [-51, -49, -47].forEach(function (pz) {
-      LI.bb(0.5, 0.5, 0.5, K.white, 26.8, FL + 1.01, pz);
-      LG.bb(0.3, 0.3, 0.04, CY, 26.54, FL + 1.3, pz);
+      LI.addBox(0.5, 0.5, 0.5, K.white, 26.8, FL + 1.01, pz);
+      LG.addBox(0.3, 0.3, 0.04, CY, 26.54, FL + 1.3, pz);
     });
-    LI.bb(1.6, 1.5, 1.4, K.steelD, 22.2, FL, -51.6);
-    LG.bb(1.0, 0.5, 0.05, PAL.neon.amber, 22.2, FL + 0.8, -50.9);
-    LI.bb(2.2, 0.8, 0.8, K.steel, 22.2, FL, -47.4);
-    LI.cb(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
-    LI.bb(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);
-    LI.bb(1.2, 0.12, 2.4, K.steelD, 24.2, FL, -41.2);
-    for (i = 0; i < 4; i++) LI.bb(0.2, 0.2, 0.9, K.woodL, 24.2, FL + 0.12 + i * 0.2, -41.2);
-    LI.bb(0.2, 0.2, 1.6, K.yellow, 22.6, FL + 0.06, -40.6);
-    LI.bb(0.9, 0.05, 1.6, K.steelD, 22.6, FL + 0.26, -40.6);
+    LI.addBox(1.6, 1.5, 1.4, K.steelD, 22.2, FL, -51.6);
+    LG.addBox(1.0, 0.5, 0.05, PAL.neon.amber, 22.2, FL + 0.8, -50.9);
+    LI.addBox(2.2, 0.8, 0.8, K.steel, 22.2, FL, -47.4);
+    LI.addCylinder(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
+    LI.addBox(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);
+    LI.addBox(1.2, 0.12, 2.4, K.steelD, 24.2, FL, -41.2);
+    for (i = 0; i < 4; i++) LI.addBox(0.2, 0.2, 0.9, K.woodL, 24.2, FL + 0.12 + i * 0.2, -41.2);
+    LI.addBox(0.2, 0.2, 1.6, K.yellow, 22.6, FL + 0.06, -40.6);
+    LI.addBox(0.9, 0.05, 1.6, K.steelD, 22.6, FL + 0.26, -40.6);
     for (i = 0; i < 9; i++)
-      LI.bb(
+      LI.addBox(
         0.1,
         0.3,
         0.5 + (i % 3) * 0.12,

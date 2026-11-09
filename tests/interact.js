@@ -1,9 +1,13 @@
 // Percorre a interface: todos os botoes, sliders e pontos de 1a pessoa. Falha se houver erro de execucao
 // (detecta, por exemplo, variavel usada antes da declaracao apos trocar var por let/const).
-const { open } = require('./harness');
+// As chamadas de desenho do WebGL ficam desligadas (a GPU por software gasta ≈ 1 s por clique): o
+// JavaScript do laco e do three roda inteiro; pixels sao cobertos por smoke, fp e golden.
+// Use --draw para percorrer a interface com o desenho ligado (≈ 70 s).
+const { open, skipDraws } = require('./harness');
 
 (async () => {
   const { browser, page, errors } = await open({ width: 1200, height: 800 });
+  if (!process.argv.includes('--draw')) await skipDraws(page);
   const clicked = await page.evaluate(async () => {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     let n = 0;

@@ -1,9 +1,12 @@
 // Capturas de referencia (golden) e comparacao por pixel. --update regrava as referencias.
+// Tempo virtual: nenhum quadro roda sozinho; camera, corte e sol assentam por um numero fixo de quadros
+// (sem desenho, depois 2 com desenho). A mesma sequencia sempre da a mesma imagem, sem depender da
+// velocidade da maquina.
 const fs = require('fs');
 const path = require('path');
 const { PNG } = require('pngjs');
 const pixelmatch = require('pixelmatch');
-const { open, freeze, setView, ROOT } = require('./harness');
+const { open, freeze, setView, settle, ROOT } = require('./harness');
 
 const REF = path.join(ROOT, 'golden', 'ref');
 const OUT = path.join(ROOT, 'golden', 'out');
@@ -30,18 +33,23 @@ function diff(a, b) {
 (async () => {
   const update = process.argv.includes('--update');
   fs.mkdirSync(REF, { recursive: true }); fs.mkdirSync(OUT, { recursive: true });
-  const { browser, page, errors } = await open();
-  await freeze(page);
+  const { browser, page, errors } = await open({ virtualClock: true, settle: 500 });
+  await freeze(page, { frames: 40 });
   const shots = [];
+  const shoot = async (name) => {
+    await page.waitForTimeout(400); // transicoes de CSS do painel
+    await page.screenshot({ path: path.join(update ? REF : OUT, name + '.png') });
+    shots.push(name);
+  };
   for (const v of VIEWS) {
-    await setView(page, { ...v, wait: v.lift ? 20000 : 12000 });
-    const p = path.join(update ? REF : OUT, v.name + '.png'); await page.screenshot({ path: p }); shots.push(v.name);
+    await setView(page, { ...v, frames: 60 });
+    await shoot(v.name);
   }
-  await setView(page, { rotY: 0, rotX: 0.5, zoom: 1, f: [0, 0, 0], lift: 0, wait: 3000 });
+  await setView(page, { rotY: 0, rotX: 0.5, zoom: 1, f: [0, 0, 0], lift: 0, frames: 40 });
   for (const v of FP) {
     await page.evaluate(({ spot, yaw }) => { __sitio.enterFP(); __sitio.fpGo(spot); __sitio.fp.yaw = yaw; }, v);
-    await page.waitForTimeout(2000);
-    const p = path.join(update ? REF : OUT, v.name + '.png'); await page.screenshot({ path: p }); shots.push(v.name);
+    await settle(page, 20);
+    await shoot(v.name);
   }
   await browser.close();
   if (update) { console.log('GOLDEN atualizado:', shots.join(', ')); process.exit(errors.length ? 1 : 0); }

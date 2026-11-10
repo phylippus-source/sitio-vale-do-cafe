@@ -47,7 +47,7 @@ function diff(a, b) {
   }
   await setView(page, { rotY: 0, rotX: 0.5, zoom: 1, f: [0, 0, 0], lift: 0, frames: 40 });
   for (const v of FP) {
-    await page.evaluate(({ spot, yaw }) => { __sitio.enterFP(); __sitio.fpGo(spot); __sitio.fp.yaw = yaw; }, v);
+    await page.evaluate(({ spot, yaw }) => { __sitio.enterFP(); __sitio.fpGo(spot); __sitio.walker.yaw = yaw; }, v);
     await settle(page, 20);
     await shoot(v.name);
   }

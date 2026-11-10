@@ -9,12 +9,12 @@ const SPOTS = ['under', 'under2'];
   for (const s of SPOTS) {
     const r = await page.evaluate((spot) => {
       __sitio.enterFP(); __sitio.fpGo(spot);
-      const f = __sitio.fp; const a = { lvl: f.lvl, x: +f.x.toFixed(2), z: +f.z.toFixed(2) };
+      const f = __sitio.walker; const a = { lvl: f.lvl, x: +f.x.toFixed(2), z: +f.z.toFixed(2) };
       return a;
     }, s);
     await page.waitForTimeout(800);
     const moved = await page.evaluate(() => {
-      const f = __sitio.fp; const x0 = f.x, z0 = f.z; f.yaw = 0;
+      const f = __sitio.walker; const x0 = f.x, z0 = f.z; f.yaw = 0;
       for (let i = 0; i < 40; i++) { f.x += -Math.sin(f.yaw) * 0.1; f.z += -Math.cos(f.yaw) * 0.1; }
       return { lvl: f.lvl, inside: f.x > -12 && f.x < 28 && f.z > -73 && f.z < -38 };
     });

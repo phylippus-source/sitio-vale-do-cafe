@@ -1,14 +1,14 @@
 // Hash da cena: impressao digital deterministica de toda a geometria, materiais e transformacoes
-// abaixo de `dio`, comparada com golden/scene.baseline.json. Detecta qualquer mudanca na cena
+// abaixo de `diorama`, comparada com golden/scene.baseline.json. Detecta qualquer mudanca na cena
 // (posicao de uma arvore, cor de uma parede, ordem de construcao) sem depender de imagens.
 //
 // Determinismo: aleatorio semeado (harness) + relogio virtual (nenhum quadro roda sozinho).
 // Duas fotografias: "inicial" (apos o 1o quadro do carregamento) e "animado" (apos STEPS quadros de
-// DT_MS; cobre animais, peixes, roda, rotor e o corte). O dio em si fica de fora: sua posicao
+// DT_MS; cobre animais, peixes, roda, rotor e o corte). O diorama em si fica de fora: sua posicao
 // depende da camera.
 //
 // Uso: node tests/scenehash.js [--update] [--repeat=N]
-//   --update  regrava o baseline (so grava se duas capturas independentes forem identicas)
+//   --update  regrava o baseline (so grava se tres capturas independentes forem identicas)
 //   --repeat  repete a captura em navegadores novos e exige resultados identicos (teste de estabilidade)
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +19,7 @@ const CONFIG = { width: 480, height: 320, steps: 10, dtMs: 40 };
 
 /* Roda dentro da pagina. Devolve { total, counts, groups, meshes }. */
 function fingerprint() {
-  const dio = window.__dio;
+  const diorama = window.__diorama;
   const Q = 1000; // quantizacao: 1 mm
   const QCOLOR = 10000; // cores: 1/255 de uma cor escura ainda muda o hash
   const hex8 = (n) => (n >>> 0).toString(16).padStart(8, '0');
@@ -134,7 +134,7 @@ function fingerprint() {
     if (depth <= 2) out.groups[p] = sub.hex() + ' m' + m + ' v' + v;
     return { a: sub.a, b: sub.b, m, v };
   }
-  const r = walk(dio, 'dio', 0);
+  const r = walk(diorama, 'diorama', 0);
   const t = new H(); t.int(r.a); t.int(r.b);
   out.total = t.hex();
   out.counts.tris = out.counts.verts / 3;
@@ -182,7 +182,7 @@ function diff(name, base, now) {
 (async () => {
   const update = process.argv.includes('--update');
   const rep = process.argv.find((a) => a.startsWith('--repeat='));
-  const runs = Math.max(update ? 2 : 1, rep ? parseInt(rep.slice(9), 10) : 1);
+  const runs = Math.max(update ? 3 : 1, rep ? parseInt(rep.slice(9), 10) : 1);
   const caps = [];
   for (let i = 0; i < runs; i++) {
     const c = await capture();

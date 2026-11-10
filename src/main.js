@@ -104,12 +104,12 @@ import { TANKS } from './data/sisteminha.js';
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(26, 1, 30, 2400);
-  const dio = new THREE.Group(),
+  const diorama = new THREE.Group(),
     surface = new THREE.Group(),
     under = new THREE.Group();
-  dio.add(under);
-  dio.add(surface);
-  scene.add(dio);
+  diorama.add(under);
+  diorama.add(surface);
+  scene.add(diorama);
   scene.add(new THREE.AmbientLight(PAL.light.white, 0.6));
   const sun = new THREE.DirectionalLight(PAL.light.white, 0.34);
   const SUNDIR = new THREE.Vector3(-0.55, 0.78, 0.55).normalize();
@@ -4032,7 +4032,7 @@ import { TANKS } from './data/sisteminha.js';
     m.rotation.x = -Math.PI / 2;
     m.scale.set(108, 158, 1);
     m.position.set(3, -10.12, 3);
-    dio.add(m);
+    diorama.add(m);
   })();
 
   /* ================= HUD DA 1ª PESSOA E PLACAS DE PORTA ================= */
@@ -4047,7 +4047,7 @@ import { TANKS } from './data/sisteminha.js';
   let hudLast = '';
   function fpHud() {
     hudEl = hudEl || $('#fp-hud');
-    const r = roomAt(fp.x, fp.z, fp.lvl),
+    const r = roomAt(walker.x, walker.z, walker.lvl),
       t = r
         ? r[0] + ' · ' + Math.round((r[3] - r[1]) * (r[4] - r[2])) + ' m²'
         : 'Sítio Vale do Café';
@@ -4155,16 +4155,16 @@ import { TANKS } from './data/sisteminha.js';
   }
 
   function updateLabels(W, H) {
-    if (!showLabels || fp.on) return;
+    if (!showLabels || walker.on) return;
     if (needMeasure) measure();
     const narrow = W < 640,
       items = [];
     labelItems.forEach(function (it) {
       const hide =
         (narrow && !it.d.m) ||
-        (!it.d.m && cur.zoom < 1.5) ||
-        (it.d.i && cur.lift < 40) ||
-        (it.d.z && cur.zoom < it.d.z);
+        (!it.d.m && viewCurrent.zoom < 1.5) ||
+        (it.d.i && viewCurrent.lift < 40) ||
+        (it.d.z && viewCurrent.zoom < it.d.z);
       vTmp.setFromMatrixPosition(it.anchor.matrixWorld).project(camera);
       it.sx = (vTmp.x * 0.5 + 0.5) * W;
       it.sy = (-vTmp.y * 0.5 + 0.5) * H;
@@ -4232,7 +4232,7 @@ import { TANKS } from './data/sisteminha.js';
   }
 
   /* ================= CÂMERA E ESTADO ================= */
-  const st = {
+  const viewTarget = {
     rotY: -0.55,
     rotX: 0.17,
     zoom: 1.12,
@@ -4241,7 +4241,7 @@ import { TANKS } from './data/sisteminha.js';
     lift: 0,
     f: new THREE.Vector3(2, -4, 2),
   };
-  const cur = {
+  const viewCurrent = {
     rotY: -0.55,
     rotX: 0.17,
     zoom: 1.12,
@@ -4250,20 +4250,20 @@ import { TANKS } from './data/sisteminha.js';
     lift: 0,
     f: new THREE.Vector3(2, -4, 2),
   };
-  const sim = { flow: 0.65, wind: 0.5 };
-  let W = 1;
-  let H = 1;
+  const simulation = { flow: 0.65, wind: 0.5 };
+  let viewWidth = 1;
+  let viewHeight = 1;
 
   function resize() {
     const r = stage.getBoundingClientRect();
-    W = Math.max(1, r.width);
-    H = Math.max(1, r.height);
-    renderer.setSize(W, H);
-    camera.aspect = W / H;
+    viewWidth = Math.max(1, r.width);
+    viewHeight = Math.max(1, r.height);
+    renderer.setSize(viewWidth, viewHeight);
+    camera.aspect = viewWidth / viewHeight;
     camera.updateProjectionMatrix();
     needMeasure = true;
-    hullMat.uniforms.uRes.value.set(W, H);
-    hullMat.uniforms.uThick.value = W < 640 ? 1.15 : 1.5;
+    hullMat.uniforms.uRes.value.set(viewWidth, viewHeight);
+    hullMat.uniforms.uThick.value = viewWidth < 640 ? 1.15 : 1.5;
   }
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
   else window.addEventListener('resize', resize);
@@ -4274,12 +4274,12 @@ import { TANKS } from './data/sisteminha.js';
     const s = SECTOR[key];
     if (!s) return;
     subView = ['bunker', 'datacenter', 'labs', 'clean', 'refuge', 'battery'].indexOf(key) >= 0;
-    st.f.set(s.f[0], s.f[1], s.f[2]);
-    st.rotY = s.ry;
-    st.rotX = s.rx;
-    st.zoom = s.z;
-    st.panX = 0;
-    st.panY = 0;
+    viewTarget.f.set(s.f[0], s.f[1], s.f[2]);
+    viewTarget.rotY = s.ry;
+    viewTarget.rotX = s.rx;
+    viewTarget.zoom = s.z;
+    viewTarget.panX = 0;
+    viewTarget.panY = 0;
     if (key === 'overview') {
       setLift(0);
     } else if (s.lift != null) {
@@ -4311,7 +4311,7 @@ import { TANKS } from './data/sisteminha.js';
     $('#info-text').textContent = s.d;
   }
   function setLift(pct) {
-    st.lift = pct;
+    viewTarget.lift = pct;
     const sl = $('#s-xray');
     sl.value = pct;
     $('#o-xray').textContent = Math.round(pct) + '%';
@@ -4323,7 +4323,10 @@ import { TANKS } from './data/sisteminha.js';
   function panUnit() {
     const vf2 = THREE.MathUtils.degToRad(camera.fov),
       hf2 = 2 * Math.atan(Math.tan(vf2 / 2) * camera.aspect);
-    return (2 * Math.tan(vf2 / 2) * (104 / Math.sin(Math.min(vf2, hf2) / 2) / cur.zoom)) / H;
+    return (
+      (2 * Math.tan(vf2 / 2) * (104 / Math.sin(Math.min(vf2, hf2) / 2) / viewCurrent.zoom)) /
+      viewHeight
+    );
   }
   function pdist() {
     const a = Array.from(ptrs.values());
@@ -4345,21 +4348,21 @@ import { TANKS } from './data/sisteminha.js';
       dy = e.clientY - p.y;
     p.x = e.clientX;
     p.y = e.clientY;
-    if (fp.on) {
-      fp.yaw -= dx * 0.0055;
-      fp.pitch = clamp(fp.pitch - dy * 0.0045, -1.3, 1.3);
+    if (walker.on) {
+      walker.yaw -= dx * 0.0055;
+      walker.pitch = clamp(walker.pitch - dy * 0.0045, -1.3, 1.3);
       return;
     }
     if (ptrs.size === 1) {
-      st.rotY += dx * 0.0075;
-      st.rotX = clamp(st.rotX + dy * 0.004, -0.2, 0.6);
+      viewTarget.rotY += dx * 0.0075;
+      viewTarget.rotX = clamp(viewTarget.rotX + dy * 0.004, -0.2, 0.6);
     } else if (ptrs.size === 2) {
       const d = pdist();
-      if (lastDist > 0) st.zoom = clamp((st.zoom * d) / lastDist, 0.55, 8);
+      if (lastDist > 0) viewTarget.zoom = clamp((viewTarget.zoom * d) / lastDist, 0.55, 8);
       lastDist = d;
       const ppu = panUnit();
-      st.panX = clamp(st.panX + dx * 0.5 * ppu, -90, 90);
-      st.panY = clamp(st.panY - dy * 0.5 * ppu, -70, 90);
+      viewTarget.panX = clamp(viewTarget.panX + dx * 0.5 * ppu, -90, 90);
+      viewTarget.panY = clamp(viewTarget.panY - dy * 0.5 * ppu, -70, 90);
     }
   });
   function endPtr(e) {
@@ -4373,8 +4376,8 @@ import { TANKS } from './data/sisteminha.js';
     'wheel',
     function (e) {
       e.preventDefault();
-      if (fp.on) return;
-      st.zoom = clamp(st.zoom * Math.exp(-e.deltaY * 0.0012), 0.55, 8);
+      if (walker.on) return;
+      viewTarget.zoom = clamp(viewTarget.zoom * Math.exp(-e.deltaY * 0.0012), 0.55, 8);
     },
     { passive: false },
   );
@@ -4382,9 +4385,9 @@ import { TANKS } from './data/sisteminha.js';
   $('#s-xray').addEventListener('input', function (e) {
     setLift(parseFloat(e.target.value));
   });
-  sim.speed = 1;
-  sim.season = 'set';
-  sim.hour = 0;
+  simulation.speed = 1;
+  simulation.season = 'set';
+  simulation.hour = 0;
   function sunVec(h, decl) {
     const lat = (-22.4 * Math.PI) / 180,
       d = (decl * Math.PI) / 180,
@@ -4400,31 +4403,31 @@ import { TANKS } from './data/sisteminha.js';
     };
   } /* x = oeste, z = norte */
   function applySun() {
-    if (sim.hour < 6) {
+    if (simulation.hour < 6) {
       SUNDIR.set(-0.55, 0.78, 0.55).normalize();
       sun.intensity = 0.34;
       $('#o-sun').textContent = 'Padrão';
       return;
     }
-    const r = sunVec(sim.hour, { jun: -23.44, set: 0, dez: 23.44 }[sim.season]);
+    const r = sunVec(simulation.hour, { jun: -23.44, set: 0, dez: 23.44 }[simulation.season]);
     r.v.y = Math.max(r.v.y, 0.04);
     SUNDIR.copy(r.v).normalize();
     sun.intensity = 0.34 * clamp(r.se * 4, 0.12, 1.1);
-    const hh = Math.floor(sim.hour),
-      mm = Math.round((sim.hour - hh) * 60);
+    const hh = Math.floor(simulation.hour),
+      mm = Math.round((simulation.hour - hh) * 60);
     $('#o-sun').textContent = hh + ':' + (mm < 10 ? '0' : '') + mm;
   }
   $('#s-speed').addEventListener('input', function (e) {
-    sim.speed = parseFloat(e.target.value) / 100;
-    $('#o-speed').textContent = Math.round(sim.speed * 100) + '%';
+    simulation.speed = parseFloat(e.target.value) / 100;
+    $('#o-speed').textContent = Math.round(simulation.speed * 100) + '%';
   });
   $('#s-sun').addEventListener('input', function (e) {
-    sim.hour = parseFloat(e.target.value);
+    simulation.hour = parseFloat(e.target.value);
     applySun();
   });
   document.querySelectorAll('[data-season]').forEach(function (b) {
     b.addEventListener('click', function () {
-      sim.season = b.dataset.season;
+      simulation.season = b.dataset.season;
       document.querySelectorAll('[data-season]').forEach(function (o) {
         o.setAttribute('aria-pressed', o === b ? 'true' : 'false');
       });
@@ -4452,10 +4455,10 @@ import { TANKS } from './data/sisteminha.js';
     focusOn('overview');
   });
   $('#d-up').addEventListener('click', function () {
-    st.panY = clamp(st.panY + 9, -70, 90);
+    viewTarget.panY = clamp(viewTarget.panY + 9, -70, 90);
   });
   $('#d-down').addEventListener('click', function () {
-    st.panY = clamp(st.panY - 9, -70, 90);
+    viewTarget.panY = clamp(viewTarget.panY - 9, -70, 90);
   });
 
   /* painel e gavetas: a maquete se reenquadra no espaço que sobra */
@@ -4501,7 +4504,7 @@ import { TANKS } from './data/sisteminha.js';
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      if (fp.on) exitFP();
+      if (walker.on) exitFP();
       else setDrawer(null);
     }
   });
@@ -4523,7 +4526,7 @@ import { TANKS } from './data/sisteminha.js';
   });
 
   /* ================= 1ª PESSOA (ORBWALK): joystick virtual + olhar livre ================= */
-  const fp = {
+  const walker = {
     on: false,
     x: 1,
     z: -50.6,
@@ -4574,9 +4577,9 @@ import { TANKS } from './data/sisteminha.js';
     return false;
   }
   function fpStep(dt) {
-    const k = fp.keys;
-    let jx = fp.jx + (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
-    let jy = fp.jy + (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0);
+    const k = walker.keys;
+    let jx = walker.jx + (k.d || k.arrowright ? 1 : 0) - (k.a || k.arrowleft ? 1 : 0);
+    let jy = walker.jy + (k.w || k.arrowup ? 1 : 0) - (k.s || k.arrowdown ? 1 : 0);
     let m = Math.hypot(jx, jy);
     if (m > 1) {
       jx /= m;
@@ -4585,57 +4588,59 @@ import { TANKS } from './data/sisteminha.js';
     }
     if (m > 0.06) {
       const sp = 3.0 * (m > 0.92 ? 1.7 : 1) * (k.shift ? 1.6 : 1),
-        fx = -Math.sin(fp.yaw),
-        fz = -Math.cos(fp.yaw),
-        rx = Math.cos(fp.yaw),
-        rz = -Math.sin(fp.yaw);
+        fx = -Math.sin(walker.yaw),
+        fz = -Math.cos(walker.yaw),
+        rx = Math.cos(walker.yaw),
+        rz = -Math.sin(walker.yaw);
       const vx = (fx * jy + rx * jx) * sp * dt,
         vz = (fz * jy + rz * jx) * sp * dt;
-      if (!fpBlocked(fp.x + vx, fp.z, fp.lvl)) fp.x += vx;
-      if (!fpBlocked(fp.x, fp.z + vz, fp.lvl)) fp.z += vz;
-      fp.bob += dt * m * 8;
-      fp.moved += Math.hypot(vx, vz);
-      const fy = lvlFloor(fp.x, fp.z, fp.lvl),
-        inSt = Math.abs(fp.x - 1) < 1.1 && fp.z + 58 > 2.8 && fp.z + 58 < 9.9;
+      if (!fpBlocked(walker.x + vx, walker.z, walker.lvl)) walker.x += vx;
+      if (!fpBlocked(walker.x, walker.z + vz, walker.lvl)) walker.z += vz;
+      walker.bob += dt * m * 8;
+      walker.moved += Math.hypot(vx, vz);
+      const fy = lvlFloor(walker.x, walker.z, walker.lvl),
+        inSt = Math.abs(walker.x - 1) < 1.1 && walker.z + 58 > 2.8 && walker.z + 58 < 9.9;
       if (inSt) {
-        if (fp.lvl === 's' && fy > 4.55) fp.lvl = 'a';
-        else if (fp.lvl === 'a' && fy < 4.45) fp.lvl = 's';
+        if (walker.lvl === 's' && fy > 4.55) walker.lvl = 'a';
+        else if (walker.lvl === 'a' && fy < 4.45) walker.lvl = 's';
       }
     }
     const target =
-      lvlFloor(fp.x, fp.z, fp.lvl) + fp.eye + Math.sin(fp.bob) * 0.025 * Math.min(1, m);
-    fp.eyeY += (target - fp.eyeY) * Math.min(1, dt * 9);
+      lvlFloor(walker.x, walker.z, walker.lvl) +
+      walker.eye +
+      Math.sin(walker.bob) * 0.025 * Math.min(1, m);
+    walker.eyeY += (target - walker.eyeY) * Math.min(1, dt * 9);
     fpHud();
   }
   function fpMarks() {
     document.querySelectorAll('[data-fpeye]').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(parseFloat(b.dataset.fpeye) === fp.eye));
+      b.setAttribute('aria-pressed', String(parseFloat(b.dataset.fpeye) === walker.eye));
     });
     document.querySelectorAll('[data-fplvl]').forEach(function (b) {
-      b.setAttribute('aria-pressed', String(b.dataset.fplvl === fp.spot));
+      b.setAttribute('aria-pressed', String(b.dataset.fplvl === walker.spot));
     });
   }
   function fpGo(key) {
     const s = FPSPOT[key];
     if (!s) return;
-    fp.x = s.x;
-    fp.z = s.z;
-    fp.yaw = s.yaw;
-    fp.pitch = 0;
-    fp.lvl = s.lvl;
-    fp.spot = key;
-    fp.eyeY = lvlFloor(fp.x, fp.z, fp.lvl) + fp.eye;
+    walker.x = s.x;
+    walker.z = s.z;
+    walker.yaw = s.yaw;
+    walker.pitch = 0;
+    walker.lvl = s.lvl;
+    walker.spot = key;
+    walker.eyeY = lvlFloor(walker.x, walker.z, walker.lvl) + walker.eye;
     PLQ.forEach(function (q) {
       q.visible = true;
     });
     fpMarks();
   }
   function enterFP() {
-    if (fp.on) return;
-    fp.on = true;
-    fp.prevLift = st.lift;
+    if (walker.on) return;
+    walker.on = true;
+    walker.prevLift = viewTarget.lift;
     setLift(0);
-    cur.lift = 0;
+    viewCurrent.lift = 0;
     setDrawer(null);
     panelEl.classList.remove('open');
     syncBody();
@@ -4649,10 +4654,10 @@ import { TANKS } from './data/sisteminha.js';
     resize();
   }
   function exitFP() {
-    if (!fp.on) return;
-    fp.on = false;
-    fp.jx = fp.jy = 0;
-    fp.keys = {};
+    if (!walker.on) return;
+    walker.on = false;
+    walker.jx = walker.jy = 0;
+    walker.keys = {};
     $('#fp-knob').style.transform = '';
     document.body.classList.remove('fp');
     $('#fp-ui').hidden = true;
@@ -4663,17 +4668,17 @@ import { TANKS } from './data/sisteminha.js';
     b.setAttribute('aria-pressed', 'false');
     b.textContent = '🕹️ 1ª Pessoa (Orbwalk)';
     camera.fov = 26;
-    setLift(fp.prevLift);
+    setLift(walker.prevLift);
     needMeasure = true;
     resize();
   }
   $('#fp-btn').addEventListener('click', function () {
-    if (fp.on) exitFP();
+    if (walker.on) exitFP();
     else enterFP();
   });
   document.querySelectorAll('[data-fpeye]').forEach(function (b) {
     b.addEventListener('click', function () {
-      fp.eye = parseFloat(b.dataset.fpeye);
+      walker.eye = parseFloat(b.dataset.fpeye);
       fpMarks();
     });
   });
@@ -4697,13 +4702,13 @@ import { TANKS } from './data/sisteminha.js';
       dy *= JR / d;
     }
     knob.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px)';
-    fp.jx = dx / JR;
-    fp.jy = -dy / JR;
+    walker.jx = dx / JR;
+    walker.jy = -dy / JR;
   }
   function joyEnd(e) {
     if (e.pointerId !== joyId) return;
     joyId = null;
-    fp.jx = fp.jy = 0;
+    walker.jx = walker.jy = 0;
     knob.style.transform = '';
   }
   joy.addEventListener('pointerdown', function (e) {
@@ -4724,35 +4729,35 @@ import { TANKS } from './data/sisteminha.js';
   joy.addEventListener('lostpointercapture', joyEnd);
   /* teclado (desktop) */
   document.addEventListener('keydown', function (e) {
-    if (!fp.on) return;
-    fp.keys[e.key.toLowerCase()] = true;
+    if (!walker.on) return;
+    walker.keys[e.key.toLowerCase()] = true;
     if (e.key.indexOf('Arrow') === 0) e.preventDefault();
   });
   document.addEventListener('keyup', function (e) {
-    delete fp.keys[e.key.toLowerCase()];
+    delete walker.keys[e.key.toLowerCase()];
   });
   window.addEventListener('blur', function () {
-    fp.keys = {};
+    walker.keys = {};
   });
 
   /* ================= LOOP ================= */
   const clock = new THREE.Clock();
   let elapsed = 0;
-  const vf = new THREE.Vector3();
-  const rm = reduce ? 0.35 : 1;
+  const focusOffset = new THREE.Vector3();
+  const motionScale = reduce ? 0.35 : 1;
   /* qualidade adaptativa: se a GPU não segura ~22 fps, baixa a resolução e depois tira os contornos */
-  const aq = { lvl: 0, n: 0, sum: 0 };
+  const adaptiveQuality = { lvl: 0, n: 0, sum: 0 };
   function autoQ(raw) {
-    if (aq.lvl >= 2 || raw > 0.5) return;
-    aq.n++;
-    if (aq.n > 20) aq.sum += raw;
-    if (aq.n < 100) return;
-    const avg = aq.sum / 79;
-    aq.n = 0;
-    aq.sum = 0;
+    if (adaptiveQuality.lvl >= 2 || raw > 0.5) return;
+    adaptiveQuality.n++;
+    if (adaptiveQuality.n > 20) adaptiveQuality.sum += raw;
+    if (adaptiveQuality.n < 100) return;
+    const avg = adaptiveQuality.sum / 79;
+    adaptiveQuality.n = 0;
+    adaptiveQuality.sum = 0;
     if (avg > 0.045) {
-      aq.lvl++;
-      if (aq.lvl === 1) {
+      adaptiveQuality.lvl++;
+      if (adaptiveQuality.lvl === 1) {
         renderer.setPixelRatio(1);
         resize();
       } else
@@ -4765,19 +4770,19 @@ import { TANKS } from './data/sisteminha.js';
     requestAnimationFrame(frame);
     const raw = clock.getDelta(),
       dt = Math.min(raw, 0.05),
-      dtw = dt * sim.speed;
+      dtw = dt * simulation.speed;
     elapsed += dtw;
     autoQ(raw);
     const k = 1 - Math.pow(0.0008, dt);
-    cur.rotY += (st.rotY - cur.rotY) * k;
-    cur.rotX += (st.rotX - cur.rotX) * k;
-    cur.zoom += (st.zoom - cur.zoom) * k;
-    cur.panX += (st.panX - cur.panX) * k;
-    cur.panY += (st.panY - cur.panY) * k;
-    cur.lift += (st.lift - cur.lift) * k;
-    cur.f.lerp(st.f, k);
+    viewCurrent.rotY += (viewTarget.rotY - viewCurrent.rotY) * k;
+    viewCurrent.rotX += (viewTarget.rotX - viewCurrent.rotX) * k;
+    viewCurrent.zoom += (viewTarget.zoom - viewCurrent.zoom) * k;
+    viewCurrent.panX += (viewTarget.panX - viewCurrent.panX) * k;
+    viewCurrent.panY += (viewTarget.panY - viewCurrent.panY) * k;
+    viewCurrent.lift += (viewTarget.lift - viewCurrent.lift) * k;
+    viewCurrent.f.lerp(viewTarget.f, k);
 
-    if (fp.on) {
+    if (walker.on) {
       fpStep(dt);
       const fv = clamp(
         THREE.MathUtils.radToDeg(
@@ -4790,16 +4795,16 @@ import { TANKS } from './data/sisteminha.js';
       camera.near = 0.12;
       camera.far = 700;
       camera.updateProjectionMatrix();
-      dio.rotation.set(0, 0, 0);
-      dio.position.set(0, 0, 0);
-      camera.position.set(fp.x, fp.eyeY, fp.z);
+      diorama.rotation.set(0, 0, 0);
+      diorama.position.set(0, 0, 0);
+      camera.position.set(walker.x, walker.eyeY, walker.z);
       camera.rotation.order = 'YXZ';
-      camera.rotation.set(fp.pitch, fp.yaw, 0);
+      camera.rotation.set(walker.pitch, walker.yaw, 0);
       sun.position.copy(SUNDIR).multiplyScalar(260);
     } else {
       const vfov = THREE.MathUtils.degToRad(camera.fov),
         hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
-      const dist = 104 / Math.sin(Math.min(vfov, hfov) / 2) / cur.zoom,
+      const dist = 104 / Math.sin(Math.min(vfov, hfov) / 2) / viewCurrent.zoom,
         elev = 0.5;
       camera.position.set(0, Math.sin(elev) * dist, Math.cos(elev) * dist);
       camera.lookAt(0, 0, 0);
@@ -4807,17 +4812,21 @@ import { TANKS } from './data/sisteminha.js';
       camera.far = dist + 320;
       camera.updateProjectionMatrix();
 
-      dio.rotation.set(cur.rotX, cur.rotY, 0);
-      vf.copy(cur.f).applyEuler(dio.rotation);
-      dio.position.set(-vf.x + cur.panX, -vf.y + cur.panY, -vf.z);
-      sun.position.copy(SUNDIR).applyEuler(dio.rotation).multiplyScalar(260);
+      diorama.rotation.set(viewCurrent.rotX, viewCurrent.rotY, 0);
+      focusOffset.copy(viewCurrent.f).applyEuler(diorama.rotation);
+      diorama.position.set(
+        -focusOffset.x + viewCurrent.panX,
+        -focusOffset.y + viewCurrent.panY,
+        -focusOffset.z,
+      );
+      sun.position.copy(SUNDIR).applyEuler(diorama.rotation).multiplyScalar(260);
     }
 
-    const ca = (fp.on ? Math.PI - fp.yaw : Math.PI - cur.rotY).toFixed(3) + 'rad';
+    const ca = (walker.on ? Math.PI - walker.yaw : Math.PI - viewCurrent.rotY).toFixed(3) + 'rad';
     $('#compass-n').style.transform = 'rotate(' + ca + ')';
     $('#compass').style.setProperty('--a', ca);
     /* abertura do corte: telhados sobem e paredes rebaixam, revelando o interior */
-    const u = clamp(cur.lift / 100, 0, 1),
+    const u = clamp(viewCurrent.lift / 100, 0, 1),
       e = u * u * (3 - 2 * u),
       wcut = smooth(0.1, 0.95, u);
     casaRoofG.position.set(0, 20 * e, -7 * e);
@@ -4848,12 +4857,15 @@ import { TANKS } from './data/sisteminha.js';
     casaWalls.scale.y = 1 - 0.62 * wcut;
     barnWalls.scale.y = 1 - 0.58 * wcut;
 
-    surface.userData.tick(dtw, elapsed, { flow: sim.flow * rm, wind: sim.wind * rm });
+    surface.userData.tick(dtw, elapsed, {
+      flow: simulation.flow * motionScale,
+      wind: simulation.wind * motionScale,
+    });
 
-    dio.updateMatrixWorld(true);
+    diorama.updateMatrixWorld(true);
     camera.updateMatrixWorld(true);
     renderer.render(scene, camera);
-    updateLabels(W, H);
+    updateLabels(viewWidth, viewHeight);
   }
   setInfo(SECTOR.overview);
   frame();
@@ -4865,17 +4877,17 @@ import { TANKS } from './data/sisteminha.js';
     window.__sitio = {
       THREE: THREE,
       scene: scene,
-      dio: dio,
+      diorama: diorama,
       hull: hullMat,
-      st: st,
-      fp: fp,
+      viewTarget: viewTarget,
+      walker: walker,
       fpGo: fpGo,
       enterFP: enterFP,
       exitFP: exitFP,
       state: function () {
         return {
-          aq: aq.lvl,
-          lift: cur.lift,
+          adaptiveQuality: adaptiveQuality.lvl,
+          lift: viewCurrent.lift,
           casaRoofY: casaRoofG.position.y,
           barnRoofY: barnRoofG.position.y,
           wallsY: casaWalls.scale.y,

@@ -108,7 +108,7 @@ async function open({ width = 1200, height = 800, file = targetPath(), virtualCl
   // com relogio virtual o polling por rAF do Playwright nao rodaria; usa intervalo fixo
   await page.waitForFunction(() => window.__sitio, null, { timeout: 90000, polling: virtualClock ? 100 : 'raf' });
   await page.evaluate(() => { // three e cena vem do bundle; detectores de teste os usam como globais
-    const d = window.__sitio; window.THREE = d.THREE; window.__scene = d.scene; window.__dio = d.dio; window.__hull = d.hull;
+    const d = window.__sitio; window.THREE = d.THREE; window.__scene = d.scene; window.__diorama = d.diorama; window.__hull = d.hull;
   });
   const loadMs = Date.now() - t0;
   await page.waitForTimeout(settle);
@@ -130,7 +130,7 @@ async function freeze(page, { frames = 0 } = {}) {
 /** Posiciona a camera orbital. lift em 0..100 (corte). Com `frames`, assenta por quadros virtuais em vez de esperar `wait` ms. */
 async function setView(page, { rotY, rotX, zoom, f, lift = 0, wait = 6000, frames = 0 }) {
   await page.evaluate(({ rotY, rotX, zoom, f, lift }) => {
-    const s = __sitio.st; s.rotY = rotY; s.rotX = rotX; s.zoom = zoom; s.f.set(f[0], f[1], f[2]);
+    const s = __sitio.viewTarget; s.rotY = rotY; s.rotX = rotX; s.zoom = zoom; s.f.set(f[0], f[1], f[2]);
     const sl = document.querySelector('#s-xray'); sl.value = lift; sl.dispatchEvent(new Event('input', { bubbles: true }));
   }, { rotY, rotX, zoom, f, lift });
   if (frames) await settle(page, frames);

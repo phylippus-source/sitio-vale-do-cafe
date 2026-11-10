@@ -8,13 +8,13 @@ const BASE = path.join(ROOT, 'golden', 'coplanar.baseline.json');
 (async () => {
   const { browser, page, errors } = await open({ width: 900, height: 700 });
   const out = await page.evaluate(() => {
-   const scene=__scene,dio=__dio,hull=__hull; dio.updateMatrixWorld(true);
-   const inv=new THREE.Matrix4().copy(dio.matrixWorld).invert();
+   const scene=__scene,diorama=__diorama,hull=__hull; diorama.updateMatrixWorld(true);
+   const inv=new THREE.Matrix4().copy(diorama.matrixWorld).invert();
    const T=[]; const v=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3()],e1=new THREE.Vector3(),e2=new THREE.Vector3(),nn=new THREE.Vector3();
    let mid=0;
    scene.traverse(m=>{ if(!m.isMesh||m.material===hull) return; const g=m.geometry,P=g.attributes.position; if(!P||g.index||!g.attributes.color) return;
      mid++; m.updateMatrixWorld(true); const M=new THREE.Matrix4().multiplyMatrices(inv,m.matrixWorld); const C=g.attributes.color; const n=P.count/3;
-     const path=[]; let q=m; while(q&&q!==dio){path.unshift(q.name||q.type);q=q.parent;}
+     const path=[]; let q=m; while(q&&q!==diorama){path.unshift(q.name||q.type);q=q.parent;}
      for(let i=0;i<n;i++){ for(let k=0;k<3;k++) v[k].fromBufferAttribute(P,i*3+k).applyMatrix4(M);
        e1.subVectors(v[1],v[0]);e2.subVectors(v[2],v[0]);nn.crossVectors(e1,e2);const l=nn.length();if(l<1e-9)continue;nn.divideScalar(l);
        if(nn.y<-0.5)continue; const d=nn.dot(v[0]);

@@ -16,7 +16,7 @@ Fase 0 (rede de segurança) e Fase 1 (dependências e estrutura) concluídas. `l
 - `npm run test:fast` — suíte rápida (meta: 2 min): lint, formatação, unitários, build, hash da cena, métricas, 1ª pessoa, smoke e interação. Para na primeira falha e mostra o tempo de cada passo
 - `npm test` — suíte completa (meta: 4 min): a rápida + coplanar + golden (6 capturas)
 - `npm run test:unit` — só os testes unitários (vitest, `tests/unit/`, ≈ 3 s)
-- `npm run test:scenehash` — hash da cena: geometria, materiais e transformações abaixo do `dio`, em duas fotografias (inicial e após 10 quadros virtuais). A falha lista os grupos e as malhas que mudaram. `npm run scenehash:update` regrava o baseline, e só grava se 3 capturas independentes coincidirem
+- `npm run test:scenehash` — hash da cena: geometria, materiais e transformações abaixo do `diorama`, em duas fotografias (inicial e após 10 quadros virtuais). A falha lista os grupos e as malhas que mudaram. `npm run scenehash:update` regrava o baseline, e só grava se 3 capturas independentes coincidirem
 - `npm run lint` / `npm run format` / `npm run format:check` — ESLint (no-var, prefer-const, no-undef, no-unused-vars, max-lines-per-function; `--max-warnings 4` até a A2) e Prettier (100 colunas)
 - `npm run golden:update` — regrava capturas de referência (só após mudança visual aprovada)
 - `node tests/metrics.js --update` / `node tests/coplanar.js --update` — regrava baselines

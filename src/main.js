@@ -120,7 +120,7 @@ import { TANKS } from './data/sisteminha.js';
 
   /* paleta chapada */
   const colliders = []; /* colisão da 1ª pessoa: [x1,z1,x2,z2,nível] */
-  function col(x1, z1, x2, z2, lv) {
+  function addCollider(x1, z1, x2, z2, lv) {
     colliders.push([
       Math.min(x1, x2),
       Math.min(z1, z2),
@@ -1243,12 +1243,12 @@ import { TANKS } from './data/sisteminha.js';
   barnG.add(barnRoofG);
   const BH = 4.8,
     BTH = Math.atan2(3.6, 6.1);
-  col(21, -43, 43, -42.2);
-  col(21, -43, 21.8, -33);
-  col(42.2, -43, 43, -33);
-  col(21, -33.8, 28.5, -33);
-  col(33.5, -33.8, 38, -33);
-  col(39.4, -33.8, 43, -33); /* engenho: portão 5 m e porta de 1,4 m */
+  addCollider(21, -43, 43, -42.2);
+  addCollider(21, -43, 21.8, -33);
+  addCollider(42.2, -43, 43, -33);
+  addCollider(21, -33.8, 28.5, -33);
+  addCollider(33.5, -33.8, 38, -33);
+  addCollider(39.4, -33.8, 43, -33); /* engenho: portão 5 m e porta de 1,4 m */
   (function () {
     const barnWallBatch = new Batch();
     const barnRoofBatch = new Batch();
@@ -1574,20 +1574,20 @@ import { TANKS } from './data/sisteminha.js';
   casaUp.position.y = UF;
   const roofMat = toonMat.clone();
   roofMat.side = THREE.DoubleSide;
-  function ccol(x1, z1, x2, z2, lv) {
-    col(x1 + CASA_ORIGIN.x, z1 + CASA_ORIGIN.z, x2 + CASA_ORIGIN.x, z2 + CASA_ORIGIN.z, lv);
+  function addCasaCollider(x1, z1, x2, z2, lv) {
+    addCollider(x1 + CASA_ORIGIN.x, z1 + CASA_ORIGIN.z, x2 + CASA_ORIGIN.x, z2 + CASA_ORIGIN.z, lv);
   } /* colisão em coordenadas locais da casa */
   /* parede com vãos: eixo 'x' (ao longo de x, em z=fixed) ou 'z'. gaps [a,b,sill,top] (alturas a partir de y0) */
   function wall(B, axis, fixed, lo, hi, gaps, y0, h, th, color, lv, deco) {
-    function box(a, b, ya, yb) {
+    function addWallPiece(a, b, ya, yb) {
       if (b - a < 0.02 || yb - ya < 0.02) return;
       if (axis === 'x') B.addBox(b - a, yb - ya, th, color, (a + b) / 2, y0 + ya, fixed);
       else B.addBox(th, yb - ya, b - a, color, fixed, y0 + ya, (a + b) / 2);
     }
-    function cl(a, b) {
+    function addWallCollider(a, b) {
       if (!lv) return;
-      if (axis === 'x') ccol(a, fixed - th / 2, b, fixed + th / 2, lv);
-      else ccol(fixed - th / 2, a, fixed + th / 2, b, lv);
+      if (axis === 'x') addCasaCollider(a, fixed - th / 2, b, fixed + th / 2, lv);
+      else addCasaCollider(fixed - th / 2, a, fixed + th / 2, b, lv);
     }
     let cur = lo;
     gaps = (gaps || []).slice().sort(function (p, q) {
@@ -1596,13 +1596,13 @@ import { TANKS } from './data/sisteminha.js';
     gaps.forEach(function (g) {
       const sill = g[2] || 0,
         top = g[3] || h;
-      box(cur, g[0], 0, h);
-      cl(cur, g[0]);
+      addWallPiece(cur, g[0], 0, h);
+      addWallCollider(cur, g[0]);
       if (sill > 0) {
-        box(g[0], g[1], 0, sill);
-        cl(g[0], g[1]);
+        addWallPiece(g[0], g[1], 0, sill);
+        addWallCollider(g[0], g[1]);
       }
-      box(g[0], g[1], top, h);
+      addWallPiece(g[0], g[1], top, h);
       if (deco) {
         const m = (g[0] + g[1]) / 2,
           w = g[1] - g[0],
@@ -1688,8 +1688,8 @@ import { TANKS } from './data/sisteminha.js';
       }
       cur = g[1];
     });
-    box(cur, hi, 0, h);
-    cl(cur, hi);
+    addWallPiece(cur, hi, 0, h);
+    addWallCollider(cur, hi);
   }
   (function () {
     const casaWallBatch = new Batch();
@@ -1846,18 +1846,18 @@ import { TANKS } from './data/sisteminha.js';
     wall(casaWallBatch, 'x', -3, 7, 13, [], Y0, H - 0.04, T, WHT, 's');
     casaWallBatch.build(casaWalls);
     /* ---------- pisos térreo (não se sobrepõem): ladrilho hidráulico, tábua corrida, mármore ---------- */
-    function fl(x1, z1, x2, z2, c) {
+    function addGroundFloor(x1, z1, x2, z2, c) {
       casaBaseBatch.addBox(x2 - x1, 0.2, z2 - z1, c, (x1 + x2) / 2, GF - 0.2, (z1 + z2) / 2);
     }
-    fl(-13, 2, -7, 10, 0xcdb08a);
-    fl(-7, 2, 7, 10, MARB);
-    fl(7, 2, 13, 10, PAL.wood.floorBoard);
-    fl(-13, -1, -7, 2, 0xe6d6b0);
-    fl(-13, -10, -7, -1, TERRA);
-    fl(-7, -4, 7, 2, PAL.wood.oak);
-    fl(-7, -10, 7, -4, PAL.wood.oak);
-    fl(7, -3, 13, 2, 0x3b6ea5);
-    fl(7, -10, 13, -3, K.concD);
+    addGroundFloor(-13, 2, -7, 10, 0xcdb08a);
+    addGroundFloor(-7, 2, 7, 10, MARB);
+    addGroundFloor(7, 2, 13, 10, PAL.wood.floorBoard);
+    addGroundFloor(-13, -1, -7, 2, 0xe6d6b0);
+    addGroundFloor(-13, -10, -7, -1, TERRA);
+    addGroundFloor(-7, -4, 7, 2, PAL.wood.oak);
+    addGroundFloor(-7, -10, 7, -4, PAL.wood.oak);
+    addGroundFloor(7, -3, 13, 2, 0x3b6ea5);
+    addGroundFloor(7, -10, 13, -3, K.concD);
     casaBaseMesh = casaBaseBatch.build(casaG, { mat: flrMat, outline: false });
     for (i = 0; i < 7; i++)
       for (j = 0; j < 8; j++)
@@ -1996,7 +1996,7 @@ import { TANKS } from './data/sisteminha.js';
     casaInteriorBatch.addBox(0.8, 0.95, 2.4, K.woodD, -12.4, GF, 0.5);
     casaInteriorBatch.addBox(2.5, 0.9, 0.8, K.woodL, -8.5, GF, 0.6);
     /* despensa de catástrofe (42 m²): prateleiras, barris, galões, freezer */
-    function jarc(k) {
+    function jarColor(k) {
       return [
         PAL.flora.coral,
         PAL.flora.marigold,
@@ -2006,9 +2006,9 @@ import { TANKS } from './data/sisteminha.js';
         PAL.clay.copperBrown,
       ][k % 6];
     }
-    function sItem(B, x, y, z, k) {
+    function addPantryItem(B, x, y, z, k) {
       const m = k % 5;
-      if (m === 0 || m === 3) B.addCylinder(0.12, 0.3, jarc(k), x, y, z, 6);
+      if (m === 0 || m === 3) B.addCylinder(0.12, 0.3, jarColor(k), x, y, z, 6);
       else if (m === 1) B.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
       else if (m === 2) B.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
       else
@@ -2021,7 +2021,7 @@ import { TANKS } from './data/sisteminha.js';
       for (let a = 0; a < 3; a++) {
         B.addBox(L, 0.06, 0.5, K.woodL, (x1 + x2) / 2, y0 + 0.55 + a * 0.7, z);
         for (let b = 0; b < n; b++)
-          sItem(B, x1 + 0.25 + b * 0.5, y0 + 0.61 + a * 0.7, z, b + a * 2 + (t || 0));
+          addPantryItem(B, x1 + 0.25 + b * 0.5, y0 + 0.61 + a * 0.7, z, b + a * 2 + (t || 0));
       }
       for (let c = 0; c <= nu; c++) B.addBox(0.08, 2.3, 0.54, K.woodD, x1 + (c * L) / nu, y0, z);
     }
@@ -2032,7 +2032,7 @@ import { TANKS } from './data/sisteminha.js';
       for (let a = 0; a < 3; a++) {
         B.addBox(0.5, 0.06, L, K.woodL, x, y0 + 0.55 + a * 0.7, (z1 + z2) / 2);
         for (let b = 0; b < n; b++)
-          sItem(B, x, y0 + 0.61 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3 + (t || 0));
+          addPantryItem(B, x, y0 + 0.61 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3 + (t || 0));
       }
       for (let c = 0; c <= nu; c++) B.addBox(0.54, 2.3, 0.08, K.woodD, x, y0, z1 + (c * L) / nu);
     }
@@ -2250,7 +2250,7 @@ import { TANKS } from './data/sisteminha.js';
     wall(upperWallBatch, 'z', 4, -10, -1, [], 0, UHT - 0.04, T, WHT, 'a');
 
     /* banheiros privativos 2,4 x 2,4 m: cantos das suítes, paredes com porta, louças junto à parede do corredor, ducha ao fundo */
-    function pbath(xo, sx, zw, sz, dz) {
+    function addUpperBathroom(xo, sx, zw, sz, dz) {
       const xi = xo + sx * 2.55,
         zf = zw + sz * 2.55;
       wall(
@@ -2309,12 +2309,12 @@ import { TANKS } from './data/sisteminha.js';
         zw + sz * 1.2,
       ); /* azulejo na parede externa */
     }
-    pbath(-12.75, 1, 2.65, 1, [0.7, 1.6]);
-    pbath(-7.35, 1, 2.65, 1, [0.7, 1.6]);
-    pbath(7.35, -1, 2.65, 1, [0.7, 1.6]);
-    pbath(12.75, -1, 2.65, 1, [0.7, 1.6]);
-    pbath(-12.75, 1, -1.15, -1, [0.7, 1.6]);
-    pbath(12.75, -1, -1.15, -1, [0.7, 1.6]);
+    addUpperBathroom(-12.75, 1, 2.65, 1, [0.7, 1.6]);
+    addUpperBathroom(-7.35, 1, 2.65, 1, [0.7, 1.6]);
+    addUpperBathroom(7.35, -1, 2.65, 1, [0.7, 1.6]);
+    addUpperBathroom(12.75, -1, 2.65, 1, [0.7, 1.6]);
+    addUpperBathroom(-12.75, 1, -1.15, -1, [0.7, 1.6]);
+    addUpperBathroom(12.75, -1, -1.15, -1, [0.7, 1.6]);
     upperWallBatch.build(casaUpW);
     /* laje do sobrado com o vão da escada (x -1,1…1,1 · z 2,8…9,8) e balcão de ferro fundido */
     upperInteriorBatch.addBox(12.2, 0.2, 20.6, K.woodD, -7.2, -0.2, 0);
@@ -2350,21 +2350,21 @@ import { TANKS } from './data/sisteminha.js';
     });
     upperInteriorBatch.addBox(2.2, 0.06, 0.06, IRON, 0, 1.0, 9.8);
     /* chão do sobrado: tábua larga e ladrilho; cada peça sem sobreposição */
-    function uf(x1, z1, x2, z2, c) {
+    function addUpperFloor(x1, z1, x2, z2, c) {
       upperInteriorBatch.addBox(x2 - x1, 0.04, z2 - z1, c, (x1 + x2) / 2, 0, (z1 + z2) / 2);
     }
-    uf(-13, 2.5, -7.5, 10, PAL.wood.floorBoard);
-    uf(-7.5, 2.5, -2, 10, PAL.wood.floorBoard);
-    uf(2, 2.5, 7.5, 10, PAL.wood.floorBoard);
-    uf(7.5, 2.5, 13, 10, PAL.wood.floorBoard);
-    uf(-13, -1, 13, 2.5, TERRA);
-    uf(-13, -10, -4, -1, PAL.wood.floorBoard);
-    uf(-4, -10, 4, -1, PAL.wood.oak);
-    uf(4, -10, 13, -1, PAL.wood.floorBoard);
-    uf(-2, 2.5, -1, 10, PAL.wood.floorBoard);
-    uf(1, 2.5, 2, 10, PAL.wood.floorBoard);
-    uf(-1, 9.8, 1, 10, PAL.wood.floorBoard);
-    function bedU(bx, bz, c) {
+    addUpperFloor(-13, 2.5, -7.5, 10, PAL.wood.floorBoard);
+    addUpperFloor(-7.5, 2.5, -2, 10, PAL.wood.floorBoard);
+    addUpperFloor(2, 2.5, 7.5, 10, PAL.wood.floorBoard);
+    addUpperFloor(7.5, 2.5, 13, 10, PAL.wood.floorBoard);
+    addUpperFloor(-13, -1, 13, 2.5, TERRA);
+    addUpperFloor(-13, -10, -4, -1, PAL.wood.floorBoard);
+    addUpperFloor(-4, -10, 4, -1, PAL.wood.oak);
+    addUpperFloor(4, -10, 13, -1, PAL.wood.floorBoard);
+    addUpperFloor(-2, 2.5, -1, 10, PAL.wood.floorBoard);
+    addUpperFloor(1, 2.5, 2, 10, PAL.wood.floorBoard);
+    addUpperFloor(-1, 9.8, 1, 10, PAL.wood.floorBoard);
+    function addUpperBed(bx, bz, c) {
       upperInteriorBatch.addBox(2.0, 0.5, 2.2, K.woodD, bx, 0.04, bz);
       upperInteriorBatch.addBox(1.9, 0.28, 2.1, PAL.light.ivory, bx, 0.54, bz);
       upperInteriorBatch.addBox(1.9, 0.12, 1.3, c, bx, 0.82, bz + 0.4);
@@ -2387,18 +2387,18 @@ import { TANKS } from './data/sisteminha.js';
       PAL.flora.marigold,
       PAL.flora.cornflower,
     ];
-    bedU(-10.2, 6.8, sc[0]);
+    addUpperBed(-10.2, 6.8, sc[0]);
     wardrobe(-7.95, 5.4, -Math.PI / 2);
-    bedU(-4.7, 6.8, sc[1]);
+    addUpperBed(-4.7, 6.8, sc[1]);
     wardrobe(-2.45, 5.4, -Math.PI / 2);
-    bedU(4.7, 6.8, sc[2]);
+    addUpperBed(4.7, 6.8, sc[2]);
     wardrobe(2.45, 5.4, Math.PI / 2);
-    bedU(10.2, 6.8, sc[3]);
+    addUpperBed(10.2, 6.8, sc[3]);
     wardrobe(7.95, 5.4, Math.PI / 2);
     /* suítes dos fundos (E, F) e sala íntima central */
-    bedU(-8.2, -6.5, sc[4]);
+    addUpperBed(-8.2, -6.5, sc[4]);
     wardrobe(-11.0, -9.45, 0);
-    bedU(8.2, -6.5, sc[5]);
+    addUpperBed(8.2, -6.5, sc[5]);
     wardrobe(11.0, -9.45, 0);
     upperInteriorBatch.addCylinder(2.4, 0.03, PAL.fabric.rust, 0, 0.04, -5.5, 22);
     upperInteriorBatch.addBox(2.8, 0.55, 0.9, PAL.fabric.royalBlue, 0, 0.04, -8.4);
@@ -2472,17 +2472,17 @@ import { TANKS } from './data/sisteminha.js';
     });
     porchBatch.build(casaG);
     porchLampBatch.build(casaG, { unlit: true, outline: false });
-    ccol(-13.4, 13.2, -3.2, 13.5, 's');
-    ccol(3.2, 13.2, 13.4, 13.5, 's');
-    ccol(-13.5, 10.2, -13.2, 13.5, 's');
-    ccol(13.2, 10.2, 13.5, 13.5, 's');
-    ccol(-13.5, -10.3, 13.5, -10.3, 'a');
-    ccol(13.4, -10.4, 13.5, 12.6, 'a');
-    ccol(-13.5, -10.4, -13.4, 12.6, 'a');
-    ccol(-13.5, 12.4, 13.5, 12.6, 'a');
-    ccol(-1.2, 4.2, -1.0, 9.9, 'a');
-    ccol(1.0, 4.2, 1.2, 9.9, 'a');
-    ccol(-1.2, 9.8, 1.2, 10.0, 'a');
+    addCasaCollider(-13.4, 13.2, -3.2, 13.5, 's');
+    addCasaCollider(3.2, 13.2, 13.4, 13.5, 's');
+    addCasaCollider(-13.5, 10.2, -13.2, 13.5, 's');
+    addCasaCollider(13.2, 10.2, 13.5, 13.5, 's');
+    addCasaCollider(-13.5, -10.3, 13.5, -10.3, 'a');
+    addCasaCollider(13.4, -10.4, 13.5, 12.6, 'a');
+    addCasaCollider(-13.5, -10.4, -13.4, 12.6, 'a');
+    addCasaCollider(-13.5, 12.4, 13.5, 12.6, 'a');
+    addCasaCollider(-1.2, 4.2, -1.0, 9.9, 'a');
+    addCasaCollider(1.0, 4.2, 1.2, 9.9, 'a');
+    addCasaCollider(-1.2, 9.8, 1.2, 10.0, 'a');
 
     /* ---------- telhado de quatro águas em capa e canal, frontão central com relógio, beirais de 2 m ---------- */
     const RB = UF + UHT,
@@ -2547,7 +2547,7 @@ import { TANKS } from './data/sisteminha.js';
   /* ================= PÁTIO TÉCNICO E OFICINA DE REPAROS ================= */
   const yardBatch = new Batch(),
     beacons = [];
-  function lw(x0, z0, ry, lx, lz) {
+  function localToWorldXZ(x0, z0, ry, lx, lz) {
     return [x0 + lx * Math.cos(ry) + lz * Math.sin(ry), z0 - lx * Math.sin(ry) + lz * Math.cos(ry)];
   }
   function track(b, x, len, h, w) {
@@ -2638,7 +2638,7 @@ import { TANKS } from './data/sisteminha.js';
     b.addBox(1.9, 0.14, 0.5, K.steel, 0, 0.3, 2.4);
     b.addBeam([-0.6, 1.2, -0.9], [-0.5, 0.6, 1.2], 0.07, K.steelD, 5);
     b.setOrigin(0, 0, 0, 0);
-    const p = lw(X, Z, RY, 0.6, -0.1);
+    const p = localToWorldXZ(X, Z, RY, 0.6, -0.1);
     beacon(p[0], 2.8, p[1], K.orange);
   })(yardBatch, 30.7, -26.6, Math.PI);
 
@@ -2665,7 +2665,7 @@ import { TANKS } from './data/sisteminha.js';
     b.addGeometry(GX.box, K.black, 0.5, 1.55, 4.3, [0.6, 0.9, 0.6], [0.6, 0, 0]);
     b.addGeometry(GX.box, K.steel, 0.5, 1.2, 4.6, [0.62, 0.16, 0.35], [0.6, 0, 0]);
     b.setOrigin(0, 0, 0, 0);
-    const p = lw(X, Z, RY - 0.55, -0.5, 0.4);
+    const p = localToWorldXZ(X, Z, RY - 0.55, -0.5, 0.4);
     beacon(p[0], 3.75, p[1], K.orange);
   })(yardBatch, 36.2, -23.2, -0.6);
 
@@ -3239,7 +3239,7 @@ import { TANKS } from './data/sisteminha.js';
       ZA = BUNKER_INNER.corridorZ1,
       ZB =
         BUNKER_INNER.corridorZ2; /* interior; fileira dos fundos até ZA, corredor ZA..ZB, fileira da frente ZB..Z2 */
-    function bcol(axis, fixed, lo, hi, gaps, th) {
+    function addBunkerWallCollider(axis, fixed, lo, hi, gaps, th) {
       let cur = lo;
       (gaps || [])
         .slice()
@@ -3247,28 +3247,28 @@ import { TANKS } from './data/sisteminha.js';
           return p[0] - q[0];
         })
         .forEach(function (q) {
-          seg(cur, q[0]);
+          addColliderSegment(cur, q[0]);
           cur = q[1];
         });
-      seg(cur, hi);
-      function seg(a, b) {
+      addColliderSegment(cur, hi);
+      function addColliderSegment(a, b) {
         if (b - a < 0.05) return;
-        if (axis === 'x') col(a, fixed - th / 2, b, fixed + th / 2, 'u');
-        else col(fixed - th / 2, a, fixed + th / 2, b, 'u');
+        if (axis === 'x') addCollider(a, fixed - th / 2, b, fixed + th / 2, 'u');
+        else addCollider(fixed - th / 2, a, fixed + th / 2, b, 'u');
       }
     }
-    function PX(z, x1, x2, gaps, color) {
+    function addPartitionX(z, x1, x2, gaps, color) {
       wall(bunkerWallBatch, 'x', z, x1, x2, gaps, FL, WB - 0.04, 0.3, color || PW, null);
-      bcol('x', z, x1, x2, gaps, 0.3);
+      addBunkerWallCollider('x', z, x1, x2, gaps, 0.3);
     }
-    function PZ(x, z1, z2, gaps, color) {
+    function addPartitionZ(x, z1, z2, gaps, color) {
       wall(bunkerWallBatch, 'z', x, z1, z2, gaps, FL, WB - 0.04, 0.3, color || PW, null);
-      bcol('z', x, z1, z2, gaps, 0.3);
+      addBunkerWallCollider('z', x, z1, z2, gaps, 0.3);
     }
     function tile(x1, z1, x2, z2, c) {
       bunkerBatch.addBox(x2 - x1, 0.06, z2 - z1, c, (x1 + x2) / 2, FL, (z1 + z2) / 2);
     }
-    function D(c, w) {
+    function doorGap(c, w) {
       return [c - w / 2, c + w / 2, 0, 2.5];
     }
 
@@ -3278,10 +3278,10 @@ import { TANKS } from './data/sisteminha.js';
     bunkerWallBatch.addBox(0.6, WB, 35, WALLC, 27.7, FL, -55.5);
     bunkerWallBatch.addBox(40, WB, 0.6, WALLC, 8, FL, -72.7);
     bunkerWallBatch.addBox(40, WB, 0.6, WALLC, 8, FL, -38.3);
-    col(-12.2, -73.2, -11.4, -37.8, 'u');
-    col(27.4, -73.2, 28.2, -37.8, 'u');
-    col(-12.2, -73.2, 28.2, -72.4, 'u');
-    col(-12.2, -38.6, 28.2, -37.8, 'u');
+    addCollider(-12.2, -73.2, -11.4, -37.8, 'u');
+    addCollider(27.4, -73.2, 28.2, -37.8, 'u');
+    addCollider(-12.2, -73.2, 28.2, -72.4, 'u');
+    addCollider(-12.2, -38.6, 28.2, -37.8, 'u');
     /* cobertura (laje + terra + grama): vira vidro com a abertura do corte */
     capBatch.addBox(40, 0.8, 35, 0xaab2b9, 8, -5.1, -55.5);
     [
@@ -3297,23 +3297,29 @@ import { TANKS } from './data/sisteminha.js';
     bunkCapMesh = capBatch.build(surface, { mat: capMat, outline: false });
 
     /* ---------- paredes ---------- */
-    PX(ZA, X1, X2, [
-      D(-8.2, 1.6),
-      D(-2.3, 1.2),
-      D(2.0, 1.2),
-      D(5.5, 1.2),
-      D(8.6, 1.2),
-      D(13.1, 1.4),
-      D(18.05, 1.3),
-      D(21.5, 1.2),
-      D(25.2, 1.2),
+    addPartitionX(ZA, X1, X2, [
+      doorGap(-8.2, 1.6),
+      doorGap(-2.3, 1.2),
+      doorGap(2.0, 1.2),
+      doorGap(5.5, 1.2),
+      doorGap(8.6, 1.2),
+      doorGap(13.1, 1.4),
+      doorGap(18.05, 1.3),
+      doorGap(21.5, 1.2),
+      doorGap(25.2, 1.2),
     ]);
-    PX(ZB, X1, X2, [[-8.2, -2.2, 0, 2.8], D(4.0, 1.2), D(9.1, 1.4), D(16.4, 1.6), D(23.9, 1.4)]);
+    addPartitionX(ZB, X1, X2, [
+      [-8.2, -2.2, 0, 2.8],
+      doorGap(4.0, 1.2),
+      doorGap(9.1, 1.4),
+      doorGap(16.4, 1.6),
+      doorGap(23.9, 1.4),
+    ]);
     [-4.4, 0.1, 3.9, 7.1, 10.1, 16.1, 20.0, 23.0].forEach(function (x) {
-      PZ(x, Z1, ZA, []);
+      addPartitionZ(x, Z1, ZA, []);
     });
     [2.2, 5.8, 12.4, 20.4].forEach(function (x) {
-      PZ(x, ZB, Z2, []);
+      addPartitionZ(x, ZB, Z2, []);
     });
     /* pisos por ambiente */
     tile(X1, Z1, -4.4, ZA, 0x12141c);
@@ -3386,7 +3392,7 @@ import { TANKS } from './data/sisteminha.js';
       bunkerBatch.addBox(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + 0.55, FL + 0.14, z);
     }
     /* banheiro nos fundos (zw = parede dos fundos, sz = +1): paredes com porta voltada ao quarto */
-    function pb(xo, bw, zw, dxa, dxb, sideWall) {
+    function addBunkerBathroom(xo, bw, zw, dxa, dxb, sideWall) {
       const zf = zw + 2.55;
       wall(
         bunkerWallBatch,
@@ -3401,10 +3407,10 @@ import { TANKS } from './data/sisteminha.js';
         PW,
         null,
       );
-      bcol('x', zf, xo - 0.15, xo + bw, [[dxa, dxb, 0, 2.4]], 0.3);
+      addBunkerWallCollider('x', zf, xo - 0.15, xo + bw, [[dxa, dxb, 0, 2.4]], 0.3);
       if (sideWall) {
         wall(bunkerWallBatch, 'z', xo + bw + 0.15, zw, zf, [], FL, WB - 0.04, 0.3, PW, null);
-        bcol('z', xo + bw + 0.15, zw, zf, [], 0.3);
+        addBunkerWallCollider('z', xo + bw + 0.15, zw, zf, [], 0.3);
       }
       tile(xo, zw, xo + bw, zf - 0.15, 0xeaf3f7);
       toilet(xo + 0.55, zw + 0.5, 0);
@@ -3412,7 +3418,7 @@ import { TANKS } from './data/sisteminha.js';
       shower(xo + 0.65, zw + 1.7, 1);
       bunkerBatch.addBox(0.06, 1.4, 2.3, AZB, xo + 0.04, FL + 0.06, zw + 1.2);
     }
-    function bedK(bx, bz, c) {
+    function addBunkerDoubleBed(bx, bz, c) {
       bunkerBatch.addBox(2.0, 0.5, 2.2, K.woodD, bx, FL + 0.06, bz);
       bunkerBatch.addBox(1.9, 0.28, 2.1, PAL.light.ivory, bx, FL + 0.56, bz);
       bunkerBatch.addBox(1.9, 0.12, 1.3, c, bx, FL + 0.84, bz + 0.4);
@@ -3421,7 +3427,7 @@ import { TANKS } from './data/sisteminha.js';
       bunkerBatch.addBox(0.5, 0.45, 0.5, K.woodL, bx + 1.5, FL + 0.06, bz - 0.8);
       bunkerBatch.addBox(0.5, 0.45, 0.5, K.woodL, bx - 1.5, FL + 0.06, bz - 0.8);
     }
-    function bedS(bx, bz, c) {
+    function addBunkerSingleBed(bx, bz, c) {
       bunkerBatch.addBox(1.1, 0.4, 2.0, K.woodD, bx, FL + 0.06, bz);
       bunkerBatch.addBox(1.0, 0.22, 1.9, PAL.light.ivory, bx, FL + 0.46, bz);
       bunkerBatch.addBox(1.0, 0.1, 1.2, c, bx, FL + 0.68, bz + 0.35);
@@ -3456,7 +3462,14 @@ import { TANKS } from './data/sisteminha.js';
     (function () {
       const x0 = -11.25,
         x1 = -4.55;
-      pb(-7.35, 2.8, Z1, -5.6, -4.7, false); /* banheiro-cabine no canto leste dos fundos */
+      addBunkerBathroom(
+        -7.35,
+        2.8,
+        Z1,
+        -5.6,
+        -4.7,
+        false,
+      ); /* banheiro-cabine no canto leste dos fundos */
       wardrobe(x0 + 0.3, -57.2, Math.PI / 2);
       wardrobe(x0 + 0.3, -58.8, Math.PI / 2);
       bunkerBatch.addBox(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
@@ -3633,9 +3646,9 @@ import { TANKS } from './data/sisteminha.js';
     (function () {
       const x0 = -4.25,
         x1 = -0.05;
-      pb(x0, 2.6, Z1, -2.7, -1.8, true);
+      addBunkerBathroom(x0, 2.6, Z1, -2.7, -1.8, true);
       wardrobe(-0.9, -72.1, 0);
-      bedK(-1.9, -65.6, PAL.flora.grass);
+      addBunkerDoubleBed(-1.9, -65.6, PAL.flora.grass);
       bunkerBatch.addBox(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
       neonBatch.addBox(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
       bunkerBatch.addBox(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
@@ -3665,16 +3678,16 @@ import { TANKS } from './data/sisteminha.js';
       neonBatch.addBox(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
     })();
     /* ---- IRMÃ (3,5 m) · SOBRINHA 11 anos (2,9 m) · CONVIDADO (2,7 m) ---- */
-    pb(0.25, 2.4, Z1, 1.0, 1.9, true);
-    bedK(2.4, -64.0, PAL.flora.salmon);
+    addBunkerBathroom(0.25, 2.4, Z1, 1.0, 1.9, true);
+    addBunkerDoubleBed(2.4, -64.0, PAL.flora.salmon);
     wardrobe(3.45, -60.6, -Math.PI / 2);
     desk(0.7, -58.2, 1.3, 0);
     bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
     chair(0.7, -57.6, PAL.flora.purple);
     plant(3.4, -57.0, 1.0);
     bunkerBatch.addCylinder(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
-    pb(4.05, 2.9, Z1, 5.0, 5.9, false);
-    bedS(6.0, -64.0, PAL.flora.violet);
+    addBunkerBathroom(4.05, 2.9, Z1, 5.0, 5.9, false);
+    addBunkerSingleBed(6.0, -64.0, PAL.flora.violet);
     wardrobe(4.35, -60.5, Math.PI / 2);
     bunkerBatch.addBox(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
     bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
@@ -3702,8 +3715,8 @@ import { TANKS } from './data/sisteminha.js';
         FL + 3.45,
         -57.5 - ((i * 5) % 9) * 1.2,
       ); /* estrelinhas no teto */
-    pb(7.25, 2.7, Z1, 8.2, 9.1, false);
-    bedS(9.1, -64.0, PAL.flora.cornflower);
+    addBunkerBathroom(7.25, 2.7, Z1, 8.2, 9.1, false);
+    addBunkerSingleBed(9.1, -64.0, PAL.flora.cornflower);
     wardrobe(7.55, -60.5, Math.PI / 2);
     desk(8.6, -57.6, 1.2, 0);
     chair(8.6, -57.0, PAL.glass.windowDeep);
@@ -3842,7 +3855,7 @@ import { TANKS } from './data/sisteminha.js';
     plant(1.7, -45.0, 1.3);
     neonBatch.addBox(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
     /* despensa 90 dias */
-    function bItem(x, y, z, n) {
+    function addBunkerPantryItem(x, y, z, n) {
       const m = n % 5;
       if (m === 0 || m === 3)
         bunkerBatch.addCylinder(
@@ -3883,7 +3896,8 @@ import { TANKS } from './data/sisteminha.js';
       let c;
       for (a = 0; a < 3; a++) {
         bunkerBatch.addBox(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
-        for (b = 0; b < n; b++) bItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
+        for (b = 0; b < n; b++)
+          addBunkerPantryItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
       }
       for (c = 0; c <= nu; c++)
         bunkerBatch.addBox(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);

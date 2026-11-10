@@ -1,7 +1,7 @@
 {
   "file": "src/main.js",
   "nota": "Mapa da etapa A1. Sem 'depth' (profundidade do escopo): o nome antigo e unico no arquivo. 'kind': function | variable. 'noComment': a sigla aparece em comentarios com outro sentido (UI = interface, SB-2000 = modelo de bomba). 'done': lotes ja aplicados.",
-  "done": ["a"],
+  "done": ["a", "b"],
   "lots": {
     "a": [
       {

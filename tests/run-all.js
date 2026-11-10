@@ -25,6 +25,7 @@ const npm = (script) => ['npm', ['run', '--silent', script]];
 const browser = (file) => ['node', ['tests/' + file + '.js', ...extra]];
 const FAST = [
   ['lint', ...npm('lint')],
+  ['names', ...npm('check:names')],
   ['format', ...npm('format:check')],
   ['unit', ...npm('test:unit')],
   ['build', ...npm('build')],

@@ -1,0 +1,269 @@
+{
+  "file": "src/main.js",
+  "nota": "Mapa da etapa A1. Sem 'depth' (profundidade do escopo): o nome antigo e unico no arquivo. 'kind': function | variable. 'noComment': a sigla aparece em comentarios com outro sentido (UI = interface, SB-2000 = modelo de bomba). 'done': lotes ja aplicados.",
+  "done": ["a"],
+  "lots": {
+    "a": [
+      {
+        "old": "SB",
+        "new": "surfaceBatch",
+        "noComment": true
+      },
+      {
+        "old": "SW",
+        "new": "waterBatch"
+      },
+      {
+        "old": "SP",
+        "new": "pondBatch"
+      },
+      {
+        "old": "FB",
+        "new": "floraBatch"
+      },
+      {
+        "old": "YB",
+        "new": "yardBatch"
+      },
+      {
+        "old": "W1",
+        "new": "barnWallBatch"
+      },
+      {
+        "old": "R1",
+        "new": "barnRoofBatch"
+      },
+      {
+        "old": "I1",
+        "new": "barnInteriorBatch"
+      },
+      {
+        "old": "U1",
+        "new": "barnUnlitBatch"
+      },
+      {
+        "old": "W2",
+        "new": "casaWallBatch"
+      },
+      {
+        "old": "R2",
+        "new": "casaRoofBatch"
+      },
+      {
+        "old": "I2",
+        "new": "casaInteriorBatch"
+      },
+      {
+        "old": "U2",
+        "new": "casaUnlitBatch"
+      },
+      {
+        "old": "P2",
+        "new": "porchBatch"
+      },
+      {
+        "old": "UP",
+        "new": "porchLampBatch"
+      },
+      {
+        "old": "UW",
+        "new": "upperWallBatch"
+      },
+      {
+        "old": "UI",
+        "new": "upperInteriorBatch",
+        "noComment": true
+      },
+      {
+        "old": "UU",
+        "new": "upperUnlitBatch"
+      },
+      {
+        "old": "BS",
+        "new": "casaBaseBatch"
+      },
+      {
+        "old": "LW",
+        "new": "bunkerWallBatch"
+      },
+      {
+        "old": "LI",
+        "new": "bunkerBatch"
+      },
+      {
+        "old": "LA",
+        "new": "ledBatchA"
+      },
+      {
+        "old": "LB",
+        "new": "ledBatchB"
+      },
+      {
+        "old": "LC",
+        "new": "ledBatchC"
+      },
+      {
+        "old": "LG",
+        "new": "glowBatch"
+      },
+      {
+        "old": "UN",
+        "new": "neonBatch"
+      },
+      {
+        "old": "NT",
+        "new": "netBatch"
+      },
+      {
+        "old": "HB",
+        "new": "hatchBatch"
+      },
+      {
+        "old": "CAP",
+        "new": "capBatch"
+      },
+      {
+        "old": "COL",
+        "new": "colliders"
+      }
+    ],
+    "b": [
+      {
+        "old": "col",
+        "new": "addCollider",
+        "depth": 2,
+        "kind": "function"
+      },
+      {
+        "old": "ccol",
+        "new": "addCasaCollider"
+      },
+      {
+        "old": "box",
+        "new": "addWallPiece",
+        "kind": "function"
+      },
+      {
+        "old": "cl",
+        "new": "addWallCollider",
+        "kind": "function"
+      },
+      {
+        "old": "fl",
+        "new": "addGroundFloor",
+        "kind": "function"
+      },
+      {
+        "old": "uf",
+        "new": "addUpperFloor",
+        "kind": "function"
+      },
+      {
+        "old": "lw",
+        "new": "localToWorldXZ",
+        "kind": "function"
+      },
+      {
+        "old": "bcol",
+        "new": "addBunkerWallCollider"
+      },
+      {
+        "old": "seg",
+        "new": "addColliderSegment",
+        "kind": "function"
+      },
+      {
+        "old": "PX",
+        "new": "addPartitionX"
+      },
+      {
+        "old": "PZ",
+        "new": "addPartitionZ"
+      },
+      {
+        "old": "D",
+        "new": "doorGap",
+        "kind": "function"
+      },
+      {
+        "old": "pb",
+        "new": "addBunkerBathroom",
+        "kind": "function"
+      },
+      {
+        "old": "pbath",
+        "new": "addUpperBathroom"
+      },
+      {
+        "old": "jarc",
+        "new": "jarColor"
+      },
+      {
+        "old": "sItem",
+        "new": "addPantryItem"
+      },
+      {
+        "old": "bItem",
+        "new": "addBunkerPantryItem"
+      },
+      {
+        "old": "bedU",
+        "new": "addUpperBed"
+      },
+      {
+        "old": "bedK",
+        "new": "addBunkerDoubleBed"
+      },
+      {
+        "old": "bedS",
+        "new": "addBunkerSingleBed"
+      }
+    ],
+    "c": [
+      {
+        "old": "st",
+        "new": "viewTarget",
+        "depth": 2
+      },
+      {
+        "old": "cur",
+        "new": "viewCurrent",
+        "depth": 2
+      },
+      {
+        "old": "fp",
+        "new": "walker"
+      },
+      {
+        "old": "dio",
+        "new": "diorama"
+      },
+      {
+        "old": "sim",
+        "new": "simulation"
+      },
+      {
+        "old": "aq",
+        "new": "adaptiveQuality"
+      },
+      {
+        "old": "rm",
+        "new": "motionScale"
+      },
+      {
+        "old": "vf",
+        "new": "focusOffset"
+      },
+      {
+        "old": "W",
+        "new": "viewWidth",
+        "depth": 2
+      },
+      {
+        "old": "H",
+        "new": "viewHeight",
+        "depth": 2
+      }
+    ]
+  }
+}

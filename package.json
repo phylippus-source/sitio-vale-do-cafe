@@ -20,6 +20,7 @@
     "format": "prettier --write src tests/unit vitest.config.js styles index.html",
     "format:check": "prettier --check src tests/unit vitest.config.js",
     "test:unit": "vitest run",
+    "check:names": "node tools/check-old-names.mjs",
     "save": "node tools/save.mjs"
   },
   "devDependencies": {

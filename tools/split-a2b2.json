@@ -1,0 +1,30 @@
+{
+  "stay": [[39, 99]],
+  "modules": [
+    {
+      "file": "src/world/casa/base.js",
+      "header": "Casa Grande · base comum: grupos, lotes de geometria, colisões e a função `wall` (parede com vãos).",
+      "lines": [100, 230]
+    },
+    {
+      "file": "src/world/casa/ground-floor.js",
+      "header": "Casa Grande · térreo: porão de pedra, paredes, pisos, escada e os cômodos (capela, hall, salas, cozinha, despensa, banheiros, escritório).",
+      "lines": [231, 617]
+    },
+    {
+      "file": "src/world/casa/upper-floor.js",
+      "header": "Casa Grande · sobrado: paredes, fachada com balcão, partições, banheiros, laje, pisos, suítes e lustres.",
+      "lines": [618, 931]
+    },
+    {
+      "file": "src/world/casa/porch.js",
+      "header": "Casa Grande · varanda térrea, colunas, escadaria de mármore e lampiões.",
+      "lines": [932, 991]
+    },
+    {
+      "file": "src/world/casa/roof.js",
+      "header": "Casa Grande · telhado de quatro águas, frontão com relógio, beirais e chaminé.",
+      "lines": [992, 1050]
+    }
+  ]
+}

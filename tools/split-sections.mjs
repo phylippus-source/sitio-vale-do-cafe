@@ -94,6 +94,24 @@ for (const d of importDecls) {
   }
 }
 
+/* secoes por titulo: 'sections' vira 'lines' (do banner da 1a ate a linha antes do banner seguinte a ultima) */
+const bannerLines = [];
+lines.forEach((l, i) => {
+  if (/^ {2}\/\* =+ /.test(l)) bannerLines.push(i + 1);
+});
+const bannerOf = (name) => {
+  const i = lines.findIndex((l) => /^ {2}\/\* =+ /.test(l) && l.includes(name));
+  if (i < 0) fail('banner nao encontrado: ' + name);
+  return i + 1;
+};
+manifest.modules.forEach((m) => {
+  if (!m.sections) return;
+  const a = bannerOf(m.sections[0]);
+  const lastB = bannerOf(m.sections[m.sections.length - 1]);
+  const nextB = bannerLines.find((b) => b > lastB);
+  m.lines = [a, (nextB || lines.length + 1) - 1];
+});
+
 /* atribuicao de instrucoes a modulos */
 const modOf = new Array(N).fill(-1);
 const byName = new Set();

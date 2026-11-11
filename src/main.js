@@ -5,20 +5,8 @@ import { C } from './core/color.js';
 import { toonMat, hullMat, waterMat, pondMat } from './core/materials.js';
 import { GX, cylG, coneG } from './core/geometries.js';
 import { Batch } from './core/Batch.js';
-import { hipGeo } from './core/geometry.js';
-import {
-  FLOOR,
-  BFL,
-  BWH,
-  GF,
-  GHT,
-  UF,
-  UHT,
-  BUNKER_INNER,
-  CASA_ORIGIN,
-  BARN_ORIGIN,
-} from './config/dimensions.js';
-import { K, CW, WHT, IRON, MARB, AZB, AZW, TERRA, PAL } from './config/palette.js';
+import { FLOOR, BFL, BWH, GF, UF, BUNKER_INNER } from './config/dimensions.js';
+import { K, MARB, AZB, PAL } from './config/palette.js';
 import { validateData } from './data/validate.js';
 import { SECTORS } from './data/sectors.js';
 import { LABELS } from './data/labels.js';
@@ -43,6 +31,21 @@ import {
 import { pondX, pondZ, waterBatch, pondBatch, surfaceBatch } from './world/terrain.js';
 import './world/sisteminha.js';
 import './world/flora.js';
+import { barnG, barnRoofG, barnWalls } from './world/engenho.js';
+import {
+  wall,
+  casaG,
+  casaUp,
+  casaRoofG,
+  casaUpW,
+  flrMat,
+  roofMat,
+  casaWalls,
+} from './world/casa/base.js';
+import { casaBaseMesh } from './world/casa/ground-floor.js';
+import './world/casa/upper-floor.js';
+import './world/casa/porch.js';
+import './world/casa/roof.js';
 
 (function () {
   'use strict';
@@ -95,1317 +98,6 @@ import './world/flora.js';
       d.appendChild(ul);
       host.appendChild(d);
     });
-  })();
-
-  /* ================= ENGENHO 1850 · 22 × 10 m ================= */
-  const barnG = new THREE.Group();
-  barnG.position.set(BARN_ORIGIN.x, BARN_ORIGIN.y, BARN_ORIGIN.z);
-  surface.add(barnG);
-  const barnWalls = new THREE.Group(),
-    barnRoofG = new THREE.Group();
-  barnG.add(barnWalls);
-  barnG.add(barnRoofG);
-  const BH = 4.8,
-    BTH = Math.atan2(3.6, 6.1);
-  addCollider(21, -43, 43, -42.2);
-  addCollider(21, -43, 21.8, -33);
-  addCollider(42.2, -43, 43, -33);
-  addCollider(21, -33.8, 28.5, -33);
-  addCollider(33.5, -33.8, 38, -33);
-  addCollider(39.4, -33.8, 43, -33); /* engenho: portão 5 m e porta de 1,4 m */
-  (function () {
-    const barnWallBatch = new Batch();
-    const barnRoofBatch = new Batch();
-    const barnInteriorBatch = new Batch();
-    const barnUnlitBatch = new Batch();
-    const glassC = PAL.glass.windowDeep;
-    let i;
-    /* paredes de pedra com 80 cm */
-    barnWallBatch.addBox(22, BH, 0.8, K.stone, 0, 0, -4.6);
-    barnWallBatch.addBox(0.8, BH, 10, K.stone, -10.6, 0, 0);
-    barnWallBatch.addBox(0.8, BH, 10, K.stone, 10.6, 0, 0);
-    barnWallBatch.addBox(7.5, BH, 0.8, K.stone, -7.25, 0, 4.6);
-    barnWallBatch.addBox(4.5, BH, 0.8, K.stone, 3.75, 0, 4.6);
-    barnWallBatch.addBox(3.6, BH, 0.8, K.stone, 9.2, 0, 4.6);
-    barnWallBatch.addBox(5.0, 0.8, 0.8, K.stone, -1, 4.0, 4.6);
-    barnWallBatch.addBox(1.4, 1.8, 0.8, K.stone, 6.7, 3.0, 4.6);
-    [1, 2, 3, 4].forEach(function (y) {
-      barnWallBatch.addBox(22, 0.09, 0.05, K.stoneD, 0, y, -5.02);
-      barnWallBatch.addBox(0.05, 0.09, 10, K.stoneD, -11.02, y, 0);
-      barnWallBatch.addBox(0.05, 0.09, 10, K.stoneD, 11.02, y, 0);
-      barnWallBatch.addBox(7.5, 0.09, 0.05, K.stoneD, -7.25, y, 5.02);
-      barnWallBatch.addBox(4.5, 0.09, 0.05, K.stoneD, 3.75, y, 5.02);
-      barnWallBatch.addBox(3.6, 0.09, 0.05, K.stoneD, 9.2, y, 5.02);
-    });
-    for (i = 0; i < 5; i++)
-      [
-        [-1, -1],
-        [1, -1],
-        [-1, 1],
-        [1, 1],
-      ].forEach(function (c) {
-        barnWallBatch.addBox(
-          i % 2 ? 1.1 : 0.8,
-          0.96,
-          i % 2 ? 0.8 : 1.1,
-          K.stoneL,
-          c[0] * 10.7,
-          i * 0.96,
-          c[1] * 4.6,
-        );
-      });
-    /* janelas e portas */
-    [
-      [-7.25, 5.02],
-      [9.4, 5.02],
-    ].forEach(function (p) {
-      barnWallBatch.addBox(1.8, 1.7, 0.1, K.ocre, p[0], 1.6, p[1]);
-      barnWallBatch.addBox(1.5, 1.4, 0.12, glassC, p[0], 1.75, p[1] + 0.02);
-      barnWallBatch.addBox(0.08, 1.4, 0.14, K.woodD, p[0], 1.75, p[1] + 0.03);
-    });
-    [-7, 0, 7].forEach(function (x) {
-      barnWallBatch.addBox(1.8, 1.7, 0.1, K.ocre, x, 1.8, -5.02);
-      barnWallBatch.addBox(1.5, 1.4, 0.12, glassC, x, 1.95, -5.03);
-    });
-    [-11.02, 11.02].forEach(function (x) {
-      [-2, 2].forEach(function (z) {
-        barnWallBatch.addBox(0.1, 1.7, 1.8, K.ocre, x, 1.8, z);
-        barnWallBatch.addBox(0.12, 1.4, 1.5, glassC, x, 1.95, z);
-      });
-    });
-    barnWallBatch.addBox(0.5, 4.0, 1.1, K.woodD, -3.5, 0, 4.6);
-    barnWallBatch.addBox(0.5, 4.0, 1.1, K.woodD, 1.5, 0, 4.6);
-    barnWallBatch.addBox(1.3, 2.9, 0.2, K.wood, 6.7, 0, 4.75);
-    barnWallBatch.addBox(0.12, 2.9, 0.26, K.woodD, 6.7, 0, 4.78);
-    barnWallBatch.addBox(1.6, 0.14, 0.3, K.woodD, 6.7, 2.9, 4.76);
-    barnWallBatch.build(barnWalls);
-
-    /* telhado de duas águas + 48 painéis solares na vertente frontal */
-    const ridgeY = BH + 3.6,
-      sn = Math.sin(BTH),
-      cs = Math.cos(BTH),
-      slopeLen = Math.hypot(6.1, 3.6) + 0.3;
-    [1, -1].forEach(function (sg) {
-      const tm = slopeLen / 2 - 0.1;
-      barnRoofBatch.addGeometry(
-        GX.box,
-        K.roof,
-        0,
-        ridgeY - tm * sn + 0.0,
-        sg * tm * cs,
-        [24, 0.3, slopeLen],
-        [sg * BTH, 0, 0],
-      );
-      for (let t = 0.6; t < slopeLen - 0.3; t += 0.75) {
-        barnRoofBatch.addGeometry(
-          GX.box,
-          K.roofD,
-          0,
-          ridgeY - t * sn + 0.18 * cs,
-          sg * (t * cs + 0.18 * sn),
-          [24, 0.05, 0.09],
-          [sg * BTH, 0, 0],
-        );
-      }
-    });
-    for (let pr = 0; pr < 3; pr++)
-      for (let pc = 0; pc < 16; pc++) {
-        const t = 1.5 + pr * 1.95,
-          px = -9.6 + pc * 1.28,
-          d = 0.26;
-        barnRoofBatch.addGeometry(
-          GX.box,
-          K.steel,
-          px,
-          ridgeY - t * sn + d * cs,
-          t * cs + d * sn,
-          [1.2, 0.08, 1.82],
-          [BTH, 0, 0],
-        );
-        barnRoofBatch.addGeometry(
-          GX.box,
-          [0x2c5aa6, 0x27509a][(pr + pc) % 2],
-          px,
-          ridgeY - t * sn + (d + 0.06) * cs,
-          t * cs + (d + 0.06) * sn,
-          [1.1, 0.06, 1.7],
-          [BTH, 0, 0],
-        );
-      }
-    barnRoofBatch.addBox(24.4, 0.3, 0.55, K.roofD, 0, ridgeY - 0.02, 0);
-    const tri = new THREE.Shape();
-    tri.moveTo(-5.4, 0);
-    tri.lineTo(5.4, 0);
-    tri.lineTo(0, 3.35);
-    const gg = new THREE.ExtrudeGeometry(tri, { depth: 0.8, bevelEnabled: false });
-    gg.translate(0, 0, -0.4);
-    gg.rotateY(Math.PI / 2);
-    barnRoofBatch.addGeometry(gg, K.stone, -10.6, BH, 0);
-    barnRoofBatch.addGeometry(gg, K.stone, 10.6, BH, 0);
-    barnRoofBatch.addBox(1.4, 5.2, 1.4, K.stone, 7, BH - 0.2, -2.5);
-    barnRoofBatch.addBox(1.8, 0.3, 1.8, K.stoneD, 7, BH + 5.0, -2.5);
-    barnRoofBatch.build(barnRoofG);
-
-    /* interior: engenho de 1850 à esquerda, oficina moderna à direita */
-    barnInteriorBatch.addBox(21.4, 0.16, 9.2, 0xcbc4b4, 0, 0, 0);
-    barnInteriorBatch.addBeam([-10.4, 2.0, -3.2], [10.9, 2.0, -3.2], 0.14, K.steel, 8);
-    [-9, -4.5, 0, 4.5, 9].forEach(function (x) {
-      barnInteriorBatch.addBox(0.5, 0.4, 0.5, PAL.clay.ochreDark, x, 1.8, -3.2);
-      barnInteriorBatch.addBox(0.36, 1.8, 0.36, K.woodD, x, 0.16, -3.7);
-    });
-    [-8, -4, 2, 6].forEach(function (x) {
-      barnInteriorBatch.addGeometry(
-        cylG(1, 16),
-        K.woodL,
-        x,
-        2.0,
-        -3.2,
-        [0.9, 0.34, 0.9],
-        [0, 0, Math.PI / 2],
-      );
-    });
-    [
-      [-8, -8.2, -1.6],
-      [-4, -5.0, -1.8],
-      [2, -1.5, -1.8],
-      [6, 4.0, -3.2],
-    ].forEach(function (m) {
-      barnInteriorBatch.addBeam([m[0], 1.7, -3.2], [m[1], 0.9, m[2]], 0.05, K.black, 4);
-    });
-    /* serra de fita */
-    barnInteriorBatch.addBox(0.5, 3.4, 1.3, K.steelD, -8.6, 0.16, -1.6);
-    barnInteriorBatch.addGeometry(
-      cylG(1, 16),
-      K.steel,
-      -8.6,
-      3.0,
-      -1.6,
-      [0.9, 0.18, 0.9],
-      [Math.PI / 2, 0, 0],
-    );
-    barnInteriorBatch.addGeometry(
-      cylG(1, 16),
-      K.steel,
-      -8.6,
-      0.8,
-      -1.6,
-      [0.9, 0.18, 0.9],
-      [Math.PI / 2, 0, 0],
-    );
-    barnInteriorBatch.addBox(0.05, 2.2, 0.1, K.black, -8.0, 0.8, -1.6);
-    barnInteriorBatch.addBox(3.0, 0.16, 2.2, K.woodL, -8.6, 1.1, -0.6);
-    barnInteriorBatch.addGeometry(
-      cylG(1, 8),
-      K.woodD,
-      -8.6,
-      1.55,
-      -0.6,
-      [0.38, 2.4, 0.38],
-      [0, 0, Math.PI / 2],
-    );
-    /* moenda de pedra de 80 cm */
-    barnInteriorBatch.addBox(2.2, 0.8, 2.2, K.woodD, -4.2, 0.16, -1.9);
-    barnInteriorBatch.addCylinder(0.8, 0.3, K.concD, -4.2, 0.96, -1.9, 18);
-    barnInteriorBatch.addCylinder(0.72, 0.3, 0xb7b3a9, -4.2, 1.26, -1.9, 18);
-    barnInteriorBatch.addGeometry(
-      coneG(4),
-      K.wood,
-      -4.2,
-      2.1,
-      -1.9,
-      [0.8, 1.0, 0.8],
-      [Math.PI, Math.PI / 4, 0],
-    );
-    for (i = 0; i < 4; i++)
-      barnInteriorBatch.addBox(
-        0.5,
-        0.6,
-        0.4,
-        [0xdcc590, 0xd2b97f][i % 2],
-        -2.6 + i * 0.55,
-        0.16,
-        -0.6,
-      );
-    /* engenho de cana de 3 rolos (300 L/h) */
-    barnInteriorBatch.addBox(2.4, 0.35, 1.8, K.woodD, -1.4, 0.16, -2.0);
-    [
-      [-1.4, -1.4],
-      [-0.6, -2.4],
-      [-2.2, -2.4],
-    ].forEach(function (p) {
-      barnInteriorBatch.addCylinder(0.3, 1.5, PAL.clay.ochreDark, p[0], 0.5, p[1], 12);
-      barnInteriorBatch.addCylinder(0.42, 0.12, K.steel, p[0], 2.0, p[1], 10);
-    });
-    barnInteriorBatch.addBeam([-3.3, 0.5, -0.4], [-0.4, 1.1, -0.9], 0.1, 0x7fb544, 5);
-    barnInteriorBatch.addBeam([-3.3, 0.7, -0.2], [-0.4, 1.3, -0.7], 0.1, 0x6aa238, 5);
-    barnInteriorBatch.addBeam([-3.3, 0.9, -0.6], [-0.4, 1.0, -1.1], 0.1, 0x93c654, 5);
-    /* bomba de pistão duplo */
-    [-9.3, -8.5].forEach(function (x) {
-      barnInteriorBatch.addCylinder(0.36, 1.3, K.red, x, 0.16, 2.6, 10);
-      barnInteriorBatch.addCylinder(0.07, 1.1, K.steel, x, 1.4, 2.6, 6);
-    });
-    barnInteriorBatch.addBox(1.4, 0.14, 0.14, K.steel, -8.9, 2.5, 2.6);
-    /* forja de ferreiro com bigorna e fole */
-    barnInteriorBatch.addBox(2.4, 1.3, 1.8, PAL.clay.terracotta, -5.4, 0.16, 2.9);
-    barnInteriorBatch.addCone(1.1, 1.5, K.steelD, -5.4, 1.46, 2.9, 4);
-    barnInteriorBatch.addCylinder(0.22, 2.0, K.steelD, -5.4, 2.96, 2.9, 8);
-    barnUnlitBatch.addBox(1.6, 0.12, 1.0, PAL.flora.pumpkin, -5.4, 1.46, 2.9);
-    barnInteriorBatch.addCylinder(0.38, 0.8, K.woodD, -3.4, 0.16, 2.8, 8);
-    barnInteriorBatch.addBox(0.9, 0.28, 0.4, K.black, -3.4, 0.96, 2.8);
-    barnInteriorBatch.addBox(0.3, 0.2, 0.3, K.black, -2.9, 1.1, 2.8);
-    barnInteriorBatch.addBox(1.0, 0.7, 0.9, 0x8a5a30, -7, 0.16, 1.8);
-    /* elevador oculto (3 × 5 m, 4,5 t) sob a porta da garagem */
-    barnInteriorBatch.addBox(3.0, 0.1, 5.0, K.yellow, -1, 0.16, 2.2);
-    for (i = 0; i < 6; i++)
-      barnInteriorBatch.addBox(3.0, 0.12, 0.38, K.black, -1, 0.16, -0.1 + i * 0.9);
-    /* oficina moderna: torno Nardini, fresadora, solda, prensa de 30 t, bancada */
-    barnInteriorBatch.addBox(3.0, 0.9, 1.0, K.steelD, 4, 0.16, -3.2);
-    barnInteriorBatch.addBox(3.2, 0.5, 0.9, 0x3d6b9e, 4, 1.06, -3.2);
-    barnInteriorBatch.addBox(0.8, 0.9, 0.9, 0x2f5a8a, 2.8, 1.56, -3.2);
-    barnInteriorBatch.addCylinder(0.3, 0.5, K.steel, 2.5, 1.8, -3.2, 10, 0.3, [0, 0, Math.PI / 2]);
-    barnInteriorBatch.addBox(0.5, 0.6, 0.5, K.steel, 5.5, 1.56, -3.2);
-    barnInteriorBatch.addBox(1.2, 0.4, 1.2, PAL.fabric.emerald, 7.2, 0.16, -3.2);
-    barnInteriorBatch.addBox(0.5, 2.4, 0.5, PAL.fabric.emerald, 7.2, 0.56, -3.6);
-    barnInteriorBatch.addBox(0.9, 0.6, 1.2, PAL.fabric.emerald, 7.2, 2.8, -3.1);
-    barnInteriorBatch.addBox(1.5, 0.2, 1.0, K.steel, 7.2, 1.5, -2.9);
-    barnInteriorBatch.addBox(2.4, 0.18, 1.3, K.steelD, 8, 1.0, -0.6);
-    [
-      [-1, -0.5],
-      [1, -0.5],
-      [-1, 0.5],
-      [1, 0.5],
-    ].forEach(function (l) {
-      barnInteriorBatch.addBox(0.16, 0.9, 0.16, K.steelD, 8 + l[0], 0.16, -0.6 + l[1]);
-    });
-    barnInteriorBatch.addBox(0.9, 1.0, 0.9, K.red, 9.4, 0.16, 0.6);
-    barnInteriorBatch.addBeam([9.0, 1.0, 0.4], [8.0, 1.4, -0.6], 0.05, K.black, 4);
-    [
-      [7.6, 1.3, -0.6, 0.16, PAL.light.white],
-      [7.9, 1.45, -0.5, 0.12, 0x9fe3ff],
-      [7.3, 1.35, -0.8, 0.1, 0xfff0a0],
-      [8.0, 1.5, -0.7, 0.1, PAL.light.white],
-      [7.7, 1.55, -0.9, 0.08, PAL.flora.sunflower],
-    ].forEach(function (s) {
-      barnUnlitBatch.addGeometry(GX.ico0, s[4], s[0], s[1], s[2], s[3]);
-    });
-    [4.4, 6.0].forEach(function (x) {
-      barnInteriorBatch.addBox(0.28, 2.8, 0.28, K.red, x, 0.16, 1.4);
-    });
-    barnInteriorBatch.addBox(2.0, 0.4, 0.4, K.red, 5.2, 2.6, 1.4);
-    barnInteriorBatch.addCylinder(0.22, 1.0, K.steel, 5.2, 1.6, 1.4, 8);
-    barnInteriorBatch.addBox(1.6, 0.2, 0.7, K.red, 5.2, 0.16, 1.4);
-    barnInteriorBatch.addBox(2.6, 0.14, 1.3, K.woodL, 7.2, 1.1, 3.7);
-    [
-      [-1.1, -0.5],
-      [1.1, -0.5],
-      [-1.1, 0.5],
-      [1.1, 0.5],
-    ].forEach(function (l) {
-      barnInteriorBatch.addBox(0.12, 0.95, 0.12, K.woodD, 7.2 + l[0], 0.16, 3.7 + l[1]);
-    });
-    barnInteriorBatch.addBox(0.8, 0.5, 0.1, K.black, 6.6, 1.24, 3.3);
-    barnUnlitBatch.addBox(0.7, 0.4, 0.02, 0x44ffb0, 6.6, 1.3, 3.36);
-    barnInteriorBatch.addBox(0.4, 0.04, 0.3, PAL.fabric.jade, 7.4, 1.24, 3.8);
-    barnInteriorBatch.addBox(0.3, 0.04, 0.25, PAL.fabric.jade, 7.9, 1.24, 3.5);
-    barnInteriorBatch.addBox(1.0, 0.5, 0.6, K.red, 9.8, 0.16, -3.8);
-    barnInteriorBatch.addBox(1.0, 0.5, 0.6, K.red, 9.8, 0.66, -3.8);
-    barnInteriorBatch.addBox(1.0, 0.5, 0.6, K.red, 8.7, 0.16, -3.8);
-    barnInteriorBatch.addBox(1.0, 0.5, 0.6, K.red, 9.5, 0.16, 3.0);
-    barnInteriorBatch.addBox(1.0, 0.5, 0.6, K.red, 9.5, 0.66, 3.0);
-    barnInteriorBatch.addBox(0.5, 0.12, 0.12, K.steel, 9.5, 1.2, 3.0);
-    barnInteriorBatch.build(barnG);
-    barnUnlitBatch.build(barnG, { unlit: true, outline: false });
-  })();
-
-  /* ================= CASA GRANDE · SOBRADO IMPERIAL REFORMADO · 26 × 20 m (2 pavimentos + porão alto) =================
-   Tipologia (INEPAC / fazendas do Vale do Café): sobrado de planta retangular sobre porão alto de pedra, esteios de madeira e pau-a-pique,
-   corpo central com frontão triangular, escadaria monumental de mármore com espelhos de azulejo e gradil de ferro, portas-janela com guarda-corpo de ferro,
-   capela e escritório ladeando o hall, escada interna que se bifurca em social e serviço, sala central no sobrado, telhado de quatro águas em capa e canal. */
-  const casaG = new THREE.Group();
-  casaG.position.set(CASA_ORIGIN.x, CASA_ORIGIN.y, CASA_ORIGIN.z);
-  surface.add(casaG);
-  const flrMat = toonMat.clone();
-  let casaBaseMesh;
-  const casaWalls = new THREE.Group(),
-    casaRoofG = new THREE.Group(),
-    casaUp = new THREE.Group(),
-    casaUpW = new THREE.Group();
-  casaG.add(casaWalls);
-  casaG.add(casaRoofG);
-  casaG.add(casaUp);
-  casaUp.add(casaUpW);
-  /* piso térreo, pé-direito térreo, piso do sobrado, pé-direito do sobrado */
-  casaUp.position.y = UF;
-  const roofMat = toonMat.clone();
-  roofMat.side = THREE.DoubleSide;
-  function addCasaCollider(x1, z1, x2, z2, lv) {
-    addCollider(x1 + CASA_ORIGIN.x, z1 + CASA_ORIGIN.z, x2 + CASA_ORIGIN.x, z2 + CASA_ORIGIN.z, lv);
-  } /* colisão em coordenadas locais da casa */
-  /* parede com vãos: eixo 'x' (ao longo de x, em z=fixed) ou 'z'. gaps [a,b,sill,top] (alturas a partir de y0) */
-  function wall(B, axis, fixed, lo, hi, gaps, y0, h, th, color, lv, deco) {
-    function addWallPiece(a, b, ya, yb) {
-      if (b - a < 0.02 || yb - ya < 0.02) return;
-      if (axis === 'x') B.addBox(b - a, yb - ya, th, color, (a + b) / 2, y0 + ya, fixed);
-      else B.addBox(th, yb - ya, b - a, color, fixed, y0 + ya, (a + b) / 2);
-    }
-    function addWallCollider(a, b) {
-      if (!lv) return;
-      if (axis === 'x') addCasaCollider(a, fixed - th / 2, b, fixed + th / 2, lv);
-      else addCasaCollider(fixed - th / 2, a, fixed + th / 2, b, lv);
-    }
-    let cur = lo;
-    gaps = (gaps || []).slice().sort(function (p, q) {
-      return p[0] - q[0];
-    });
-    gaps.forEach(function (g) {
-      const sill = g[2] || 0,
-        top = g[3] || h;
-      addWallPiece(cur, g[0], 0, h);
-      addWallCollider(cur, g[0]);
-      if (sill > 0) {
-        addWallPiece(g[0], g[1], 0, sill);
-        addWallCollider(g[0], g[1]);
-      }
-      addWallPiece(g[0], g[1], top, h);
-      if (deco) {
-        const m = (g[0] + g[1]) / 2,
-          w = g[1] - g[0],
-          hh = top - sill;
-        if (axis === 'x') {
-          const s = deco,
-            hf = th / 2;
-          B.addBox(
-            w + 0.5,
-            0.22,
-            th + 0.16,
-            WHT,
-            m,
-            y0 + top - 0.04,
-            fixed,
-          ); /* verga (desce 4 cm: cobre a face inferior da parede) */
-          B.addBox(
-            w + 0.4,
-            0.15,
-            th + 0.2,
-            WHT,
-            m,
-            y0 + sill - 0.12,
-            fixed,
-          ); /* peitoril (topo 3 cm acima do muro) */
-          B.addBox(
-            w,
-            hh - 0.05,
-            0.06,
-            PAL.glass.windowDeep,
-            m,
-            y0 + sill + 0.01,
-            fixed,
-          ); /* vidro */
-          B.addBox(0.16, hh - 0.02, th + 0.12, WHT, g[0] - 0.02, y0 + sill + 0.01, fixed);
-          B.addBox(
-            0.16,
-            hh - 0.02,
-            th + 0.12,
-            WHT,
-            g[1] + 0.02,
-            y0 + sill + 0.01,
-            fixed,
-          ); /* ombreiras */
-          B.addBox(
-            0.06,
-            hh - 0.06,
-            0.08,
-            K.woodD,
-            m,
-            y0 + sill + 0.03,
-            fixed + 0.05 * s,
-          ); /* montante */
-          B.addGeometry(
-            GX.box,
-            WHT,
-            m,
-            y0 + top + 0.22 + 0.18,
-            fixed,
-            [w + 0.3, 0.36, th + 0.1],
-            [0, 0, 0],
-          ); /* cornija */
-          const sz2 = fixed + (hf + 0.06) * s;
-          B.addBox(
-            w * 0.4,
-            hh - 0.2,
-            0.1,
-            PAL.paint.shutterGreen,
-            g[0] - w * 0.2 - 0.1,
-            y0 + sill + 0.1,
-            sz2,
-          );
-          B.addBox(
-            w * 0.4,
-            hh - 0.2,
-            0.1,
-            PAL.paint.shutterGreen,
-            g[1] + w * 0.2 + 0.1,
-            y0 + sill + 0.1,
-            sz2,
-          ); /* venezianas */
-        }
-      }
-      cur = g[1];
-    });
-    addWallPiece(cur, hi, 0, h);
-    addWallCollider(cur, hi);
-  }
-  (function () {
-    const casaWallBatch = new Batch();
-    const casaRoofBatch = new Batch();
-    const casaInteriorBatch = new Batch();
-    const casaUnlitBatch = new Batch();
-    const porchBatch = new Batch();
-    const upperWallBatch = new Batch();
-    const upperInteriorBatch = new Batch();
-    const upperUnlitBatch = new Batch();
-    const porchLampBatch = new Batch();
-    const casaBaseBatch = new Batch();
-    let i;
-    let j;
-    const Y0 = GF,
-      H = GHT;
-    /* ---------- térreo: porão alto de pedra, paredes ocre, cunhais e cimalha brancos ---------- */
-    casaBaseBatch.addBox(26.8, GF - 0.2, 20.8, K.stone, 0, 0, 0);
-    for (i = 0; i < 4; i++) casaBaseBatch.addBox(26.9, 0.05, 20.9, K.stoneD, 0, 0.2 + i * 0.18, 0);
-    [-9.5, -6.5, -3.5, 3.5, 6.5, 9.5].forEach(function (px) {
-      casaWallBatch.addBox(0.6, 0.44, 0.16, PAL.dark.charcoal, px, 0.3, 10.46);
-    }); /* respiros gradeados do porão */
-    /* paredes externas */
-    wall(
-      casaWallBatch,
-      'x',
-      -10,
-      -13,
-      13,
-      [
-        [-9, -7.2, 0.9, 2.9],
-        [-3.9, -2.1, 0.9, 2.9],
-        [2.1, 3.9, 0.9, 2.9],
-        [7.2, 9, 0.9, 2.9],
-      ],
-      Y0,
-      H,
-      0.5,
-      CW,
-      's',
-      -1,
-    );
-    wall(
-      casaWallBatch,
-      'z',
-      -13,
-      -10,
-      10,
-      [
-        [-6, -4.2, 0.9, 2.9],
-        [-1, 0.8, 0.9, 2.9],
-        [4.2, 6, 0.9, 2.9],
-      ],
-      Y0,
-      H,
-      0.5,
-      CW,
-      's',
-      1,
-    );
-    wall(
-      casaWallBatch,
-      'z',
-      13,
-      -10,
-      10,
-      [
-        [-6, -4.2, 0.9, 2.9],
-        [-1, 0.8, 0.9, 2.9],
-        [4.2, 6, 0.9, 2.9],
-      ],
-      Y0,
-      H,
-      0.5,
-      CW,
-      's',
-      1,
-    );
-    wall(
-      casaWallBatch,
-      'x',
-      10,
-      -13,
-      13,
-      [
-        [-11.4, -9.6, 0.9, 2.9],
-        [-3.8, -2.6, 0.9, 2.9],
-        [-1.3, 1.3, 0, 3.4],
-        [2.6, 3.8, 0.9, 2.9],
-        [9.6, 11.4, 0.9, 2.9],
-      ],
-      Y0,
-      H,
-      0.5,
-      CW,
-      's',
-      1,
-    );
-    /* cunhais e cimalha */
-    [
-      [-13, -10],
-      [13, -10],
-      [-13, 10],
-      [13, 10],
-    ].forEach(function (c) {
-      casaWallBatch.addBox(0.9, H + 0.2, 0.9, WHT, c[0], GF - 0.2, c[1]);
-      casaWallBatch.addBox(1.0, 0.22, 1.0, K.stoneL, c[0], GF + H - 0.2, c[1]);
-    });
-    casaWallBatch.addBox(26.7, 0.32, 0.7, WHT, 0, GF + H - 0.28, 10.1);
-    casaWallBatch.addBox(26.7, 0.32, 0.7, WHT, 0, GF + H - 0.28, -10.1);
-    casaWallBatch.addBox(0.7, 0.32, 20.6, WHT, 13.1, GF + H - 0.28, 0);
-    casaWallBatch.addBox(0.7, 0.32, 20.6, WHT, -13.1, GF + H - 0.28, 0);
-    /* paredes internas (0,3 m) */
-    const T = 0.3;
-    wall(casaWallBatch, 'x', 2, -13, -7, [], Y0, H - 0.04, T, WHT, 's');
-    wall(casaWallBatch, 'x', 2, -7, 13, [[-1.2, 1.2, 0, 3.2]], Y0, H - 0.04, T, WHT, 's');
-    /* desenho da planta: capela | hall | escritório; sala de visitas e jantar ao centro; cozinha, copa e serviço nas alas */
-    wall(
-      casaWallBatch,
-      'z',
-      -7,
-      -10,
-      10,
-      [
-        [5, 6.4, 0, 3.0],
-        [-7, -5.6, 0, 3.0],
-        [-0.4, 0.8, 0, 3.0],
-      ],
-      Y0,
-      H - 0.04,
-      T,
-      WHT,
-      's',
-    );
-    wall(
-      casaWallBatch,
-      'z',
-      7,
-      -10,
-      10,
-      [
-        [5, 6.4, 0, 3.0],
-        [-7, -5.8, 0, 3.0],
-        [-2.5, -1.2, 0, 3.0],
-      ],
-      Y0,
-      H - 0.04,
-      T,
-      WHT,
-      's',
-    );
-    wall(casaWallBatch, 'x', -4, -7, 7, [[-2.5, 2.5, 0, 3.2]], Y0, H - 0.04, T, WHT, 's');
-    wall(casaWallBatch, 'x', -1, -13, -7, [[-10, -8.8, 0, 3.0]], Y0, H - 0.04, T, WHT, 's');
-    wall(casaWallBatch, 'x', -3, 7, 13, [], Y0, H - 0.04, T, WHT, 's');
-    casaWallBatch.build(casaWalls);
-    /* ---------- pisos térreo (não se sobrepõem): ladrilho hidráulico, tábua corrida, mármore ---------- */
-    function addGroundFloor(x1, z1, x2, z2, c) {
-      casaBaseBatch.addBox(x2 - x1, 0.2, z2 - z1, c, (x1 + x2) / 2, GF - 0.2, (z1 + z2) / 2);
-    }
-    addGroundFloor(-13, 2, -7, 10, 0xcdb08a);
-    addGroundFloor(-7, 2, 7, 10, MARB);
-    addGroundFloor(7, 2, 13, 10, PAL.wood.floorBoard);
-    addGroundFloor(-13, -1, -7, 2, 0xe6d6b0);
-    addGroundFloor(-13, -10, -7, -1, TERRA);
-    addGroundFloor(-7, -4, 7, 2, PAL.wood.oak);
-    addGroundFloor(-7, -10, 7, -4, PAL.wood.oak);
-    addGroundFloor(7, -3, 13, 2, 0x3b6ea5);
-    addGroundFloor(7, -10, 13, -3, K.concD);
-    casaBaseMesh = casaBaseBatch.build(casaG, { mat: flrMat, outline: false });
-    for (i = 0; i < 7; i++)
-      for (j = 0; j < 8; j++)
-        if ((i + j) % 2)
-          casaInteriorBatch.addBox(
-            1.96,
-            0.03,
-            0.96,
-            0x3d3d44,
-            -6 + i * 2,
-            GF,
-            2.5 + j * 0.9 * 1.0,
-          ); /* xadrez de mármore no hall (peças pretas) */
-    /* escada interna: lance único que sobe do hall ao sobrado */
-    for (i = 0; i < 24; i++) {
-      const sh = GF + ((i + 1) * (UF - GF)) / 24;
-      casaInteriorBatch.addBox(
-        2.0,
-        sh - GF + 0.0,
-        0.275,
-        [MARB, 0xe4e2d8][i % 2],
-        0,
-        GF,
-        9.4 - (i + 0.5) * 0.275,
-      );
-    }
-    [-1.05, 1.05].forEach(function (sx) {
-      casaInteriorBatch.addBeam([sx, GF + 0.9, 9.6], [sx, UF + 0.9, 2.8], 0.04, IRON, 5);
-      for (i = 0; i <= 24; i += 2)
-        casaInteriorBatch.addBox(
-          0.05,
-          0.9,
-          0.05,
-          IRON,
-          sx,
-          GF + (i * (UF - GF)) / 24,
-          9.4 - i * 0.275,
-        );
-    });
-    /* capela: altar de madeira entalhada e dourada, tapete, bancos */
-    casaInteriorBatch.addBox(3.0, 0.3, 1.2, K.woodD, -10, GF, 3.0);
-    casaInteriorBatch.addBox(2.6, 2.4, 0.4, K.woodD, -10, GF, 2.4);
-    casaInteriorBatch.addBox(2.2, 2.0, 0.1, PAL.clay.gold, -10, GF + 0.2, 2.65);
-    casaInteriorBatch.addBox(0.3, 0.9, 0.3, PAL.clay.gold, -10, GF + 2.4, 2.4);
-    casaInteriorBatch.addBox(1.1, 0.03, 5, PAL.fabric.brickRed, -10, GF, 6.2);
-    for (i = 0; i < 3; i++) {
-      casaInteriorBatch.addBox(2.8, 0.5, 0.6, K.woodL, -10, GF, 5.2 + i * 1.3);
-      casaInteriorBatch.addBox(2.8, 0.5, 0.1, K.woodD, -10, GF + 0.5, 5.0 + i * 1.3);
-    }
-    /* hall: bancos de ferro, relógio de pé, quadros (molduras) */
-    casaInteriorBatch.addBox(0.6, 2.2, 0.4, K.woodD, 5.6, GF, 2.4);
-    casaInteriorBatch.addBox(0.4, 0.5, 0.1, PAL.clay.gold, 5.6, GF + 1.2, 2.62);
-    casaInteriorBatch.addBox(1.4, 0.5, 0.5, IRON, -4.5, GF, 9.3);
-    casaInteriorBatch.addBox(1.4, 0.1, 0.55, K.woodL, -4.5, GF + 0.5, 9.3);
-    [
-      [-5, 2.2],
-      [-3, 2.2],
-      [3, 2.2],
-    ].forEach(function (q, n) {
-      casaInteriorBatch.addBox(1.0, 1.3, 0.06, K.woodD, q[0], GF + 1.4, q[1] + 0.2);
-      casaInteriorBatch.addBox(
-        0.82,
-        1.1,
-        0.04,
-        [0x4a6b8f, 0x8f6b4a, 0x5f8f5a][n],
-        q[0],
-        GF + 1.5,
-        q[1] + 0.24,
-      );
-    });
-    /* sala de jantar: mesa para 14, cadeiras, aparador */
-    casaInteriorBatch.addBox(6.0, 0.12, 1.8, K.woodD, 0, GF + 0.76, -7.4);
-    [
-      [-2.8, -8.1],
-      [2.8, -8.1],
-      [-2.8, -6.7],
-      [2.8, -6.7],
-    ].forEach(function (l) {
-      casaInteriorBatch.addBox(0.18, 0.76, 0.18, K.woodD, l[0], GF, l[1]);
-    });
-    for (i = 0; i < 7; i++) {
-      casaInteriorBatch.addBox(0.45, 0.5, 0.45, K.woodL, -2.7 + i * 0.9, GF, -8.5);
-      casaInteriorBatch.addBox(0.45, 0.5, 0.45, K.woodL, -2.7 + i * 0.9, GF, -6.3);
-      casaInteriorBatch.addBox(0.45, 0.55, 0.06, K.woodD, -2.7 + i * 0.9, GF + 0.5, -8.75);
-    }
-    casaInteriorBatch.addBox(3.4, 0.9, 0.5, K.woodD, 0, GF, -9.6);
-    casaInteriorBatch.addBox(3.5, 0.06, 0.55, MARB, 0, GF + 0.9, -9.6);
-    [[-1.2], [0], [1.2]].forEach(function (c) {
-      casaInteriorBatch.addBox(0.5, 0.4, 0.2, PAL.clay.gold, c[0], GF + 1.4, -9.7);
-    });
-    /* sala de visitas: sofá, poltronas, tapete, piano */
-    casaInteriorBatch.addCylinder(2.0, 0.03, PAL.fabric.brickRed, 0, GF, -1, 22);
-    casaInteriorBatch.addBox(3.0, 0.55, 0.9, PAL.fabric.burgundy, 0, GF, -2.9);
-    casaInteriorBatch.addBox(3.0, 0.6, 0.25, PAL.fabric.burgundy, 0, GF + 0.5, -3.3);
-    casaInteriorBatch.addBox(1.2, 0.4, 0.8, K.woodD, 0, GF, -0.8);
-    [
-      [-3.6, -0.5],
-      [3.6, -0.5],
-    ].forEach(function (p) {
-      casaInteriorBatch.addBox(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], GF, p[1]);
-      casaInteriorBatch.addBox(0.9, 0.5, 0.2, PAL.paint.shutterGreen, p[0], GF + 0.4, p[1] - 0.4);
-    });
-    casaInteriorBatch.addBox(1.6, 0.9, 0.7, PAL.dark.charcoal, 5.3, GF, 0.8);
-    casaInteriorBatch.addBox(1.7, 0.06, 0.9, K.woodD, 5.3, GF + 0.9, 0.8);
-    /* cozinha de serviço: fogão a lenha de ferro com coifa, bancada, pia, mesa, azulejos portugueses nas paredes */
-    casaInteriorBatch.addBox(0.06, 1.6, 10.8, AZW, -12.72, GF + 0.9, -5.6);
-    for (i = 0; i < 9; i++)
-      casaInteriorBatch.addBox(
-        0.07,
-        0.4,
-        0.4,
-        AZB,
-        -12.7,
-        GF + 0.9 + (i % 4) * 0.4,
-        -10.4 + i * 1.2,
-      );
-    casaInteriorBatch.addBox(2.2, 1.0, 1.1, IRON, -11.4, GF, -9.2);
-    casaInteriorBatch.addCone(1.0, 1.0, IRON, -11.4, GF + 1.0, -9.2, 4, [0, Math.PI / 4, 0]);
-    casaInteriorBatch.addCylinder(0.2, 1.8, IRON, -11.4, GF + 2.0, -9.2, 8);
-    casaUnlitBatch.addBox(0.8, 0.25, 0.04, PAL.flora.pumpkin, -11.4, GF + 0.55, -8.62);
-    casaInteriorBatch.addBox(0.7, 0.9, 4.5, K.woodL, -12.3, GF, -4.8);
-    casaInteriorBatch.addBox(0.75, 0.06, 4.6, PAL.light.cream, -12.3, GF + 0.9, -4.8);
-    casaInteriorBatch.addBox(0.5, 0.12, 0.9, K.steel, -12.3, GF + 0.94, -4.2);
-    casaInteriorBatch.addBox(2.6, 0.14, 1.4, K.wood, -9.6, GF + 0.75, -5.0);
-    [
-      [-1.1, -0.5],
-      [1.1, -0.5],
-      [-1.1, 0.5],
-      [1.1, 0.5],
-    ].forEach(function (l) {
-      casaInteriorBatch.addBox(0.14, 0.75, 0.14, K.woodD, -9.6 + l[0], GF, -5.0 + l[1]);
-    });
-    for (i = 0; i < 5; i++)
-      casaInteriorBatch.addCylinder(0.12, 0.2, K.copper, -12.4 + 0.0, GF + 2.1, -9.5 + i * 0.5, 6);
-    /* copa (balcão de passa-pratos) */
-    casaInteriorBatch.addBox(0.8, 0.95, 2.4, K.woodD, -12.4, GF, 0.5);
-    casaInteriorBatch.addBox(2.5, 0.9, 0.8, K.woodL, -8.5, GF, 0.6);
-    /* despensa de catástrofe (42 m²): prateleiras, barris, galões, freezer */
-    function jarColor(k) {
-      return [
-        PAL.flora.coral,
-        PAL.flora.marigold,
-        PAL.flora.sage,
-        PAL.light.wheat,
-        PAL.flora.purple,
-        PAL.clay.copperBrown,
-      ][k % 6];
-    }
-    function addPantryItem(B, x, y, z, k) {
-      const m = k % 5;
-      if (m === 0 || m === 3) B.addCylinder(0.12, 0.3, jarColor(k), x, y, z, 6);
-      else if (m === 1) B.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
-      else if (m === 2) B.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
-      else
-        B.addBox(0.3, 0.3, 0.3, [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][k % 3], x, y, z);
-    }
-    function shelfX(B, x1, x2, z, y0, t) {
-      const L = x2 - x1,
-        n = Math.floor(L / 0.5),
-        nu = Math.max(1, Math.round(L / 1.5));
-      for (let a = 0; a < 3; a++) {
-        B.addBox(L, 0.06, 0.5, K.woodL, (x1 + x2) / 2, y0 + 0.55 + a * 0.7, z);
-        for (let b = 0; b < n; b++)
-          addPantryItem(B, x1 + 0.25 + b * 0.5, y0 + 0.61 + a * 0.7, z, b + a * 2 + (t || 0));
-      }
-      for (let c = 0; c <= nu; c++) B.addBox(0.08, 2.3, 0.54, K.woodD, x1 + (c * L) / nu, y0, z);
-    }
-    function shelfZ(B, z1, z2, x, y0, t) {
-      const L = z2 - z1,
-        n = Math.floor(L / 0.5),
-        nu = Math.max(1, Math.round(L / 1.5));
-      for (let a = 0; a < 3; a++) {
-        B.addBox(0.5, 0.06, L, K.woodL, x, y0 + 0.55 + a * 0.7, (z1 + z2) / 2);
-        for (let b = 0; b < n; b++)
-          addPantryItem(B, x, y0 + 0.61 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3 + (t || 0));
-      }
-      for (let c = 0; c <= nu; c++) B.addBox(0.54, 2.3, 0.08, K.woodD, x, y0, z1 + (c * L) / nu);
-    }
-    shelfX(casaInteriorBatch, 7.4, 12.7, -9.6, GF);
-    shelfZ(casaInteriorBatch, -9.4, -3.4, 7.4, GF);
-    shelfZ(casaInteriorBatch, -9.4, -3.4, 12.7, GF, 2);
-    [
-      [9.0, -6.8],
-      [10.0, -6.8],
-      [9.0, -5.6],
-      [10.0, -5.6],
-    ].forEach(function (b) {
-      casaInteriorBatch.addCylinder(0.45, 0.9, K.wood, b[0], GF, b[1], 10, 0.42);
-      casaInteriorBatch.addCylinder(0.47, 0.06, K.steelD, b[0], GF + 0.45, b[1], 10);
-    });
-    for (i = 0; i < 12; i++) {
-      casaInteriorBatch.addCylinder(
-        0.22,
-        0.5,
-        PAL.flora.cornflower,
-        8.4 + (i % 4) * 0.5,
-        GF,
-        -4.6 + ((i / 4) | 0) * 0.5,
-        8,
-      );
-    }
-    casaInteriorBatch.addBox(2.0, 0.85, 0.8, K.white, 11.4, GF, -5.0);
-    casaInteriorBatch.addBox(2.05, 0.08, 0.85, K.steel, 11.4, GF + 0.85, -5.0);
-    /* banheiros coletivos (azulejo azul e branco, louças) */
-    function toilet(B, x, y, z, ry) {
-      B.setOrigin(x, 0, z, ry || 0);
-      B.addBox(0.42, 0.42, 0.6, K.white, 0, y, 0);
-      B.addBox(0.4, 0.55, 0.2, K.white, 0, y, -0.38);
-      B.addBox(0.44, 0.05, 0.5, K.steel, 0, y + 0.42, 0.02);
-      B.setOrigin(0, 0, 0, 0);
-    }
-    function sink(B, x, y, z, ry) {
-      B.setOrigin(x, 0, z, ry || 0);
-      B.addCylinder(0.1, 0.7, K.white, 0, y, 0, 6);
-      B.addBox(0.65, 0.14, 0.48, K.white, 0, y + 0.7, 0);
-      B.addCylinder(0.035, 0.3, K.steel, 0, y + 0.84, -0.17, 5);
-      B.addBox(0.7, 0.7, 0.04, 0x9bd9f1, 0, y + 1.3, -0.3);
-      B.setOrigin(0, 0, 0, 0);
-    }
-    /* chuveiro orientado: haste e ducha no lado (x - sx*0.5, z + sz*0.5), vidro do lado oposto em x */
-    function shower2(B, x, y, z, sx, sz) {
-      B.addBox(1.1, 0.08, 1.1, 0xeaf3f7, x, y, z);
-      B.addCylinder(0.03, 1.9, K.steel, x - sx * 0.5, y + 0.08, z + sz * 0.5, 5);
-      B.addBox(0.3, 0.05, 0.3, K.steel, x - sx * 0.38, y + 1.85, z + sz * 0.45);
-      B.addBox(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + sx * 0.55, y + 0.08, z);
-    }
-    casaInteriorBatch.addBox(0.06, 1.5, 4.8, AZB, 12.72, GF, -0.5);
-    casaInteriorBatch.addBox(0.06, 0.48, 4.8, AZW, 12.7, GF + 1.01, -0.5);
-    toilet(casaInteriorBatch, 8.0, GF, 1.35, Math.PI);
-    toilet(casaInteriorBatch, 9.4, GF, 1.35, Math.PI);
-    sink(casaInteriorBatch, 10.8, GF, 1.5, Math.PI);
-    sink(casaInteriorBatch, 12.1, GF, 1.5, Math.PI);
-    shower2(casaInteriorBatch, 8.6, GF, -2.2, 1, -1);
-    shower2(casaInteriorBatch, 11.0, GF, -2.2, 1, -1);
-    /* escritório: escrivaninha, estante, mapa */
-    casaInteriorBatch.addBox(2.2, 0.1, 1.0, K.woodD, 10.0, GF + 0.76, 8.6);
-    casaInteriorBatch.addBox(2.2, 0.76, 0.12, K.woodD, 10.0, GF, 8.2);
-    casaInteriorBatch.addBox(0.5, 0.5, 0.5, K.woodL, 10.0, GF, 7.6);
-    shelfZ(casaInteriorBatch, 3.2, 6.6, 12.7, GF, 4);
-    casaInteriorBatch.addBox(1.6, 1.1, 0.05, 0xe8d9b0, 10.0, GF + 1.2, 9.7);
-    casaInteriorBatch.build(casaG);
-    casaUnlitBatch.build(casaG, { unlit: true, outline: false });
-
-    /* ---------- sobrado: paredes, balcão de ferro, 6 suítes, sala central ---------- */
-    upperWallBatch.addBox(26.7, 0.2, 0.0, K.black, 0, -9, 0); /* (sem efeito) */
-    wall(
-      upperWallBatch,
-      'x',
-      -10,
-      -13,
-      13,
-      [
-        [-9, -7.2, 0.9, 3.0],
-        [-3.9, -2.1, 0.9, 3.0],
-        [2.1, 3.9, 0.9, 3.0],
-        [7.2, 9, 0.9, 3.0],
-      ],
-      0,
-      UHT,
-      0.5,
-      CW,
-      'a',
-      -1,
-    );
-    wall(
-      upperWallBatch,
-      'z',
-      -13,
-      -10,
-      10,
-      [
-        [-6, -4.2, 0.9, 3.0],
-        [-1, 0.8, 0.9, 3.0],
-        [4.2, 6, 0.9, 3.0],
-      ],
-      0,
-      UHT,
-      0.5,
-      CW,
-      'a',
-      1,
-    );
-    wall(
-      upperWallBatch,
-      'z',
-      13,
-      -10,
-      10,
-      [
-        [-6, -4.2, 0.9, 3.0],
-        [-1, 0.8, 0.9, 3.0],
-        [4.2, 6, 0.9, 3.0],
-      ],
-      0,
-      UHT,
-      0.5,
-      CW,
-      'a',
-      1,
-    );
-    /* fachada do sobrado: 8 portas-janela até o chão, com balcão corrido */
-    wall(
-      upperWallBatch,
-      'x',
-      10,
-      -13,
-      13,
-      [
-        [-11.9, -10.3, 0, 3.1],
-        [-9.2, -7.6, 0, 3.1],
-        [-6.5, -4.9, 0, 3.1],
-        [-3.8, -2.2, 0, 3.1],
-        [2.2, 3.8, 0, 3.1],
-        [4.9, 6.5, 0, 3.1],
-        [7.6, 9.2, 0, 3.1],
-        [10.3, 11.9, 0, 3.1],
-      ],
-      0,
-      UHT,
-      0.5,
-      CW,
-      'a',
-      1,
-    );
-    [
-      [-13, -10],
-      [13, -10],
-      [-13, 10],
-      [13, 10],
-    ].forEach(function (c) {
-      upperWallBatch.addBox(0.9, UHT + 0.02, 0.9, WHT, c[0], 0, c[1]);
-    });
-    upperWallBatch.addBox(26.7, 0.34, 0.7, WHT, 0, UHT - 0.3, 10.1);
-    upperWallBatch.addBox(26.7, 0.34, 0.7, WHT, 0, UHT - 0.3, -10.1);
-    upperWallBatch.addBox(0.7, 0.34, 20.6, WHT, 13.1, UHT - 0.3, 0);
-    upperWallBatch.addBox(0.7, 0.34, 20.6, WHT, -13.1, UHT - 0.3, 0);
-    [-11.1, -8.4, -5.7, -3.0, 3.0, 5.7, 8.4, 11.1].forEach(function (px) {
-      upperWallBatch.addBox(2.0, 0.18, 0.14, WHT, px, 3.1, 10.34);
-      upperWallBatch.addGeometry(
-        GX.box,
-        WHT,
-        px,
-        3.1 + 0.18 + 0.2,
-        10.34,
-        [2.0, 0.4, 0.1],
-        [0, 0, 0],
-      );
-      upperWallBatch.addBox(0.9, 0.9, 0.08, PAL.glass.windowDeep, px, 0.0, 10.28);
-    });
-    /* partições do sobrado */
-    wall(
-      upperWallBatch,
-      'x',
-      2.5,
-      -13,
-      -2,
-      [
-        [-9.2, -7.9, 0, 2.9],
-        [-4.8, -3.5, 0, 2.9],
-      ],
-      0,
-      UHT - 0.04,
-      T,
-      WHT,
-      'a',
-    );
-    wall(
-      upperWallBatch,
-      'x',
-      2.5,
-      2,
-      13,
-      [
-        [3.5, 4.8, 0, 2.9],
-        [7.9, 9.2, 0, 2.9],
-      ],
-      0,
-      UHT - 0.04,
-      T,
-      WHT,
-      'a',
-    );
-    wall(upperWallBatch, 'z', -7.5, 2.5, 10, [], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'z', -2, 2.5, 10, [], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'z', 2, 2.5, 10, [], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'z', 7.5, 2.5, 10, [], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'x', -1, -13, -4, [[-9.8, -8.4, 0, 2.9]], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'x', -1, 4, 13, [[8.4, 9.8, 0, 2.9]], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'z', -4, -10, -1, [], 0, UHT - 0.04, T, WHT, 'a');
-    wall(upperWallBatch, 'z', 4, -10, -1, [], 0, UHT - 0.04, T, WHT, 'a');
-
-    /* banheiros privativos 2,4 x 2,4 m: cantos das suítes, paredes com porta, louças junto à parede do corredor, ducha ao fundo */
-    function addUpperBathroom(xo, sx, zw, sz, dz) {
-      const xi = xo + sx * 2.55,
-        zf = zw + sz * 2.55;
-      wall(
-        upperWallBatch,
-        'x',
-        zf,
-        Math.min(xo - sx * 0.15, xi + sx * 0.15),
-        Math.max(xo - sx * 0.15, xi + sx * 0.15),
-        [],
-        0,
-        UHT - 0.04,
-        T,
-        WHT,
-        'a',
-      );
-      wall(
-        upperWallBatch,
-        'z',
-        xi,
-        Math.min(zw, zf),
-        Math.max(zw, zf),
-        [
-          [
-            Math.min(zw + sz * dz[0], zw + sz * dz[1]),
-            Math.max(zw + sz * dz[0], zw + sz * dz[1]),
-            0,
-            2.4,
-          ],
-        ],
-        0,
-        UHT - 0.04,
-        T,
-        WHT,
-        'a',
-      );
-      const ry = sz > 0 ? 0 : Math.PI;
-      toilet(upperInteriorBatch, xo + sx * 0.45, 0.04, zw + sz * 0.5, ry);
-      sink(upperInteriorBatch, xo + sx * 1.5, 0.04, zw + sz * 0.35, ry);
-      upperInteriorBatch.addBox(
-        2.38,
-        0.04,
-        2.38,
-        0xeaf3f7,
-        xo + sx * 1.2,
-        0.04,
-        zw + sz * 1.2,
-      ); /* piso de ladrilho branco */
-      shower2(upperInteriorBatch, xo + sx * 0.7, 0.08, zw + sz * 1.7, sx, sz);
-      upperInteriorBatch.addBox(
-        0.06,
-        1.4,
-        2.3,
-        AZB,
-        xo + sx * 0.04,
-        0.08,
-        zw + sz * 1.2,
-      ); /* azulejo na parede externa */
-    }
-    addUpperBathroom(-12.75, 1, 2.65, 1, [0.7, 1.6]);
-    addUpperBathroom(-7.35, 1, 2.65, 1, [0.7, 1.6]);
-    addUpperBathroom(7.35, -1, 2.65, 1, [0.7, 1.6]);
-    addUpperBathroom(12.75, -1, 2.65, 1, [0.7, 1.6]);
-    addUpperBathroom(-12.75, 1, -1.15, -1, [0.7, 1.6]);
-    addUpperBathroom(12.75, -1, -1.15, -1, [0.7, 1.6]);
-    upperWallBatch.build(casaUpW);
-    /* laje do sobrado com o vão da escada (x -1,1…1,1 · z 2,8…9,8) e balcão de ferro fundido */
-    upperInteriorBatch.addBox(12.2, 0.2, 20.6, K.woodD, -7.2, -0.2, 0);
-    upperInteriorBatch.addBox(12.2, 0.2, 20.6, K.woodD, 7.2, -0.2, 0);
-    upperInteriorBatch.addBox(2.2, 0.2, 13.1, K.woodD, 0, -0.2, -3.75);
-    upperInteriorBatch.addBox(2.2, 0.2, 0.5, K.woodD, 0, -0.2, 10.05);
-    upperInteriorBatch.addBox(27.2, 0.2, 2.0, K.woodD, 0, -0.2, 11.4);
-    upperInteriorBatch.addBox(27.2, 0.12, 0.2, IRON, 0, 0.0, 12.4);
-    for (i = 0; i <= 54; i++)
-      upperInteriorBatch.addBox(0.05, 1.0, 0.05, IRON, -13.5 + i * 0.5, 0, 12.4);
-    upperInteriorBatch.addBox(27.2, 0.07, 0.1, IRON, 0, 1.0, 12.4);
-    upperInteriorBatch.addBox(27.2, 0.05, 0.07, IRON, 0, 0.5, 12.4);
-    for (i = 0; i <= 26; i++)
-      if (i % 3 === 0)
-        upperInteriorBatch.addSphere(
-          0.14,
-          IRON,
-          -13 + i,
-          1.15,
-          12.4,
-          1,
-          1,
-          1,
-        ); /* rebites grossos */
-    [-13.5, 13.5].forEach(function (px) {
-      upperInteriorBatch.addBox(0.22, 1.0, 0.22, IRON, px, 0, 12.4);
-    });
-    [-9.5, -3.2, 3.2, 9.5].forEach(function (px) {
-      upperInteriorBatch.addBox(0.24, 1.0, 0.24, IRON, px, 0, 12.4);
-    });
-    [-1.1, 1.1].forEach(function (sx) {
-      upperInteriorBatch.addBox(0.06, 1.0, 7.0, IRON, sx, 0, 6.3);
-    });
-    upperInteriorBatch.addBox(2.2, 0.06, 0.06, IRON, 0, 1.0, 9.8);
-    /* chão do sobrado: tábua larga e ladrilho; cada peça sem sobreposição */
-    function addUpperFloor(x1, z1, x2, z2, c) {
-      upperInteriorBatch.addBox(x2 - x1, 0.04, z2 - z1, c, (x1 + x2) / 2, 0, (z1 + z2) / 2);
-    }
-    addUpperFloor(-13, 2.5, -7.5, 10, PAL.wood.floorBoard);
-    addUpperFloor(-7.5, 2.5, -2, 10, PAL.wood.floorBoard);
-    addUpperFloor(2, 2.5, 7.5, 10, PAL.wood.floorBoard);
-    addUpperFloor(7.5, 2.5, 13, 10, PAL.wood.floorBoard);
-    addUpperFloor(-13, -1, 13, 2.5, TERRA);
-    addUpperFloor(-13, -10, -4, -1, PAL.wood.floorBoard);
-    addUpperFloor(-4, -10, 4, -1, PAL.wood.oak);
-    addUpperFloor(4, -10, 13, -1, PAL.wood.floorBoard);
-    addUpperFloor(-2, 2.5, -1, 10, PAL.wood.floorBoard);
-    addUpperFloor(1, 2.5, 2, 10, PAL.wood.floorBoard);
-    addUpperFloor(-1, 9.8, 1, 10, PAL.wood.floorBoard);
-    function addUpperBed(bx, bz, c) {
-      upperInteriorBatch.addBox(2.0, 0.5, 2.2, K.woodD, bx, 0.04, bz);
-      upperInteriorBatch.addBox(1.9, 0.28, 2.1, PAL.light.ivory, bx, 0.54, bz);
-      upperInteriorBatch.addBox(1.9, 0.12, 1.3, c, bx, 0.82, bz + 0.4);
-      upperInteriorBatch.addBox(1.4, 0.18, 0.5, K.white, bx, 0.82, bz - 0.8);
-      upperInteriorBatch.addBox(2.1, 1.3, 0.14, K.woodD, bx, 0.04, bz - 1.15);
-      upperInteriorBatch.addBox(0.5, 0.45, 0.5, K.woodL, bx + 1.5, 0.04, bz - 0.8);
-    }
-    function wardrobe(wx, wz, wrot) {
-      upperInteriorBatch.setOrigin(wx, 0, wz, wrot || 0);
-      upperInteriorBatch.addBox(1.6, 2.3, 0.6, K.woodD, 0, 0.04, 0);
-      upperInteriorBatch.addBox(0.03, 2.0, 0.05, PAL.clay.gold, 0, 0.2, 0.32);
-      upperInteriorBatch.setOrigin(0, 0, 0, 0);
-    }
-    /* suítes de frente (A, B, C, D) */
-    const sc = [
-      PAL.flora.cornflower,
-      PAL.flora.salmon,
-      PAL.flora.grass,
-      PAL.flora.violet,
-      PAL.flora.marigold,
-      PAL.flora.cornflower,
-    ];
-    addUpperBed(-10.2, 6.8, sc[0]);
-    wardrobe(-7.95, 5.4, -Math.PI / 2);
-    addUpperBed(-4.7, 6.8, sc[1]);
-    wardrobe(-2.45, 5.4, -Math.PI / 2);
-    addUpperBed(4.7, 6.8, sc[2]);
-    wardrobe(2.45, 5.4, Math.PI / 2);
-    addUpperBed(10.2, 6.8, sc[3]);
-    wardrobe(7.95, 5.4, Math.PI / 2);
-    /* suítes dos fundos (E, F) e sala íntima central */
-    addUpperBed(-8.2, -6.5, sc[4]);
-    wardrobe(-11.0, -9.45, 0);
-    addUpperBed(8.2, -6.5, sc[5]);
-    wardrobe(11.0, -9.45, 0);
-    upperInteriorBatch.addCylinder(2.4, 0.03, PAL.fabric.rust, 0, 0.04, -5.5, 22);
-    upperInteriorBatch.addBox(2.8, 0.55, 0.9, PAL.fabric.royalBlue, 0, 0.04, -8.4);
-    upperInteriorBatch.addBox(2.8, 0.6, 0.25, PAL.fabric.royalBlue, 0, 0.5, -8.8);
-    upperInteriorBatch.addBox(1.2, 0.4, 0.8, K.woodD, 0, 0.04, -5.5);
-    [
-      [-2.4, -6],
-      [2.4, -6],
-    ].forEach(function (p) {
-      upperInteriorBatch.addBox(0.9, 0.5, 0.9, PAL.paint.shutterGreen, p[0], 0.04, p[1]);
-    });
-    /* lustres de ferro e lampiões */
-    [
-      [-8, 6],
-      [8, 6],
-      [0, -5],
-      [0, 0.7],
-    ].forEach(function (p) {
-      upperInteriorBatch.addCylinder(0.03, 1.0, IRON, p[0], UHT - 1.0, p[1], 4);
-      upperInteriorBatch.addCylinder(0.4, 0.06, IRON, p[0], UHT - 1.05, p[1], 10);
-      upperUnlitBatch.addSphere(0.14, PAL.light.warmGlow, p[0], UHT - 1.1, p[1], 1, 1, 1);
-    });
-    upperInteriorBatch.build(casaUp);
-    upperUnlitBatch.build(casaUp, { unlit: true, outline: false });
-
-    /* ---------- varanda térrea, colunas e escadaria de mármore com espelhos de azulejo e gradil de ferro ---------- */
-    porchBatch.addBox(26.8, GF - 0.2, 3.4, K.stone, 0, 0, 11.9);
-    porchBatch.addBox(26.8, 0.2, 3.4, MARB, 0, GF - 0.2, 11.9);
-    for (i = 0; i <= 8; i++) {
-      const cx = -12 + i * 3.0;
-      if (Math.abs(cx) < 0.1) continue;
-      porchBatch.addCylinder(0.28, UF - GF - 0.12, WHT, cx, GF, 12.4, 10, 0.22);
-      porchBatch.addBox(0.7, 0.22, 0.7, WHT, cx, GF, 12.4);
-      porchBatch.addBox(0.6, 0.24, 0.6, K.stoneL, cx, UF - 0.28, 12.4);
-    }
-    [-1.5, 1.5].forEach(function (cx) {
-      porchBatch.addCylinder(0.3, UF - GF - 0.12, WHT, cx, GF, 12.4, 10, 0.24);
-      porchBatch.addBox(0.8, 0.24, 0.8, WHT, cx, GF, 12.4);
-    });
-    porchBatch.addBox(27, 0.3, 0.5, WHT, 0, UF - 0.38, 12.4);
-    for (i = 0; i < 7; i++) {
-      porchBatch.addBox(6.2 - i * 0.0, 0.14, 0.45, MARB, 0, i * (GF / 7), 13.6 + (6 - i) * 0.45);
-      porchBatch.addBox(
-        6.2,
-        GF / 7,
-        0.04,
-        i % 2 ? AZB : AZW,
-        0,
-        i * (GF / 7) + 0.0,
-        13.6 + (6 - i) * 0.45 + 0.23,
-      );
-    }
-    [-3.2, 3.2].forEach(function (sx) {
-      porchBatch.addBeam([sx, 0.9, 13.4], [sx, GF + 0.9, 16.8], 0.05, IRON, 5);
-      porchBatch.addBox(0.2, 0.9, 0.2, WHT, sx, 0, 16.8);
-      porchBatch.addSphere(0.22, K.stoneL, sx, 0.9 + 0.2, 16.8, 1, 1.4, 1);
-      porchBatch.addSphere(0.22, K.stoneL, sx, GF + 1.1, 13.4, 1, 1.4, 1);
-    });
-    for (i = 0; i <= 6; i++)
-      [-3.2, 3.2].forEach(function (sx) {
-        porchBatch.addBox(0.04, 0.8, 0.04, IRON, sx, i * (GF / 7), 16.8 - i * 0.45);
-      });
-    for (i = 0; i <= 26; i++)
-      if (Math.abs(i - 13) > 3) porchBatch.addBox(0.05, 0.9, 0.05, IRON, -13 + i, GF, 13.55);
-    porchBatch.addBox(10.5, 0.07, 0.07, IRON, -8.2, GF + 0.9, 13.55);
-    porchBatch.addBox(10.5, 0.07, 0.07, IRON, 8.2, GF + 0.9, 13.55);
-    /* lampiões de ferro e refletores (noite) */
-    [-12, -6, 6, 12].forEach(function (cx) {
-      porchBatch.addBox(0.18, 0.5, 0.18, IRON, cx, UF - 1.0, 11.2);
-      porchLampBatch.addSphere(0.17, 0xffe3a0, cx, UF - 1.2, 11.2, 1, 1.3, 1);
-    });
-    porchBatch.build(casaG);
-    porchLampBatch.build(casaG, { unlit: true, outline: false });
-    addCasaCollider(-13.4, 13.2, -3.2, 13.5, 's');
-    addCasaCollider(3.2, 13.2, 13.4, 13.5, 's');
-    addCasaCollider(-13.5, 10.2, -13.2, 13.5, 's');
-    addCasaCollider(13.2, 10.2, 13.5, 13.5, 's');
-    addCasaCollider(-13.5, -10.3, 13.5, -10.3, 'a');
-    addCasaCollider(13.4, -10.4, 13.5, 12.6, 'a');
-    addCasaCollider(-13.5, -10.4, -13.4, 12.6, 'a');
-    addCasaCollider(-13.5, 12.4, 13.5, 12.6, 'a');
-    addCasaCollider(-1.2, 4.2, -1.0, 9.9, 'a');
-    addCasaCollider(1.0, 4.2, 1.2, 9.9, 'a');
-    addCasaCollider(-1.2, 9.8, 1.2, 10.0, 'a');
-
-    /* ---------- telhado de quatro águas em capa e canal, frontão central com relógio, beirais de 2 m ---------- */
-    const RB = UF + UHT,
-      RH = 4.6,
-      RW = 30.2,
-      RD = 24.2;
-    casaRoofBatch.addGeometry(hipGeo(RW, RD, RH), K.roof, 0, RB, 0);
-    casaRoofBatch.addBox(RW + 0.4, 0.3, RD + 0.4, K.woodD, 0, RB - 0.3, 0);
-    const th = Math.atan2(RH, RD / 2),
-      sn = Math.sin(th),
-      cs = Math.cos(th);
-    for (let tt = 0.5; tt < RD / 2 - 0.6; tt += 0.8) {
-      const wdt = RW - 2 * tt - 0.6;
-      [
-        [1, 1],
-        [-1, -1],
-      ].forEach(function (sg) {
-        casaRoofBatch.addGeometry(
-          GX.box,
-          K.roofD,
-          0,
-          RB + tt * sn + 0.04,
-          sg[0] * (RD / 2 - tt * cs),
-          [wdt, 0.05, 0.1],
-          [sg[0] * th, 0, 0],
-        );
-      });
-    }
-    casaRoofBatch.addBox(RW - RD + 0.6, 0.3, 0.55, K.roofD, 0, RB + RH - 0.02, 0);
-    const tri = new THREE.Shape();
-    tri.moveTo(-4.4, 0);
-    tri.lineTo(4.4, 0);
-    tri.lineTo(0, 3.0);
-    const gg = new THREE.ExtrudeGeometry(tri, { depth: 0.6, bevelEnabled: false });
-    gg.translate(0, 0, -0.3);
-    casaRoofBatch.addGeometry(gg, WHT, 0, RB - 0.1, 10.6);
-    casaRoofBatch.addGeometry(gg, K.stoneL, 0, RB - 0.1, 10.2, [1.06, 1.06, 0.4]);
-    casaRoofBatch.addCylinder(0.85, 0.14, WHT, 0, RB + 1.0, 10.98, 24, 0.85, [Math.PI / 2, 0, 0]);
-    casaRoofBatch.addCylinder(0.7, 0.15, 0x1d3566, 0, RB + 1.0, 11.0, 24, 0.7, [Math.PI / 2, 0, 0]);
-    casaRoofBatch.addBox(0.06, 0.55, 0.05, WHT, 0, RB + 1.0, 11.1);
-    casaRoofBatch.addBox(0.4, 0.06, 0.05, WHT, 0.1, RB + 1.0, 11.1);
-    [-4.5, 4.5].forEach(function (ax) {
-      casaRoofBatch.addSphere(0.3, K.stoneL, ax, RB + 0.1, 10.6, 1, 1.3, 1);
-    });
-    casaRoofBatch.addSphere(0.3, K.stoneL, 0, RB + 3.1, 10.6, 1, 1.3, 1); /* acrotérios */
-    for (i = 0; i <= 12; i++)
-      casaRoofBatch.addBox(
-        0.12,
-        0.5,
-        0.06,
-        K.woodD,
-        -12 + i * 2,
-        RB - 0.7,
-        12.1,
-      ); /* lambrequins sob o beiral */
-    casaRoofBatch.addBox(1.4, 3.4, 1.4, CW, 6, RB + 1.3, -3);
-    casaRoofBatch.addBox(1.8, 0.3, 1.8, K.stoneD, 6, RB + 4.5, -3);
-    casaRoofBatch.addBox(0.8, 0.9, 0.8, K.stone, 6, RB + 4.8, -3);
-    casaRoofBatch.build(casaRoofG, { mat: roofMat });
   })();
 
   /* ================= PÁTIO TÉCNICO E OFICINA DE REPAROS ================= */
@@ -1670,7 +362,6 @@ import './world/flora.js';
   wheelG.add(wheelSpin);
   (function () {
     const b = new Batch();
-    let i;
     const WR = 2.6;
     const WW = 3.0;
     const dark = PAL.wood.ebony;
@@ -1684,7 +375,7 @@ import './world/flora.js';
     });
     b.addGeometry(cylG(1, 10), K.steelD, 0, 0, 0, [0.34, WW + 1.4, 0.34], [Math.PI / 2, 0, 0]);
     b.addGeometry(cylG(1, 10), K.copper, 0, 0, 0, [0.52, 0.5, 0.52], [Math.PI / 2, 0, 0]);
-    for (i = 0; i < 16; i++) {
+    for (let i = 0; i < 16; i++) {
       const a2 = (i / 16) * Math.PI * 2;
       b.addGeometry(
         GX.box,
@@ -1730,10 +421,9 @@ import './world/flora.js';
   windG.add(rotor);
   (function () {
     const b = new Batch();
-    let i;
     b.addBox(5.4, 0.5, 5.4, K.concD, 0, 0, 0);
     b.addCylinder(2.1, 12.8, 0xc9684a, 0, 0.5, 0, 10, 1.2);
-    for (i = 0; i < 6; i++)
+    for (let i = 0; i < 6; i++)
       b.addCylinder(2.1 - i * 0.15, 0.22, K.stoneL, 0, 1.2 + i * 2.1, 0, 10, 2.0 - i * 0.15);
     b.addBox(1.2, 2.0, 0.2, K.woodD, 0, 0.5, 2.0);
     b.addBox(0.7, 1.4, 0.1, K.wood, 0, 0.5, 2.1);
@@ -1746,7 +436,7 @@ import './world/flora.js';
     const r = new Batch();
     r.addGeometry(cylG(0.55, 10), K.steelD, 0, 0, 0, [0.55, 1.1, 0.55], [Math.PI / 2, 0, 0]);
     r.addGeometry(coneG(8), K.white, 0, 0, 0.95, [0.5, 0.9, 0.5], [Math.PI / 2, 0, 0]);
-    for (i = 0; i < 8; i++) {
+    for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
       r.addGeometry(
         GX.box,
@@ -2076,9 +766,6 @@ import './world/flora.js';
   (function () {
     const FL = BFL;
     const WB = BWH;
-    let i;
-    let j;
-    let k;
     const bunkerWallBatch = new Batch(),
       bunkerBatch = new Batch(),
       ledBatchA = new Batch(),
@@ -2227,7 +914,7 @@ import './world/flora.js';
     [-0.5, 0.5].forEach(function (o) {
       bunkerBatch.addBeam([26.5 + o, FL, -54.5], [26.5 + o, -0.2, -54.5], 0.05, K.steelD, 5);
     });
-    for (i = 0; i < 14; i++)
+    for (let i = 0; i < 14; i++)
       bunkerBatch.addBox(1.0, 0.04, 0.04, K.steelD, 26.5, FL + 0.4 + i * 0.55, -54.5);
     hatchBatch.addBox(1.8, 0.12, 1.8, K.steelD, 26.5, 0, -54.5);
     hatchBatch.addBox(1.5, 0.06, 1.5, K.red, 26.5, 0.12, -54.5);
@@ -2339,7 +1026,7 @@ import './world/flora.js';
       bunkerBatch.addBox(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
       neonBatch.addBox(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
       bunkerBatch.addBox(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
-      for (i = 0; i < 5; i++)
+      for (let i = 0; i < 5; i++)
         bunkerBatch.addBox(
           0.3,
           0.1,
@@ -2368,7 +1055,7 @@ import './world/flora.js';
       bunkerBatch.addBox(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
       chair(x0 + 1.7, -62.2, PAL.dark.deviceBlack);
       bunkerBatch.addBox(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
-      for (i = 0; i < 9; i++)
+      for (let i = 0; i < 9; i++)
         neonBatch.addBox(
           0.05,
           0.05,
@@ -2423,7 +1110,7 @@ import './world/flora.js';
         bunkerBatch.addBox(0.48, 1.7, 0.12, DARK, sx, FL + 0.06, sz, [0, rr2, 0]);
         neonBatch.addBox(0.04, 1.5, 0.04, NEON, sx, FL + 0.16, sz + (sz < bz ? 0.07 : -0.07));
       }
-      for (i = 0; i < 16; i++) {
+      for (let i = 0; i < 16; i++) {
         const a2 = (i / 16) * Math.PI * 2,
           cx2 = bx + 2.15 * Math.cos(a2),
           cz2 = bz + 2.15 * Math.sin(a2);
@@ -2454,7 +1141,7 @@ import './world/flora.js';
         neonBatch.addSphere(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
       });
       bunkerBatch.addBox(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
-      for (i = 0; i < 18; i++) {
+      for (let i = 0; i < 18; i++) {
         const skh = 0.5 + (((i * 37) % 17) / 17) * 1.9;
         neonBatch.addBox(
           0.08,
@@ -2466,9 +1153,9 @@ import './world/flora.js';
           -71.0 + i * 0.3,
         );
       }
-      for (i = 0; i < 3; i++) {
+      for (let i = 0; i < 3; i++) {
         bunkerBatch.addBox(0.3, 0.05, 1.6, K.woodD, x1 - 0.2, FL + 1.0 + i * 0.5, -68.4);
-        for (j = 0; j < 4; j++)
+        for (let j = 0; j < 4; j++)
           bunkerBatch.addSphere(
             0.1,
             [PAL.neon.magenta, PAL.neon.cyan, PAL.neon.yellow, PAL.flora.lime][(i + j) % 4],
@@ -2528,7 +1215,7 @@ import './world/flora.js';
       bunkerBatch.addCylinder(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
       neonBatch.addSphere(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
       bunkerBatch.addBox(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
-      for (i = 0; i < 6; i++)
+      for (let i = 0; i < 6; i++)
         bunkerBatch.addCylinder(
           0.07,
           0.3,
@@ -2569,7 +1256,7 @@ import './world/flora.js';
       1,
       1,
     ); /* cabaninha de leitura */
-    for (i = 0; i < 10; i++)
+    for (let i = 0; i < 10; i++)
       neonBatch.addBox(
         0.06,
         0.06,
@@ -2602,11 +1289,11 @@ import './world/flora.js';
       glowBatch.addBox(1.8, 0.05, 1.0, 0x35e0b0, t[0], FL + 1.1, t[1]);
       ledBatchA.addBox(1.4, 0.06, 0.04, [CY, GRN][n % 2], t[0], FL + 0.6, t[1] + 0.72);
     });
-    for (i = 0; i < 5; i++) {
+    for (let i = 0; i < 5; i++) {
       const rx = 10.95 + i * 1.1;
       bunkerBatch.addBox(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
-      for (j = 0; j < 10; j++)
-        for (k = 0; k < 3; k++)
+      for (let j = 0; j < 10; j++)
+        for (let k = 0; k < 3; k++)
           [ledBatchA, ledBatchB, ledBatchC][(i + j + k) % 3].addBox(
             0.12,
             0.07,
@@ -2669,7 +1356,7 @@ import './world/flora.js';
       bunkerBatch.addCylinder(0.5, 2.4, K.blue, t[0], FL, t[1], 12);
       bunkerBatch.addCylinder(0.52, 0.2, K.steel, t[0], FL + 2.4, t[1], 12);
     });
-    for (i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; i++) {
       bunkerBatch.addCylinder(0.24, 0.9, K.red, 24.0 + i * 0.7, FL, -58.2, 8);
       bunkerBatch.addCylinder(0.18, 0.2, K.white, 24.0 + i * 0.7, FL + 0.9, -58.2, 8);
     }
@@ -2685,7 +1372,7 @@ import './world/flora.js';
     bunkerBatch.addBox(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
     bunkerBatch.addBox(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
     bunkerBatch.addBox(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
-    for (i = 0; i < 4; i++)
+    for (let i = 0; i < 4; i++)
       bunkerBatch.addCylinder(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
     bunkerBatch.addBox(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
     [
@@ -2696,7 +1383,7 @@ import './world/flora.js';
     ].forEach(function (l) {
       bunkerBatch.addBox(0.12, 0.7, 0.12, K.woodD, -4.6 + l[0], FL + 0.06, -44.6 + l[1]);
     });
-    for (i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; i++) {
       bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -46.0);
       bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -43.2);
     }
@@ -2755,20 +1442,17 @@ import './world/flora.js';
       const L = z2 - z1;
       const n = Math.floor(L / 0.5);
       const nu = Math.round(L / 1.5);
-      let a;
-      let b;
-      let c;
-      for (a = 0; a < 3; a++) {
+      for (let a = 0; a < 3; a++) {
         bunkerBatch.addBox(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
-        for (b = 0; b < n; b++)
+        for (let b = 0; b < n; b++)
           addBunkerPantryItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
       }
-      for (c = 0; c <= nu; c++)
+      for (let c = 0; c <= nu; c++)
         bunkerBatch.addBox(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);
     }
     shelfZ(-52.4, -39.4, 2.6);
     shelfZ(-52.4, -39.4, 5.4);
-    for (i = 0; i < 4; i++)
+    for (let i = 0; i < 4; i++)
       bunkerBatch.addCylinder(
         0.4,
         0.9,
@@ -2784,7 +1468,7 @@ import './world/flora.js';
     bunkerBatch.addBox(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
     neonBatch.addBox(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
     [-50.0, -47.8].forEach(function (z, n) {
-      for (i = 0; i < 3; i++) {
+      for (let i = 0; i < 3; i++) {
         bunkerBatch.addBox(
           0.9,
           0.5,
@@ -2811,16 +1495,16 @@ import './world/flora.js';
     bunkerBatch.addCylinder(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
     bunkerBatch.addBox(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
     neonBatch.addBox(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
-    for (i = 0; i < 2; i++) {
+    for (let i = 0; i < 2; i++) {
       bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
       neonBatch.addBox(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
     }
     neonBatch.addBox(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
     /* hidroponia */
     [14.2, 16.4, 18.6].forEach(function (hx) {
-      for (j = 0; j < 4; j++) {
+      for (let j = 0; j < 4; j++) {
         bunkerBatch.addBox(1.0, 0.08, 12.4, K.steelD, hx, FL + 0.5 + j * 0.7, -46.2);
-        for (k = 0; k < 19; k++)
+        for (let k = 0; k < 19; k++)
           bunkerBatch.addSphere(
             0.26,
             [PAL.flora.cropGreenA, PAL.flora.cropGreenC, PAL.flora.lime][(k + j) % 3],
@@ -2851,11 +1535,11 @@ import './world/flora.js';
     bunkerBatch.addCylinder(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
     bunkerBatch.addBox(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);
     bunkerBatch.addBox(1.2, 0.12, 2.4, K.steelD, 24.2, FL, -41.2);
-    for (i = 0; i < 4; i++)
+    for (let i = 0; i < 4; i++)
       bunkerBatch.addBox(0.2, 0.2, 0.9, K.woodL, 24.2, FL + 0.12 + i * 0.2, -41.2);
     bunkerBatch.addBox(0.2, 0.2, 1.6, K.yellow, 22.6, FL + 0.06, -40.6);
     bunkerBatch.addBox(0.9, 0.05, 1.6, K.steelD, 22.6, FL + 0.26, -40.6);
-    for (i = 0; i < 9; i++)
+    for (let i = 0; i < 9; i++)
       bunkerBatch.addBox(
         0.1,
         0.3,
@@ -3426,9 +2110,8 @@ import './world/flora.js';
   }
   function fpBlocked(x, z, lvl) {
     const r = FPR;
-    let i;
     let b;
-    for (i = 0; i < colliders.length; i++) {
+    for (let i = 0; i < colliders.length; i++) {
       b = colliders[i];
       if (b[4] !== lvl) continue;
       if (x > b[0] - r && x < b[2] + r && z > b[1] - r && z < b[3] + r) return true;

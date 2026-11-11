@@ -1,0 +1,10 @@
+{
+  "stay": [[39, 99]],
+  "modules": [
+    {
+      "file": "src/world/engenho.js",
+      "header": "Engenho 1850 (22 × 10 m): paredes de pedra, telhado com painéis solares, moenda, forja e oficina moderna.",
+      "sections": ["ENGENHO 1850"]
+    }
+  ]
+}

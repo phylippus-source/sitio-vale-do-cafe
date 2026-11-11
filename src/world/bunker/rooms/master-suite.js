@@ -4,15 +4,7 @@
 import { K, PAL } from '../../../config/palette.js';
 import { bunkerBatch, neonBatch, netBatch, FL, CY, NEON, GRN, DARK } from '../shell.js';
 import { addBunkerBathroom, wardrobe, desk, chair, plant } from '../fixtures.js';
-
-const WALL = 0.15; /* espessura da parede interna */
-
-/* referências do cômodo: faces internas oeste (xw) e leste (xe), centro (cx), fundos (zb) e porta (zf) */
-function frameOf(rect) {
-  const xw = rect.x1 + WALL;
-  const xe = rect.x2 - WALL;
-  return { xw, xe, cx: (xw + xe) / 2, zb: rect.z1, zf: rect.z2 };
-}
+import { frameOf } from './frame.js';
 
 /* banheiro-cabine no canto leste dos fundos */
 function addBathroom({ xe, zb }) {

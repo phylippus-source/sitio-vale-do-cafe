@@ -49,7 +49,6 @@ import { fishList } from './world/fish.js';
 import './world/foam.js';
 import { ledGroups } from './world/animation.js';
 import {
-  Z1,
   bunkerBatch,
   FL,
   neonBatch,
@@ -66,16 +65,12 @@ import {
   capMat,
   bunkCapMesh,
 } from './world/bunker/shell.js';
-import {
-  addBunkerBathroom,
-  wardrobe,
-  desk,
-  chair,
-  plant,
-  addBunkerDoubleBed,
-  addBunkerSingleBed,
-} from './world/bunker/fixtures.js';
+import { plant } from './world/bunker/fixtures.js';
 import { buildMasterSuite } from './world/bunker/rooms/master-suite.js';
+import { buildParentsSuite } from './world/bunker/rooms/parents-suite.js';
+import { buildSisterRoom } from './world/bunker/rooms/sister-room.js';
+import { buildNieceRoom } from './world/bunker/rooms/niece-room.js';
+import { buildGuestRoom } from './world/bunker/rooms/guest-room.js';
 
 (function () {
   'use strict';
@@ -133,84 +128,10 @@ import { buildMasterSuite } from './world/bunker/rooms/master-suite.js';
   /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
   /* ---- SUÍTE CYBERPUNK DO MESTRE (7,0 × 16,6 m): closet · lounge e estação dev · cama-casulo com mosquiteiro · banheiro ---- */
   buildMasterSuite(roomRect('Suíte cyberpunk do Mestre'));
-  /* ---- SUÍTE DOS PAIS (4,5 × 16,6 m): cama king, poltrona de leitura, penteadeira, adega, TV, banheiro ---- */
-  (function () {
-    const x0 = -4.25,
-      x1 = -0.05;
-    addBunkerBathroom(x0, 2.6, Z1, -2.7, -1.8, true);
-    wardrobe(-0.9, -72.1, 0);
-    addBunkerDoubleBed(-1.9, -65.6, PAL.flora.grass);
-    bunkerBatch.addBox(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
-    neonBatch.addBox(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
-    bunkerBatch.addBox(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
-    neonBatch.addCylinder(0.06, 0.05, PAL.light.warmGlow, -3.9, FL + 1.1, -67.3, 6);
-    bunkerBatch.addBox(1.6, 0.9, 0.5, K.woodD, x1 - 0.3, FL + 0.06, -60.8);
-    bunkerBatch.addBox(0.08, 1.1, 1.6, PAL.dark.void, x1 - 0.08, FL + 0.9, -60.8);
-    neonBatch.addBox(0.03, 1.0, 1.5, PAL.neon.blue, x1 - 0.14, FL + 0.95, -60.8);
-    bunkerBatch.addBox(1.0, 0.8, 0.5, K.woodL, x0 + 0.35, FL + 0.06, -57.3);
-    bunkerBatch.addBox(0.04, 1.4, 0.9, PAL.glass.showerGlass, x0 + 0.1, FL + 0.9, -57.3);
-    neonBatch.addBox(0.02, 1.4, 0.04, PAL.light.warmGlow, x0 + 0.12, FL + 0.9, -56.8);
-    bunkerBatch.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, x0 + 0.7, FL + 0.06, -61.5);
-    bunkerBatch.addBox(0.2, 0.6, 0.9, PAL.fabric.burgundy, x0 + 0.3, FL + 0.06, -61.5);
-    bunkerBatch.addCylinder(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
-    neonBatch.addSphere(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
-    bunkerBatch.addBox(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
-    for (let i = 0; i < 6; i++)
-      bunkerBatch.addCylinder(
-        0.07,
-        0.3,
-        [PAL.fabric.wine, 0x2a4a1f, PAL.fabric.wine][i % 3],
-        x1 - 0.45 + ((i % 2) * 0.2 - 0.1),
-        FL + 0.4 + ((i / 2) | 0) * 0.45,
-        -70.75,
-        6,
-      );
-    bunkerBatch.addCylinder(1.2, 0.03, PAL.stone.sandstone, -1.9, FL + 0.06, -63.2, 20);
-    neonBatch.addBox(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
-  })();
-  /* ---- IRMÃ (3,5 m) · SOBRINHA 11 anos (2,9 m) · CONVIDADO (2,7 m) ---- */
-  addBunkerBathroom(0.25, 2.4, Z1, 1.0, 1.9, true);
-  addBunkerDoubleBed(2.4, -64.0, PAL.flora.salmon);
-  wardrobe(3.45, -60.6, -Math.PI / 2);
-  desk(0.7, -58.2, 1.3, 0);
-  bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
-  chair(0.7, -57.6, PAL.flora.purple);
-  plant(3.4, -57.0, 1.0);
-  bunkerBatch.addCylinder(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
-  addBunkerBathroom(4.05, 2.9, Z1, 5.0, 5.9, false);
-  addBunkerSingleBed(6.0, -64.0, PAL.flora.violet);
-  wardrobe(4.35, -60.5, Math.PI / 2);
-  bunkerBatch.addBox(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
-  bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
-  chair(5.6, -56.9, 0xff7ac8);
-  neonBatch.addBox(2.6, 0.05, 0.05, 0xffd98a, 5.5, FL + 3.2, -70);
-  bunkerBatch.addCone(0.7, 1.5, 0xe8c9a0, 4.8, FL + 0.06, -61.6, 6);
-  neonBatch.addSphere(
-    0.1,
-    PAL.light.warmGlow,
-    4.8,
-    FL + 0.6,
-    -61.6,
-    1,
-    1,
-    1,
-    1,
-  ); /* cabaninha de leitura */
-  for (let i = 0; i < 10; i++)
-    neonBatch.addBox(
-      0.06,
-      0.06,
-      0.06,
-      [PAL.neon.yellow, PAL.light.white, PAL.glass.iceBlue][i % 3],
-      4.2 + ((i * 7) % 11) * 0.25,
-      FL + 3.45,
-      -57.5 - ((i * 5) % 9) * 1.2,
-    ); /* estrelinhas no teto */
-  addBunkerBathroom(7.25, 2.7, Z1, 8.2, 9.1, false);
-  addBunkerSingleBed(9.1, -64.0, PAL.flora.cornflower);
-  wardrobe(7.55, -60.5, Math.PI / 2);
-  desk(8.6, -57.6, 1.2, 0);
-  chair(8.6, -57.0, PAL.glass.windowDeep);
+  buildParentsSuite(roomRect('Suíte dos pais'));
+  buildSisterRoom(roomRect('Quarto da irmã'));
+  buildNieceRoom(roomRect('Quarto da sobrinha'));
+  buildGuestRoom(roomRect('Quarto do convidado'));
 
   /* =================== FILEIRA DOS FUNDOS: técnico (x 10,1 → 27,4) =================== */
   /* datacenter imerso */

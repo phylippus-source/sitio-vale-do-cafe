@@ -1,15 +1,14 @@
 import * as THREE from 'three';
 import { clamp, smooth } from './core/math.js';
 import { C } from './core/color.js';
-import { toonMat, hullMat, waterMat, pondMat } from './core/materials.js';
+import { hullMat, waterMat, pondMat } from './core/materials.js';
 import { BFL, GF, UF } from './config/dimensions.js';
-import { K, MARB, PAL } from './config/palette.js';
 import { validateData } from './data/validate.js';
 import { SECTORS } from './data/sectors.js';
 import { LABELS } from './data/labels.js';
 import { BOM } from './data/bom.js';
 import { AURA } from './data/aura.js';
-import { ROOMS, roomRect } from './data/rooms.js';
+import { ROOMS } from './data/rooms.js';
 import { FPSPOT } from './data/fpspots.js';
 import { $, stage, glHost, reduce } from './app/page.js';
 import {
@@ -46,33 +45,8 @@ import { rotor } from './world/windmill.js';
 import { animals } from './world/animals.js';
 import { fishList } from './world/fish.js';
 import './world/foam.js';
-import { ledGroups } from './world/animation.js';
-import {
-  bunkerBatch,
-  FL,
-  neonBatch,
-  CY,
-  NEON,
-  netBatch,
-  glowBatch,
-  ledBatchA,
-  ledBatchB,
-  ledBatchC,
-  bunkerWallBatch,
-  hatchBatch,
-  capMat,
-  bunkCapMesh,
-} from './world/bunker/shell.js';
-import { plant } from './world/bunker/fixtures.js';
-import { buildMasterSuite } from './world/bunker/rooms/master-suite.js';
-import { buildParentsSuite } from './world/bunker/rooms/parents-suite.js';
-import { buildSisterRoom } from './world/bunker/rooms/sister-room.js';
-import { buildNieceRoom } from './world/bunker/rooms/niece-room.js';
-import { buildGuestRoom } from './world/bunker/rooms/guest-room.js';
-import { buildDatacenter } from './world/bunker/rooms/datacenter.js';
-import { buildLaboratories } from './world/bunker/rooms/laboratories.js';
-import { buildCleanRoom } from './world/bunker/rooms/clean-room.js';
-import { buildLifeSupport } from './world/bunker/rooms/life-support.js';
+import { capMat, bunkCapMesh } from './world/bunker/shell.js';
+import { buildBunker } from './world/bunker/index.js';
 
 (function () {
   'use strict';
@@ -129,212 +103,7 @@ import { buildLifeSupport } from './world/bunker/rooms/life-support.js';
 
   /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
   /* ---- SUÍTE CYBERPUNK DO MESTRE (7,0 × 16,6 m): closet · lounge e estação dev · cama-casulo com mosquiteiro · banheiro ---- */
-  buildMasterSuite(roomRect('Suíte cyberpunk do Mestre'));
-  buildParentsSuite(roomRect('Suíte dos pais'));
-  buildSisterRoom(roomRect('Quarto da irmã'));
-  buildNieceRoom(roomRect('Quarto da sobrinha'));
-  buildGuestRoom(roomRect('Quarto do convidado'));
-
-  buildDatacenter(roomRect('Datacenter'));
-  buildLaboratories(roomRect('Laboratórios'));
-  buildCleanRoom(roomRect('Sala limpa'));
-  buildLifeSupport(roomRect('Suporte de vida e baterias'));
-
-  /* =================== FILEIRA DA FRENTE (x −11,4 → 27,4) =================== */
-  /* estar, jantar e cozinha (13,6 × 14,6 m) */
-  bunkerBatch.addBox(8.0, 0.9, 0.7, PAL.light.linen, -4.4, FL + 0.06, -52.7);
-  bunkerBatch.addBox(8.1, 0.06, 0.8, PAL.light.cream, -4.4, FL + 0.96, -52.7);
-  bunkerBatch.addBox(0.8, 0.12, 0.5, K.steel, -6.4, FL + 1.0, -52.7);
-  bunkerBatch.addCylinder(0.035, 0.3, K.steel, -6.4, FL + 1.12, -52.5, 5);
-  bunkerBatch.addBox(0.9, 0.1, 0.6, K.black, -3.4, FL + 1.02, -52.7);
-  bunkerBatch.addBox(0.9, 1.9, 0.8, K.white, 0.9, FL + 0.06, -52.7);
-  bunkerBatch.addBox(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
-  bunkerBatch.addBox(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
-  bunkerBatch.addBox(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
-  for (let i = 0; i < 4; i++)
-    bunkerBatch.addCylinder(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
-  bunkerBatch.addBox(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
-  [
-    [-1.5, -0.5],
-    [1.5, -0.5],
-    [-1.5, 0.5],
-    [1.5, 0.5],
-  ].forEach(function (l) {
-    bunkerBatch.addBox(0.12, 0.7, 0.12, K.woodD, -4.6 + l[0], FL + 0.06, -44.6 + l[1]);
-  });
-  for (let i = 0; i < 4; i++) {
-    bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -46.0);
-    bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -43.2);
-  }
-  bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -7.7, FL + 0.06, -44.6);
-  bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -1.5, FL + 0.06, -44.6);
-  bunkerBatch.addBox(1.0, 0.5, 3.8, PAL.fabric.royalBlue, -9.6, FL + 0.06, -41.9);
-  bunkerBatch.addBox(0.3, 0.8, 3.8, PAL.fabric.royalBlue, -10.4, FL + 0.06, -41.9);
-  bunkerBatch.addBox(3.2, 0.5, 1.0, PAL.fabric.royalBlue, -7.8, FL + 0.06, -39.9);
-  bunkerBatch.addBox(1.0, 0.4, 1.0, K.woodD, -8.2, FL + 0.06, -42.2);
-  bunkerBatch.addCylinder(1.6, 0.03, PAL.fabric.rust, -8.4, FL + 0.06, -43.0, 22);
-  bunkerBatch.addBox(0.1, 1.5, 3.2, PAL.dark.void, -11.15, FL + 1.0, -47.5);
-  neonBatch.addBox(0.02, 1.4, 3.1, PAL.neon.blue, -11.05, FL + 1.05, -47.5);
-  bunkerBatch.addBox(0.5, 0.4, 2.6, K.woodD, -10.9, FL + 0.06, -47.5);
-  bunkerBatch.addBox(2.2, 1.1, 0.5, PAL.dark.slate, 0.4, FL + 0.06, -40.2);
-  neonBatch.addBox(1.8, 0.04, 0.04, PAL.neon.amber, 0.4, FL + 0.9, -39.9);
-  [[-0.4], [0.4], [1.2]].forEach(function (s) {
-    bunkerBatch.addCylinder(0.2, 0.5, K.woodD, s[0], FL + 0.06, -41.0, 8);
-  }); /* bar com bancos */
-  plant(-10.8, -52.6, 1.3);
-  plant(1.7, -45.0, 1.3);
-  neonBatch.addBox(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
-  /* despensa 90 dias */
-  function addBunkerPantryItem(x, y, z, n) {
-    const m = n % 5;
-    if (m === 0 || m === 3)
-      bunkerBatch.addCylinder(
-        0.12,
-        0.3,
-        [
-          PAL.flora.coral,
-          PAL.flora.marigold,
-          PAL.flora.sage,
-          PAL.light.wheat,
-          PAL.flora.purple,
-          PAL.clay.copperBrown,
-        ][n % 6],
-        x,
-        y,
-        z,
-        6,
-      );
-    else if (m === 1) bunkerBatch.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
-    else if (m === 2) bunkerBatch.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
-    else
-      bunkerBatch.addBox(
-        0.3,
-        0.3,
-        0.3,
-        [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][n % 3],
-        x,
-        y,
-        z,
-      );
-  }
-  function shelfZ(z1, z2, x) {
-    const L = z2 - z1;
-    const n = Math.floor(L / 0.5);
-    const nu = Math.round(L / 1.5);
-    for (let a = 0; a < 3; a++) {
-      bunkerBatch.addBox(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
-      for (let b = 0; b < n; b++)
-        addBunkerPantryItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
-    }
-    for (let c = 0; c <= nu; c++)
-      bunkerBatch.addBox(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);
-  }
-  shelfZ(-52.4, -39.4, 2.6);
-  shelfZ(-52.4, -39.4, 5.4);
-  for (let i = 0; i < 4; i++)
-    bunkerBatch.addCylinder(
-      0.4,
-      0.9,
-      K.wood,
-      3.5 + (i % 2) * 1.0,
-      FL + 0.06,
-      -47 + ((i / 2) | 0) * 1.0,
-      10,
-      0.37,
-    );
-  bunkerBatch.addBox(1.4, 0.85, 0.7, K.white, 4.0, FL + 0.06, -40.6);
-  /* cinema e jogos */
-  bunkerBatch.addBox(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
-  neonBatch.addBox(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
-  [-50.0, -47.8].forEach(function (z, n) {
-    for (let i = 0; i < 3; i++) {
-      bunkerBatch.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.06 + n * 0.3, z);
-      bunkerBatch.addBox(
-        0.9,
-        0.7,
-        0.2,
-        PAL.fabric.burgundy,
-        7.2 + i * 1.5,
-        FL + 0.4 + n * 0.3,
-        z + 0.45,
-      );
-    }
-  });
-  bunkerBatch.addBox(2.4, 0.8, 1.3, 0x1a5a3a, 8.6, FL + 0.06, -42.4);
-  bunkerBatch.addBox(2.5, 0.1, 1.4, K.woodD, 8.6, FL + 0.8, -42.4);
-  bunkerBatch.addCylinder(0.1, 0.1, PAL.light.white, 8.2, FL + 0.92, -42.4, 8);
-  bunkerBatch.addCylinder(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
-  bunkerBatch.addBox(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
-  neonBatch.addBox(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
-  for (let i = 0; i < 2; i++) {
-    bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
-    neonBatch.addBox(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
-  }
-  neonBatch.addBox(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
-  /* hidroponia */
-  [14.2, 16.4, 18.6].forEach(function (hx) {
-    for (let j = 0; j < 4; j++) {
-      bunkerBatch.addBox(1.0, 0.08, 12.4, K.steelD, hx, FL + 0.5 + j * 0.7, -46.2);
-      for (let k = 0; k < 19; k++)
-        bunkerBatch.addSphere(
-          0.26,
-          [PAL.flora.cropGreenA, PAL.flora.cropGreenC, PAL.flora.lime][(k + j) % 3],
-          hx + (k % 2 ? 0.2 : -0.2),
-          FL + 0.78 + j * 0.7,
-          -52.0 + k * 0.62,
-          1,
-          0.8,
-          1,
-        );
-      neonBatch.addBox(0.9, 0.03, 12.0, 0xd44cff, hx, FL + 0.38 + j * 0.7, -46.2);
-    }
-    bunkerBatch.addBox(0.1, 3.0, 12.4, K.steelD, hx - 0.55, FL, -46.2);
-    bunkerBatch.addBox(0.1, 3.0, 12.4, K.steelD, hx + 0.55, FL, -46.2);
-  });
-  bunkerBatch.addCylinder(0.5, 1.4, K.blue, 13.0, FL, -39.8, 10);
-  bunkerBatch.addCylinder(0.5, 1.4, K.blue, 19.6, FL, -39.8, 10);
-  /* oficina maker */
-  bunkerBatch.addBox(0.8, 0.95, 10, K.woodL, 26.8, FL, -46.2);
-  bunkerBatch.addBox(0.9, 0.06, 10.1, PAL.light.cream, 26.8, FL + 0.95, -46.2);
-  [-51, -49, -47].forEach(function (pz) {
-    bunkerBatch.addBox(0.5, 0.5, 0.5, K.white, 26.8, FL + 1.01, pz);
-    glowBatch.addBox(0.3, 0.3, 0.04, CY, 26.54, FL + 1.3, pz);
-  });
-  bunkerBatch.addBox(1.6, 1.5, 1.4, K.steelD, 22.2, FL, -51.6);
-  glowBatch.addBox(1.0, 0.5, 0.05, PAL.neon.amber, 22.2, FL + 0.8, -50.9);
-  bunkerBatch.addBox(2.2, 0.8, 0.8, K.steel, 22.2, FL, -47.4);
-  bunkerBatch.addCylinder(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
-  bunkerBatch.addBox(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);
-  bunkerBatch.addBox(1.2, 0.12, 2.4, K.steelD, 24.2, FL, -41.2);
-  for (let i = 0; i < 4; i++)
-    bunkerBatch.addBox(0.2, 0.2, 0.9, K.woodL, 24.2, FL + 0.12 + i * 0.2, -41.2);
-  bunkerBatch.addBox(0.2, 0.2, 1.6, K.yellow, 22.6, FL + 0.06, -40.6);
-  bunkerBatch.addBox(0.9, 0.05, 1.6, K.steelD, 22.6, FL + 0.26, -40.6);
-  for (let i = 0; i < 9; i++)
-    bunkerBatch.addBox(
-      0.1,
-      0.3,
-      0.5 + (i % 3) * 0.12,
-      [K.red, K.steel, K.yellow][i % 3],
-      27.3,
-      FL + 1.3 + (i % 3) * 0.4,
-      -51 + i * 1.0,
-    );
-
-  bunkerWallBatch.build(under);
-  bunkerBatch.build(under);
-  glowBatch.build(under, { unlit: true, outline: false });
-  neonBatch.build(under, { unlit: true, outline: false });
-  const netMat = toonMat.clone();
-  netMat.transparent = true;
-  netMat.opacity = 0.3;
-  netMat.depthWrite = false;
-  netMat.side = THREE.DoubleSide;
-  netBatch.build(under, { mat: netMat, outline: false });
-  hatchBatch.build(surface);
-  [ledBatchA, ledBatchB, ledBatchC].forEach(function (L) {
-    ledGroups.push(L.build(under, { unlit: true, outline: false }));
-  });
+  buildBunker();
 
   /* sombra falsa chapada sob a maquete */
   (function () {

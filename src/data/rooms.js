@@ -49,3 +49,10 @@ export const ROOMS = [
   ['Oficina maker', 20.4, -53.2, 27.4, -38.6, 'u'],
   ['Sobrado', -12.4, -68, 14.4, -47, 'a'],
 ];
+
+/** Retângulo de um cômodo pelo nome: { x1, z1, x2, z2 } em coordenadas do mundo. */
+export function roomRect(name) {
+  const r = ROOMS.find((x) => x[0] === name);
+  if (!r) throw new Error('cômodo desconhecido: ' + name);
+  return { x1: r[1], z1: r[2], x2: r[3], z2: r[4] };
+}

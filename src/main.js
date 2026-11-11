@@ -10,7 +10,7 @@ import { SECTORS } from './data/sectors.js';
 import { LABELS } from './data/labels.js';
 import { BOM } from './data/bom.js';
 import { AURA } from './data/aura.js';
-import { ROOMS } from './data/rooms.js';
+import { ROOMS, roomRect } from './data/rooms.js';
 import { FPSPOT } from './data/fpspots.js';
 import { $, stage, glHost, reduce } from './app/page.js';
 import {
@@ -54,7 +54,6 @@ import {
   FL,
   neonBatch,
   CY,
-  DARK,
   NEON,
   netBatch,
   GRN,
@@ -76,6 +75,7 @@ import {
   addBunkerDoubleBed,
   addBunkerSingleBed,
 } from './world/bunker/fixtures.js';
+import { buildMasterSuite } from './world/bunker/rooms/master-suite.js';
 
 (function () {
   'use strict';
@@ -132,180 +132,7 @@ import {
 
   /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
   /* ---- SUÍTE CYBERPUNK DO MESTRE (7,0 × 16,6 m): closet · lounge e estação dev · cama-casulo com mosquiteiro · banheiro ---- */
-  (function () {
-    const x0 = -11.25,
-      x1 = -4.55;
-    addBunkerBathroom(
-      -7.35,
-      2.8,
-      Z1,
-      -5.6,
-      -4.7,
-      false,
-    ); /* banheiro-cabine no canto leste dos fundos */
-    wardrobe(x0 + 0.3, -57.2, Math.PI / 2);
-    wardrobe(x0 + 0.3, -58.8, Math.PI / 2);
-    bunkerBatch.addBox(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
-    neonBatch.addBox(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
-    bunkerBatch.addBox(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
-    for (let i = 0; i < 5; i++)
-      bunkerBatch.addBox(
-        0.3,
-        0.1,
-        0.18,
-        [K.red, K.white, PAL.glass.windowDeep, K.yellow, PAL.dark.deviceBlack][i],
-        x0 + 0.55,
-        FL + 0.06 + i * 0.0,
-        -59.9 + 0.0,
-      );
-    /* estação dev: mesa em L, 3 monitores curvos, PC com RGB, rack e cadeira gamer */
-    desk(x0 + 0.5, -62.2, 3.8, Math.PI / 2);
-    [-63.5, -62.2, -60.9].forEach(function (mz, n) {
-      bunkerBatch.addBox(
-        0.08,
-        0.62,
-        1.28,
-        PAL.dark.void,
-        x0 + 0.2,
-        FL + 1.0,
-        mz + (n === 0 ? 0.08 : n === 2 ? -0.08 : 0),
-      );
-      neonBatch.addBox(0.04, 0.56, 1.2, [CY, NEON, GRN][n], x0 + 0.28, FL + 1.03, mz);
-    });
-    bunkerBatch.addBox(0.3, 0.5, 0.6, PAL.dark.navyBlack, x0 + 0.5, FL + 0.81, -64.0);
-    neonBatch.addBox(0.02, 0.4, 0.5, CY, x0 + 0.66, FL + 0.86, -64.0);
-    bunkerBatch.addBox(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
-    chair(x0 + 1.7, -62.2, PAL.dark.deviceBlack);
-    bunkerBatch.addBox(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
-    for (let i = 0; i < 9; i++)
-      neonBatch.addBox(
-        0.05,
-        0.05,
-        0.5,
-        [CY, GRN, NEON][i % 3],
-        x0 + 0.92,
-        FL + 0.3 + i * 0.19,
-        -65.4,
-      );
-    neonBatch.addBox(0.04, 0.04, 3.6, CY, x0 + 0.08, FL + 0.72, -62.2);
-    /* mesa holográfica e área de lounge */
-    bunkerBatch.addCylinder(0.9, 0.6, DARK, -6.9, FL + 0.06, -61.6, 16);
-    neonBatch.addCylinder(0.95, 0.04, CY, -6.9, FL + 0.66, -61.6, 16);
-    neonBatch.addSphere(0.55, CY, -6.9, FL + 1.6, -61.6, 1, 1, 1, 1);
-    neonBatch.addCylinder(1.0, 0.03, NEON, -6.9, FL + 0.07, -61.6, 22);
-    bunkerBatch.addBox(0.9, 0.5, 2.4, PAL.fabric.indigo, x1 - 0.5, FL + 0.06, -61.6);
-    bunkerBatch.addBox(0.3, 0.8, 2.4, PAL.fabric.indigo, x1 - 0.2, FL + 0.06, -61.6);
-    bunkerBatch.addCylinder(0.5, 0.4, PAL.flora.violet, -9.2, FL + 0.06, -59.9, 10);
-    bunkerBatch.addCylinder(0.5, 0.4, PAL.neon.cyan, -9.2, FL + 0.06, -65.3, 10);
-    bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, -9.2, FL + 0.06, -56.8);
-    neonBatch.addBox(
-      0.7,
-      0.5,
-      0.04,
-      NEON,
-      -9.2,
-      FL + 1.2,
-      -56.4,
-    ); /* fliperama (ao lado da porta) */
-    /* cama-casulo redonda com mosquiteiro, cabeceira em arco e anel de neon */
-    const bx = -8.1,
-      bz = -67.9;
-    bunkerBatch.addCylinder(1.95, 0.3, 0x15171f, bx, FL + 0.06, bz, 28);
-    bunkerBatch.addCylinder(1.7, 0.3, 0xf0eef6, bx, FL + 0.36, bz, 28);
-    neonBatch.addCylinder(2.0, 0.03, NEON, bx, FL + 0.07, bz, 32);
-    bunkerBatch.addCylinder(0.55, 0.18, PAL.flora.violet, bx - 0.6, FL + 0.66, bz - 0.8, 10, 0.45);
-    bunkerBatch.addCylinder(0.55, 0.18, PAL.neon.cyan, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
-    bunkerBatch.addCylinder(1.0, 0.06, PAL.dark.slate, bx, FL + 0.66, bz + 0.5, 20, 0.9);
-    for (let th = -Math.PI / 2 - 1.1; th <= -Math.PI / 2 + 1.11; th += 0.275) {
-      const sx = bx + 2.25 * Math.cos(th),
-        sz = bz + 2.25 * Math.sin(th),
-        rr2 = Math.atan2(-Math.cos(th), -Math.sin(th));
-      bunkerBatch.addBox(0.48, 1.7, 0.12, DARK, sx, FL + 0.06, sz, [0, rr2, 0]);
-      neonBatch.addBox(0.04, 1.5, 0.04, NEON, sx, FL + 0.16, sz + (sz < bz ? 0.07 : -0.07));
-    }
-    for (let i = 0; i < 16; i++) {
-      const a2 = (i / 16) * Math.PI * 2,
-        cx2 = bx + 2.15 * Math.cos(a2),
-        cz2 = bz + 2.15 * Math.sin(a2);
-      const giroY = Math.atan2(-Math.cos(a2), -Math.sin(a2));
-      neonBatch.addBox(0.5, 0.05, 0.1, CY, cx2, FL + 3.0, cz2, [0, giroY, 0]);
-    }
-    netBatch.addCylinder(
-      2.1,
-      2.9,
-      0xeeeaff,
-      bx,
-      FL + 0.08,
-      bz,
-      28,
-      0.35,
-    ); /* mosquiteiro translúcido em cúpula */
-    bunkerBatch.addCylinder(0.04, 0.5, K.steelD, bx, FL + 3.0, bz, 6);
-    neonBatch.addSphere(0.14, PAL.light.warmGlow, bx, FL + 3.1, bz, 1, 1, 1, 1);
-    /* parede aquário, skyline e prateleiras */
-    bunkerBatch.addBox(3.6, 1.5, 0.3, 0x0a2a3a, -9.45, FL + 0.5, -72.2);
-    neonBatch.addBox(3.4, 1.3, 0.05, 0x1a6fd0, -9.45, FL + 0.6, -72.0);
-    [
-      [-10.5, 0.9, 0xffa14a],
-      [-9.4, 1.2, PAL.neon.magenta],
-      [-8.4, 0.8, PAL.neon.yellow],
-      [-9.9, 1.5, PAL.neon.mint],
-    ].forEach(function (f) {
-      neonBatch.addSphere(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
-    });
-    bunkerBatch.addBox(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
-    for (let i = 0; i < 18; i++) {
-      const skh = 0.5 + (((i * 37) % 17) / 17) * 1.9;
-      neonBatch.addBox(
-        0.08,
-        skh,
-        0.26,
-        [CY, NEON, PAL.neon.yellow, PAL.neon.violet][i % 4],
-        x0 + 0.08,
-        FL + 0.4,
-        -71.0 + i * 0.3,
-      );
-    }
-    for (let i = 0; i < 3; i++) {
-      bunkerBatch.addBox(0.3, 0.05, 1.6, K.woodD, x1 - 0.2, FL + 1.0 + i * 0.5, -68.4);
-      for (let j = 0; j < 4; j++)
-        bunkerBatch.addSphere(
-          0.1,
-          [PAL.neon.magenta, PAL.neon.cyan, PAL.neon.yellow, PAL.flora.lime][(i + j) % 4],
-          x1 - 0.2,
-          FL + 1.15 + i * 0.5,
-          -69.0 + j * 0.4,
-          1,
-          1.4,
-          1,
-        );
-    }
-    bunkerBatch.addBox(0.9, 0.8, 0.5, PAL.dark.slate, x1 - 0.4, FL + 0.06, -65.5);
-    bunkerBatch.addBox(0.5, 0.1, 0.4, K.black, x1 - 0.4, FL + 0.86, -65.5);
-    bunkerBatch.addCylinder(
-      0.2,
-      0.04,
-      PAL.dark.deviceBlack,
-      x1 - 0.4,
-      FL + 0.96,
-      -65.5,
-      16,
-    ); /* aparador com vitrola */
-    bunkerBatch.addBox(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -64.6);
-    bunkerBatch.addBox(
-      0.4,
-      1.4,
-      0.3,
-      PAL.dark.deviceBlack,
-      x1 - 0.2,
-      FL + 0.06,
-      -66.4,
-    ); /* caixas de som */
-    plant(x0 + 0.45, -70.5, 1.2);
-    plant(x1 - 0.4, -69.9, 1.0);
-    neonBatch.addBox(6.4, 0.05, 0.05, NEON, -7.9, FL + 3.4, -62);
-    neonBatch.addBox(6.4, 0.05, 0.05, CY, -7.9, FL + 3.4, -67);
-  })();
+  buildMasterSuite(roomRect('Suíte cyberpunk do Mestre'));
   /* ---- SUÍTE DOS PAIS (4,5 × 16,6 m): cama king, poltrona de leitura, penteadeira, adega, TV, banheiro ---- */
   (function () {
     const x0 = -4.25,

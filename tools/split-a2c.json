@@ -1,0 +1,41 @@
+{
+  "stay": [[39, 99]],
+  "modules": [
+    {
+      "file": "src/world/yard.js",
+      "header": "Pátio técnico e oficina de reparos: lote de brita, trilhos, baias, galpões e sinalização.",
+      "sections": ["PÁTIO TÉCNICO"]
+    },
+    {
+      "file": "src/world/waterwheel.js",
+      "header": "Roda d'água overshot (dinâmica): calha, roda, eixo e giro.",
+      "sections": ["RODA D'ÁGUA"]
+    },
+    {
+      "file": "src/world/windmill.js",
+      "header": "Moinho de vento: torre, rotor e giro.",
+      "sections": ["MOINHO DE VENTO"]
+    },
+    {
+      "file": "src/world/animals.js",
+      "header": "Animais em baixo-poli (porcos, galinhas e cabras) e seus passeios.",
+      "sections": ["ANIMAIS EM BAIXO-POLI"]
+    },
+    {
+      "file": "src/world/fish.js",
+      "header": "Peixes triangulares da lagoa.",
+      "sections": ["PEIXES TRIANGULARES"]
+    },
+    {
+      "file": "src/world/foam.js",
+      "header": "Espuma, respingos e superfície da lagoa e do córrego.",
+      "sections": ["ESPUMA, RESPINGOS"]
+    },
+    {
+      "file": "src/world/animation.js",
+      "header": "Animação do mundo: laço de `surface.userData.tick` (roda, rotor, animais, peixes, espuma, balizas e LEDs).",
+      "sections": ["ANIMAÇÃO"],
+      "names": ["splashT", "ledGroups"]
+    }
+  ]
+}

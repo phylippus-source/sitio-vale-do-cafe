@@ -3,9 +3,8 @@ import { clamp, smooth } from './core/math.js';
 import { C } from './core/color.js';
 import { toonMat, hullMat, waterMat, pondMat } from './core/materials.js';
 import { cylG } from './core/geometries.js';
-import { Batch } from './core/Batch.js';
-import { FLOOR, BFL, BWH, GF, UF, BUNKER_INNER } from './config/dimensions.js';
-import { K, MARB, AZB, PAL } from './config/palette.js';
+import { BFL, GF, UF } from './config/dimensions.js';
+import { K, MARB, PAL } from './config/palette.js';
 import { validateData } from './data/validate.js';
 import { SECTORS } from './data/sectors.js';
 import { LABELS } from './data/labels.js';
@@ -16,7 +15,6 @@ import { FPSPOT } from './data/fpspots.js';
 import { $, stage, glHost, reduce } from './app/page.js';
 import {
   surface,
-  addCollider,
   under,
   diorama,
   camera,
@@ -31,7 +29,6 @@ import './world/sisteminha.js';
 import './world/flora.js';
 import { barnG, barnRoofG, barnWalls } from './world/engenho.js';
 import {
-  wall,
   casaG,
   casaUp,
   casaRoofG,
@@ -51,6 +48,34 @@ import { animals } from './world/animals.js';
 import { fishList } from './world/fish.js';
 import './world/foam.js';
 import { ledGroups } from './world/animation.js';
+import {
+  Z1,
+  bunkerBatch,
+  FL,
+  neonBatch,
+  CY,
+  DARK,
+  NEON,
+  netBatch,
+  GRN,
+  glowBatch,
+  ledBatchA,
+  ledBatchB,
+  ledBatchC,
+  bunkerWallBatch,
+  hatchBatch,
+  capMat,
+  bunkCapMesh,
+} from './world/bunker/shell.js';
+import {
+  addBunkerBathroom,
+  wardrobe,
+  desk,
+  chair,
+  plant,
+  addBunkerDoubleBed,
+  addBunkerSingleBed,
+} from './world/bunker/fixtures.js';
 
 (function () {
   'use strict';
@@ -105,811 +130,545 @@ import { ledGroups } from './world/animation.js';
     });
   })();
 
-  /* ================= BUNKER · UM NÍVEL · 40 × 35 m = 1.400 m² · piso a −8,7 m · sob a Casa Grande e parte do Engenho ================= */
-  let bunkCapMesh = null;
-  const capMat = toonMat.clone();
+  /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
+  /* ---- SUÍTE CYBERPUNK DO MESTRE (7,0 × 16,6 m): closet · lounge e estação dev · cama-casulo com mosquiteiro · banheiro ---- */
   (function () {
-    const FL = BFL;
-    const WB = BWH;
-    const bunkerWallBatch = new Batch(),
-      bunkerBatch = new Batch(),
-      ledBatchA = new Batch(),
-      ledBatchB = new Batch(),
-      ledBatchC = new Batch(),
-      glowBatch = new Batch(),
-      neonBatch = new Batch(),
-      netBatch = new Batch(),
-      hatchBatch = new Batch(),
-      capBatch = new Batch();
-    const WALLC = 0xc4cad0,
-      PW = 0xe9edf0,
-      DARK = PAL.dark.navyBlack,
-      NEON = 0xff2bd6,
-      CY = PAL.neon.cyan,
-      GRN = PAL.neon.mint;
-    /* limites */
-    const X1 = BUNKER_INNER.x1,
-      X2 = BUNKER_INNER.x2,
-      Z1 = BUNKER_INNER.z1,
-      Z2 = BUNKER_INNER.z2,
-      ZA = BUNKER_INNER.corridorZ1,
-      ZB =
-        BUNKER_INNER.corridorZ2; /* interior; fileira dos fundos até ZA, corredor ZA..ZB, fileira da frente ZB..Z2 */
-    function addBunkerWallCollider(axis, fixed, lo, hi, gaps, th) {
-      let cur = lo;
-      (gaps || [])
-        .slice()
-        .sort(function (p, q) {
-          return p[0] - q[0];
-        })
-        .forEach(function (q) {
-          addColliderSegment(cur, q[0]);
-          cur = q[1];
-        });
-      addColliderSegment(cur, hi);
-      function addColliderSegment(a, b) {
-        if (b - a < 0.05) return;
-        if (axis === 'x') addCollider(a, fixed - th / 2, b, fixed + th / 2, 'u');
-        else addCollider(fixed - th / 2, a, fixed + th / 2, b, 'u');
-      }
+    const x0 = -11.25,
+      x1 = -4.55;
+    addBunkerBathroom(
+      -7.35,
+      2.8,
+      Z1,
+      -5.6,
+      -4.7,
+      false,
+    ); /* banheiro-cabine no canto leste dos fundos */
+    wardrobe(x0 + 0.3, -57.2, Math.PI / 2);
+    wardrobe(x0 + 0.3, -58.8, Math.PI / 2);
+    bunkerBatch.addBox(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
+    neonBatch.addBox(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
+    bunkerBatch.addBox(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
+    for (let i = 0; i < 5; i++)
+      bunkerBatch.addBox(
+        0.3,
+        0.1,
+        0.18,
+        [K.red, K.white, PAL.glass.windowDeep, K.yellow, PAL.dark.deviceBlack][i],
+        x0 + 0.55,
+        FL + 0.06 + i * 0.0,
+        -59.9 + 0.0,
+      );
+    /* estação dev: mesa em L, 3 monitores curvos, PC com RGB, rack e cadeira gamer */
+    desk(x0 + 0.5, -62.2, 3.8, Math.PI / 2);
+    [-63.5, -62.2, -60.9].forEach(function (mz, n) {
+      bunkerBatch.addBox(
+        0.08,
+        0.62,
+        1.28,
+        PAL.dark.void,
+        x0 + 0.2,
+        FL + 1.0,
+        mz + (n === 0 ? 0.08 : n === 2 ? -0.08 : 0),
+      );
+      neonBatch.addBox(0.04, 0.56, 1.2, [CY, NEON, GRN][n], x0 + 0.28, FL + 1.03, mz);
+    });
+    bunkerBatch.addBox(0.3, 0.5, 0.6, PAL.dark.navyBlack, x0 + 0.5, FL + 0.81, -64.0);
+    neonBatch.addBox(0.02, 0.4, 0.5, CY, x0 + 0.66, FL + 0.86, -64.0);
+    bunkerBatch.addBox(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
+    chair(x0 + 1.7, -62.2, PAL.dark.deviceBlack);
+    bunkerBatch.addBox(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
+    for (let i = 0; i < 9; i++)
+      neonBatch.addBox(
+        0.05,
+        0.05,
+        0.5,
+        [CY, GRN, NEON][i % 3],
+        x0 + 0.92,
+        FL + 0.3 + i * 0.19,
+        -65.4,
+      );
+    neonBatch.addBox(0.04, 0.04, 3.6, CY, x0 + 0.08, FL + 0.72, -62.2);
+    /* mesa holográfica e área de lounge */
+    bunkerBatch.addCylinder(0.9, 0.6, DARK, -6.9, FL + 0.06, -61.6, 16);
+    neonBatch.addCylinder(0.95, 0.04, CY, -6.9, FL + 0.66, -61.6, 16);
+    neonBatch.addSphere(0.55, CY, -6.9, FL + 1.6, -61.6, 1, 1, 1, 1);
+    neonBatch.addCylinder(1.0, 0.03, NEON, -6.9, FL + 0.07, -61.6, 22);
+    bunkerBatch.addBox(0.9, 0.5, 2.4, PAL.fabric.indigo, x1 - 0.5, FL + 0.06, -61.6);
+    bunkerBatch.addBox(0.3, 0.8, 2.4, PAL.fabric.indigo, x1 - 0.2, FL + 0.06, -61.6);
+    bunkerBatch.addCylinder(0.5, 0.4, PAL.flora.violet, -9.2, FL + 0.06, -59.9, 10);
+    bunkerBatch.addCylinder(0.5, 0.4, PAL.neon.cyan, -9.2, FL + 0.06, -65.3, 10);
+    bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, -9.2, FL + 0.06, -56.8);
+    neonBatch.addBox(
+      0.7,
+      0.5,
+      0.04,
+      NEON,
+      -9.2,
+      FL + 1.2,
+      -56.4,
+    ); /* fliperama (ao lado da porta) */
+    /* cama-casulo redonda com mosquiteiro, cabeceira em arco e anel de neon */
+    const bx = -8.1,
+      bz = -67.9;
+    bunkerBatch.addCylinder(1.95, 0.3, 0x15171f, bx, FL + 0.06, bz, 28);
+    bunkerBatch.addCylinder(1.7, 0.3, 0xf0eef6, bx, FL + 0.36, bz, 28);
+    neonBatch.addCylinder(2.0, 0.03, NEON, bx, FL + 0.07, bz, 32);
+    bunkerBatch.addCylinder(0.55, 0.18, PAL.flora.violet, bx - 0.6, FL + 0.66, bz - 0.8, 10, 0.45);
+    bunkerBatch.addCylinder(0.55, 0.18, PAL.neon.cyan, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
+    bunkerBatch.addCylinder(1.0, 0.06, PAL.dark.slate, bx, FL + 0.66, bz + 0.5, 20, 0.9);
+    for (let th = -Math.PI / 2 - 1.1; th <= -Math.PI / 2 + 1.11; th += 0.275) {
+      const sx = bx + 2.25 * Math.cos(th),
+        sz = bz + 2.25 * Math.sin(th),
+        rr2 = Math.atan2(-Math.cos(th), -Math.sin(th));
+      bunkerBatch.addBox(0.48, 1.7, 0.12, DARK, sx, FL + 0.06, sz, [0, rr2, 0]);
+      neonBatch.addBox(0.04, 1.5, 0.04, NEON, sx, FL + 0.16, sz + (sz < bz ? 0.07 : -0.07));
     }
-    function addPartitionX(z, x1, x2, gaps, color) {
-      wall(bunkerWallBatch, 'x', z, x1, x2, gaps, FL, WB - 0.04, 0.3, color || PW, null);
-      addBunkerWallCollider('x', z, x1, x2, gaps, 0.3);
+    for (let i = 0; i < 16; i++) {
+      const a2 = (i / 16) * Math.PI * 2,
+        cx2 = bx + 2.15 * Math.cos(a2),
+        cz2 = bz + 2.15 * Math.sin(a2);
+      const giroY = Math.atan2(-Math.cos(a2), -Math.sin(a2));
+      neonBatch.addBox(0.5, 0.05, 0.1, CY, cx2, FL + 3.0, cz2, [0, giroY, 0]);
     }
-    function addPartitionZ(x, z1, z2, gaps, color) {
-      wall(bunkerWallBatch, 'z', x, z1, z2, gaps, FL, WB - 0.04, 0.3, color || PW, null);
-      addBunkerWallCollider('z', x, z1, z2, gaps, 0.3);
-    }
-    function tile(x1, z1, x2, z2, c) {
-      bunkerBatch.addBox(x2 - x1, 0.06, z2 - z1, c, (x1 + x2) / 2, FL, (z1 + z2) / 2);
-    }
-    function doorGap(c, w) {
-      return [c - w / 2, c + w / 2, 0, 2.5];
-    }
-
-    /* ---------- casca ---------- */
-    bunkerWallBatch.addBox(40, 0.2, 35, 0xb8c0c7, 8, FLOOR, -55.5);
-    bunkerWallBatch.addBox(0.6, WB, 35, WALLC, -11.7, FL, -55.5);
-    bunkerWallBatch.addBox(0.6, WB, 35, WALLC, 27.7, FL, -55.5);
-    bunkerWallBatch.addBox(40, WB, 0.6, WALLC, 8, FL, -72.7);
-    bunkerWallBatch.addBox(40, WB, 0.6, WALLC, 8, FL, -38.3);
-    addCollider(-12.2, -73.2, -11.4, -37.8, 'u');
-    addCollider(27.4, -73.2, 28.2, -37.8, 'u');
-    addCollider(-12.2, -73.2, 28.2, -72.4, 'u');
-    addCollider(-12.2, -38.6, 28.2, -37.8, 'u');
-    /* cobertura (laje + terra + grama): vira vidro com a abertura do corte */
-    capBatch.addBox(40, 0.8, 35, 0xaab2b9, 8, -5.1, -55.5);
+    netBatch.addCylinder(
+      2.1,
+      2.9,
+      0xeeeaff,
+      bx,
+      FL + 0.08,
+      bz,
+      28,
+      0.35,
+    ); /* mosquiteiro translúcido em cúpula */
+    bunkerBatch.addCylinder(0.04, 0.5, K.steelD, bx, FL + 3.0, bz, 6);
+    neonBatch.addSphere(0.14, PAL.light.warmGlow, bx, FL + 3.1, bz, 1, 1, 1, 1);
+    /* parede aquário, skyline e prateleiras */
+    bunkerBatch.addBox(3.6, 1.5, 0.3, 0x0a2a3a, -9.45, FL + 0.5, -72.2);
+    neonBatch.addBox(3.4, 1.3, 0.05, 0x1a6fd0, -9.45, FL + 0.6, -72.0);
     [
-      [-5, -2.4, 0x946037],
-      [-2.4, -0.4, 0x6e4527],
-    ].forEach(function (b) {
-      const y0 = Math.max(b[0], -4.3),
-        y1 = Math.min(b[1], -0.4);
-      if (y1 > y0 + 0.01) capBatch.addBox(40, y1 - y0, 35, b[2], 8, y0, -55.5);
+      [-10.5, 0.9, 0xffa14a],
+      [-9.4, 1.2, PAL.neon.magenta],
+      [-8.4, 0.8, PAL.neon.yellow],
+      [-9.9, 1.5, PAL.neon.mint],
+    ].forEach(function (f) {
+      neonBatch.addSphere(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
     });
-    capBatch.addBox(40, 0.4, 35, K.grass, 8, -0.4, -55.5);
-    capMat.transparent = false;
-    bunkCapMesh = capBatch.build(surface, { mat: capMat, outline: false });
+    bunkerBatch.addBox(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
+    for (let i = 0; i < 18; i++) {
+      const skh = 0.5 + (((i * 37) % 17) / 17) * 1.9;
+      neonBatch.addBox(
+        0.08,
+        skh,
+        0.26,
+        [CY, NEON, PAL.neon.yellow, PAL.neon.violet][i % 4],
+        x0 + 0.08,
+        FL + 0.4,
+        -71.0 + i * 0.3,
+      );
+    }
+    for (let i = 0; i < 3; i++) {
+      bunkerBatch.addBox(0.3, 0.05, 1.6, K.woodD, x1 - 0.2, FL + 1.0 + i * 0.5, -68.4);
+      for (let j = 0; j < 4; j++)
+        bunkerBatch.addSphere(
+          0.1,
+          [PAL.neon.magenta, PAL.neon.cyan, PAL.neon.yellow, PAL.flora.lime][(i + j) % 4],
+          x1 - 0.2,
+          FL + 1.15 + i * 0.5,
+          -69.0 + j * 0.4,
+          1,
+          1.4,
+          1,
+        );
+    }
+    bunkerBatch.addBox(0.9, 0.8, 0.5, PAL.dark.slate, x1 - 0.4, FL + 0.06, -65.5);
+    bunkerBatch.addBox(0.5, 0.1, 0.4, K.black, x1 - 0.4, FL + 0.86, -65.5);
+    bunkerBatch.addCylinder(
+      0.2,
+      0.04,
+      PAL.dark.deviceBlack,
+      x1 - 0.4,
+      FL + 0.96,
+      -65.5,
+      16,
+    ); /* aparador com vitrola */
+    bunkerBatch.addBox(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -64.6);
+    bunkerBatch.addBox(
+      0.4,
+      1.4,
+      0.3,
+      PAL.dark.deviceBlack,
+      x1 - 0.2,
+      FL + 0.06,
+      -66.4,
+    ); /* caixas de som */
+    plant(x0 + 0.45, -70.5, 1.2);
+    plant(x1 - 0.4, -69.9, 1.0);
+    neonBatch.addBox(6.4, 0.05, 0.05, NEON, -7.9, FL + 3.4, -62);
+    neonBatch.addBox(6.4, 0.05, 0.05, CY, -7.9, FL + 3.4, -67);
+  })();
+  /* ---- SUÍTE DOS PAIS (4,5 × 16,6 m): cama king, poltrona de leitura, penteadeira, adega, TV, banheiro ---- */
+  (function () {
+    const x0 = -4.25,
+      x1 = -0.05;
+    addBunkerBathroom(x0, 2.6, Z1, -2.7, -1.8, true);
+    wardrobe(-0.9, -72.1, 0);
+    addBunkerDoubleBed(-1.9, -65.6, PAL.flora.grass);
+    bunkerBatch.addBox(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
+    neonBatch.addBox(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
+    bunkerBatch.addBox(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
+    neonBatch.addCylinder(0.06, 0.05, PAL.light.warmGlow, -3.9, FL + 1.1, -67.3, 6);
+    bunkerBatch.addBox(1.6, 0.9, 0.5, K.woodD, x1 - 0.3, FL + 0.06, -60.8);
+    bunkerBatch.addBox(0.08, 1.1, 1.6, PAL.dark.void, x1 - 0.08, FL + 0.9, -60.8);
+    neonBatch.addBox(0.03, 1.0, 1.5, PAL.neon.blue, x1 - 0.14, FL + 0.95, -60.8);
+    bunkerBatch.addBox(1.0, 0.8, 0.5, K.woodL, x0 + 0.35, FL + 0.06, -57.3);
+    bunkerBatch.addBox(0.04, 1.4, 0.9, PAL.glass.showerGlass, x0 + 0.1, FL + 0.9, -57.3);
+    neonBatch.addBox(0.02, 1.4, 0.04, PAL.light.warmGlow, x0 + 0.12, FL + 0.9, -56.8);
+    bunkerBatch.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, x0 + 0.7, FL + 0.06, -61.5);
+    bunkerBatch.addBox(0.2, 0.6, 0.9, PAL.fabric.burgundy, x0 + 0.3, FL + 0.06, -61.5);
+    bunkerBatch.addCylinder(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
+    neonBatch.addSphere(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
+    bunkerBatch.addBox(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
+    for (let i = 0; i < 6; i++)
+      bunkerBatch.addCylinder(
+        0.07,
+        0.3,
+        [PAL.fabric.wine, 0x2a4a1f, PAL.fabric.wine][i % 3],
+        x1 - 0.45 + ((i % 2) * 0.2 - 0.1),
+        FL + 0.4 + ((i / 2) | 0) * 0.45,
+        -70.75,
+        6,
+      );
+    bunkerBatch.addCylinder(1.2, 0.03, PAL.stone.sandstone, -1.9, FL + 0.06, -63.2, 20);
+    neonBatch.addBox(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
+  })();
+  /* ---- IRMÃ (3,5 m) · SOBRINHA 11 anos (2,9 m) · CONVIDADO (2,7 m) ---- */
+  addBunkerBathroom(0.25, 2.4, Z1, 1.0, 1.9, true);
+  addBunkerDoubleBed(2.4, -64.0, PAL.flora.salmon);
+  wardrobe(3.45, -60.6, -Math.PI / 2);
+  desk(0.7, -58.2, 1.3, 0);
+  bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
+  chair(0.7, -57.6, PAL.flora.purple);
+  plant(3.4, -57.0, 1.0);
+  bunkerBatch.addCylinder(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
+  addBunkerBathroom(4.05, 2.9, Z1, 5.0, 5.9, false);
+  addBunkerSingleBed(6.0, -64.0, PAL.flora.violet);
+  wardrobe(4.35, -60.5, Math.PI / 2);
+  bunkerBatch.addBox(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
+  bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
+  chair(5.6, -56.9, 0xff7ac8);
+  neonBatch.addBox(2.6, 0.05, 0.05, 0xffd98a, 5.5, FL + 3.2, -70);
+  bunkerBatch.addCone(0.7, 1.5, 0xe8c9a0, 4.8, FL + 0.06, -61.6, 6);
+  neonBatch.addSphere(
+    0.1,
+    PAL.light.warmGlow,
+    4.8,
+    FL + 0.6,
+    -61.6,
+    1,
+    1,
+    1,
+    1,
+  ); /* cabaninha de leitura */
+  for (let i = 0; i < 10; i++)
+    neonBatch.addBox(
+      0.06,
+      0.06,
+      0.06,
+      [PAL.neon.yellow, PAL.light.white, PAL.glass.iceBlue][i % 3],
+      4.2 + ((i * 7) % 11) * 0.25,
+      FL + 3.45,
+      -57.5 - ((i * 5) % 9) * 1.2,
+    ); /* estrelinhas no teto */
+  addBunkerBathroom(7.25, 2.7, Z1, 8.2, 9.1, false);
+  addBunkerSingleBed(9.1, -64.0, PAL.flora.cornflower);
+  wardrobe(7.55, -60.5, Math.PI / 2);
+  desk(8.6, -57.6, 1.2, 0);
+  chair(8.6, -57.0, PAL.glass.windowDeep);
 
-    /* ---------- paredes ---------- */
-    addPartitionX(ZA, X1, X2, [
-      doorGap(-8.2, 1.6),
-      doorGap(-2.3, 1.2),
-      doorGap(2.0, 1.2),
-      doorGap(5.5, 1.2),
-      doorGap(8.6, 1.2),
-      doorGap(13.1, 1.4),
-      doorGap(18.05, 1.3),
-      doorGap(21.5, 1.2),
-      doorGap(25.2, 1.2),
-    ]);
-    addPartitionX(ZB, X1, X2, [
-      [-8.2, -2.2, 0, 2.8],
-      doorGap(4.0, 1.2),
-      doorGap(9.1, 1.4),
-      doorGap(16.4, 1.6),
-      doorGap(23.9, 1.4),
-    ]);
-    [-4.4, 0.1, 3.9, 7.1, 10.1, 16.1, 20.0, 23.0].forEach(function (x) {
-      addPartitionZ(x, Z1, ZA, []);
-    });
-    [2.2, 5.8, 12.4, 20.4].forEach(function (x) {
-      addPartitionZ(x, ZB, Z2, []);
-    });
-    /* pisos por ambiente */
-    tile(X1, Z1, -4.4, ZA, 0x12141c);
-    tile(-4.4, Z1, 0.1, ZA, PAL.wood.oak);
-    tile(0.1, Z1, 3.9, ZA, PAL.wood.floorBoard);
-    tile(3.9, Z1, 7.1, ZA, 0xe8c9d0);
-    tile(7.1, Z1, 10.1, ZA, 0x6b7a8a);
-    tile(10.1, Z1, 16.1, ZA, 0xdfe6ea);
-    tile(16.1, Z1, 20, ZA, 0xeaf3f7);
-    tile(20, Z1, 23, ZA, 0xf2f4f8);
-    tile(23, Z1, X2, ZA, 0xe2e6ea);
-    tile(X1, ZA, X2, ZB, PAL.dark.slate);
-    tile(X1, ZB, 2.2, Z2, 0xb69a74);
-    tile(2.2, ZB, 5.8, Z2, 0xe8d3b0);
-    tile(5.8, ZB, 12.4, Z2, 0x1e1a26);
-    tile(12.4, ZB, 20.4, Z2, 0x2c4a3a);
-    tile(20.4, ZB, X2, Z2, PAL.light.tileGrey);
-    /* corredor: neon e dutos */
-    neonBatch.addBox(38.6, 0.05, 0.05, NEON, 8, FL + 3.3, ZA + 0.2);
-    neonBatch.addBox(38.6, 0.05, 0.05, CY, 8, FL + 3.3, ZB - 0.2);
+  /* =================== FILEIRA DOS FUNDOS: técnico (x 10,1 → 27,4) =================== */
+  /* datacenter imerso */
+  [
+    [11.5, -68.4],
+    [14.5, -68.4],
+    [11.5, -65.4],
+    [14.5, -65.4],
+    [11.5, -62.4],
+    [14.5, -62.4],
+    [11.5, -59.4],
+    [14.5, -59.4],
+  ].forEach(function (t, n) {
+    bunkerBatch.addBox(2.2, 1.0, 1.4, K.steel, t[0], FL, t[1]);
+    bunkerBatch.addBox(2.0, 0.1, 1.2, 0x2c6f78, t[0], FL + 1.0, t[1]);
+    glowBatch.addBox(1.8, 0.05, 1.0, 0x35e0b0, t[0], FL + 1.1, t[1]);
+    ledBatchA.addBox(1.4, 0.06, 0.04, [CY, GRN][n % 2], t[0], FL + 0.6, t[1] + 0.72);
+  });
+  for (let i = 0; i < 5; i++) {
+    const rx = 10.95 + i * 1.1;
+    bunkerBatch.addBox(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
+    for (let j = 0; j < 10; j++)
+      for (let k = 0; k < 3; k++)
+        [ledBatchA, ledBatchB, ledBatchC][(i + j + k) % 3].addBox(
+          0.12,
+          0.07,
+          0.04,
+          [CY, GRN, PAL.flora.violet, PAL.neon.amber][(i * 3 + j + k) % 4],
+          rx - 0.28 + k * 0.28,
+          FL + 0.25 + j * 0.2,
+          -71.42,
+        );
+  }
+  /* laboratórios */
+  bunkerBatch.addBox(0.9, 0.95, 12, K.white, 16.6, FL, -64.2);
+  bunkerBatch.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 16.6, FL + 0.95, -64.2);
+  bunkerBatch.addBox(0.9, 0.95, 12, K.white, 19.5, FL, -64.2);
+  bunkerBatch.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 19.5, FL + 0.95, -64.2);
+  [-70.5, -67.5, -64.5, -61.5].forEach(function (z, n) {
+    bunkerBatch.addCylinder(0.2, 1.0, K.white, 16.6, FL + 1.02, z, 10);
+    bunkerBatch.addSphere(0.35, PAL.glass.showerGlass, 16.6, FL + 1.7, z, 1, 1, 1, 1);
+    bunkerBatch.addBox(0.6, 0.5, 0.6, [K.steelD, K.white][n % 2], 19.5, FL + 1.02, z);
+    glowBatch.addBox(0.3, 0.3, 0.04, CY, 19.2, FL + 1.3, z);
+  });
+  bunkerBatch.addBox(1.2, 1.9, 1.0, K.steel, 18.0, FL, -57.2);
+  /* sala limpa */
+  bunkerBatch.addBox(1.4, 0.9, 3.0, 0x191c22, 21.6, FL, -69.6);
+  bunkerBatch.addBox(0.7, 0.5, 0.9, K.white, 21.4, FL + 0.9, -70.2);
+  glowBatch.addBox(0.6, 0.04, 0.8, PAL.neon.violet, 21.4, FL + 0.9, -70.2);
+  bunkerBatch.addBox(0.2, 1.2, 0.2, K.steelD, 21.4, FL + 1.4, -70.2);
+  bunkerBatch.addCylinder(0.5, 3.0, PAL.light.tileGrey, 22.4, FL, -64.6, 12);
+  bunkerBatch.addBox(1.1, 1.1, 1.1, K.white, 21.6, FL, -59.4);
+  ledBatchC.addBox(0.2, 0.06, 6, PAL.neon.violet, 21.5, FL + 3.2, -64);
+  /* suporte de vida e baterias térmicas */
+  [-70.6, -68.2, -65.8, -63.4].forEach(function (bz) {
     bunkerBatch.addGeometry(
       cylG(1, 16),
       K.steel,
-      8,
-      FL + 3.0,
-      -54.5,
-      [0.18, 38, 0.18],
+      25.2,
+      FL + 1.0,
+      bz,
+      [0.7, 3.0, 0.7],
       [0, 0, Math.PI / 2],
     );
     bunkerBatch.addGeometry(
       cylG(1, 16),
-      K.blue,
-      8,
-      FL + 2.65,
-      -54.5,
-      [0.14, 38, 0.14],
+      K.orange,
+      23.7,
+      FL + 1.0,
+      bz,
+      [0.55, 0.14, 0.55],
       [0, 0, Math.PI / 2],
     );
-    /* escada de emergência: poço com escada de ferro até a escotilha na superfície */
-    bunkerBatch.addBox(1.4, 0.1, 1.4, K.steelD, 26.5, FL, -54.5);
-    [-0.5, 0.5].forEach(function (o) {
-      bunkerBatch.addBeam([26.5 + o, FL, -54.5], [26.5 + o, -0.2, -54.5], 0.05, K.steelD, 5);
-    });
-    for (let i = 0; i < 14; i++)
-      bunkerBatch.addBox(1.0, 0.04, 0.04, K.steelD, 26.5, FL + 0.4 + i * 0.55, -54.5);
-    hatchBatch.addBox(1.8, 0.12, 1.8, K.steelD, 26.5, 0, -54.5);
-    hatchBatch.addBox(1.5, 0.06, 1.5, K.red, 26.5, 0.12, -54.5);
-    hatchBatch.addCylinder(0.07, 0.12, K.steel, 26.5, 0.18, -54.5, 6);
+    bunkerBatch.addBox(0.2, 1.0, 0.2, K.steelD, 24.4, FL, bz);
+    bunkerBatch.addBox(0.2, 1.0, 0.2, K.steelD, 26.0, FL, bz);
+    ledBatchC.addBox(0.12, 0.9, 0.9, 0xff7a2a, 23.6, FL + 0.55, bz);
+  });
+  [
+    [24.2, -60.6],
+    [25.4, -60.6],
+    [26.6, -60.6],
+  ].forEach(function (t) {
+    bunkerBatch.addCylinder(0.5, 2.4, K.blue, t[0], FL, t[1], 12);
+    bunkerBatch.addCylinder(0.52, 0.2, K.steel, t[0], FL + 2.4, t[1], 12);
+  });
+  for (let i = 0; i < 4; i++) {
+    bunkerBatch.addCylinder(0.24, 0.9, K.red, 24.0 + i * 0.7, FL, -58.2, 8);
+    bunkerBatch.addCylinder(0.18, 0.2, K.white, 24.0 + i * 0.7, FL + 0.9, -58.2, 8);
+  }
 
-    /* helpers de louça e móveis */
-    function toilet(x, z, ry) {
-      bunkerBatch.setOrigin(x, 0, z, ry || 0);
-      bunkerBatch.addBox(0.42, 0.42, 0.6, K.white, 0, FL + 0.06, 0);
-      bunkerBatch.addBox(0.4, 0.55, 0.2, K.white, 0, FL + 0.06, -0.38);
-      bunkerBatch.addBox(0.44, 0.05, 0.5, K.steel, 0, FL + 0.48, 0.02);
-      bunkerBatch.setOrigin(0, 0, 0, 0);
-    }
-    function sink(x, z, ry) {
-      bunkerBatch.setOrigin(x, 0, z, ry || 0);
-      bunkerBatch.addCylinder(0.1, 0.7, K.white, 0, FL + 0.06, 0, 6);
-      bunkerBatch.addBox(0.65, 0.14, 0.48, K.white, 0, FL + 0.76, 0);
-      bunkerBatch.addCylinder(0.035, 0.3, K.steel, 0, FL + 0.9, -0.17, 5);
-      bunkerBatch.addBox(0.7, 0.7, 0.04, 0x9bd9f1, 0, FL + 1.36, -0.3);
-      bunkerBatch.setOrigin(0, 0, 0, 0);
-    }
-    function shower(x, z, sz) {
-      bunkerBatch.addBox(1.1, 0.08, 1.1, 0xeaf3f7, x, FL + 0.06, z);
-      bunkerBatch.addCylinder(0.03, 1.9, K.steel, x - 0.5, FL + 0.14, z + sz * 0.5, 5);
-      bunkerBatch.addBox(0.3, 0.05, 0.3, K.steel, x - 0.38, FL + 1.99, z + sz * 0.45);
-      bunkerBatch.addBox(0.04, 1.9, 1.1, PAL.glass.showerGlass, x + 0.55, FL + 0.14, z);
-    }
-    /* banheiro nos fundos (zw = parede dos fundos, sz = +1): paredes com porta voltada ao quarto */
-    function addBunkerBathroom(xo, bw, zw, dxa, dxb, sideWall) {
-      const zf = zw + 2.55;
-      wall(
-        bunkerWallBatch,
-        'x',
-        zf,
-        xo - 0.15,
-        xo + bw + (sideWall ? 0.15 : 0),
-        [[dxa, dxb, 0, 2.4]],
-        FL,
-        WB - 0.04,
+  /* =================== FILEIRA DA FRENTE (x −11,4 → 27,4) =================== */
+  /* estar, jantar e cozinha (13,6 × 14,6 m) */
+  bunkerBatch.addBox(8.0, 0.9, 0.7, PAL.light.linen, -4.4, FL + 0.06, -52.7);
+  bunkerBatch.addBox(8.1, 0.06, 0.8, PAL.light.cream, -4.4, FL + 0.96, -52.7);
+  bunkerBatch.addBox(0.8, 0.12, 0.5, K.steel, -6.4, FL + 1.0, -52.7);
+  bunkerBatch.addCylinder(0.035, 0.3, K.steel, -6.4, FL + 1.12, -52.5, 5);
+  bunkerBatch.addBox(0.9, 0.1, 0.6, K.black, -3.4, FL + 1.02, -52.7);
+  bunkerBatch.addBox(0.9, 1.9, 0.8, K.white, 0.9, FL + 0.06, -52.7);
+  bunkerBatch.addBox(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
+  bunkerBatch.addBox(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
+  bunkerBatch.addBox(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
+  for (let i = 0; i < 4; i++)
+    bunkerBatch.addCylinder(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
+  bunkerBatch.addBox(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
+  [
+    [-1.5, -0.5],
+    [1.5, -0.5],
+    [-1.5, 0.5],
+    [1.5, 0.5],
+  ].forEach(function (l) {
+    bunkerBatch.addBox(0.12, 0.7, 0.12, K.woodD, -4.6 + l[0], FL + 0.06, -44.6 + l[1]);
+  });
+  for (let i = 0; i < 4; i++) {
+    bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -46.0);
+    bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -43.2);
+  }
+  bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -7.7, FL + 0.06, -44.6);
+  bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -1.5, FL + 0.06, -44.6);
+  bunkerBatch.addBox(1.0, 0.5, 3.8, PAL.fabric.royalBlue, -9.6, FL + 0.06, -41.9);
+  bunkerBatch.addBox(0.3, 0.8, 3.8, PAL.fabric.royalBlue, -10.4, FL + 0.06, -41.9);
+  bunkerBatch.addBox(3.2, 0.5, 1.0, PAL.fabric.royalBlue, -7.8, FL + 0.06, -39.9);
+  bunkerBatch.addBox(1.0, 0.4, 1.0, K.woodD, -8.2, FL + 0.06, -42.2);
+  bunkerBatch.addCylinder(1.6, 0.03, PAL.fabric.rust, -8.4, FL + 0.06, -43.0, 22);
+  bunkerBatch.addBox(0.1, 1.5, 3.2, PAL.dark.void, -11.15, FL + 1.0, -47.5);
+  neonBatch.addBox(0.02, 1.4, 3.1, PAL.neon.blue, -11.05, FL + 1.05, -47.5);
+  bunkerBatch.addBox(0.5, 0.4, 2.6, K.woodD, -10.9, FL + 0.06, -47.5);
+  bunkerBatch.addBox(2.2, 1.1, 0.5, PAL.dark.slate, 0.4, FL + 0.06, -40.2);
+  neonBatch.addBox(1.8, 0.04, 0.04, PAL.neon.amber, 0.4, FL + 0.9, -39.9);
+  [[-0.4], [0.4], [1.2]].forEach(function (s) {
+    bunkerBatch.addCylinder(0.2, 0.5, K.woodD, s[0], FL + 0.06, -41.0, 8);
+  }); /* bar com bancos */
+  plant(-10.8, -52.6, 1.3);
+  plant(1.7, -45.0, 1.3);
+  neonBatch.addBox(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
+  /* despensa 90 dias */
+  function addBunkerPantryItem(x, y, z, n) {
+    const m = n % 5;
+    if (m === 0 || m === 3)
+      bunkerBatch.addCylinder(
+        0.12,
         0.3,
-        PW,
-        null,
+        [
+          PAL.flora.coral,
+          PAL.flora.marigold,
+          PAL.flora.sage,
+          PAL.light.wheat,
+          PAL.flora.purple,
+          PAL.clay.copperBrown,
+        ][n % 6],
+        x,
+        y,
+        z,
+        6,
       );
-      addBunkerWallCollider('x', zf, xo - 0.15, xo + bw, [[dxa, dxb, 0, 2.4]], 0.3);
-      if (sideWall) {
-        wall(bunkerWallBatch, 'z', xo + bw + 0.15, zw, zf, [], FL, WB - 0.04, 0.3, PW, null);
-        addBunkerWallCollider('z', xo + bw + 0.15, zw, zf, [], 0.3);
-      }
-      tile(xo, zw, xo + bw, zf - 0.15, 0xeaf3f7);
-      toilet(xo + 0.55, zw + 0.5, 0);
-      sink(xo + 1.6, zw + 0.35, 0);
-      shower(xo + 0.65, zw + 1.7, 1);
-      bunkerBatch.addBox(0.06, 1.4, 2.3, AZB, xo + 0.04, FL + 0.06, zw + 1.2);
-    }
-    function addBunkerDoubleBed(bx, bz, c) {
-      bunkerBatch.addBox(2.0, 0.5, 2.2, K.woodD, bx, FL + 0.06, bz);
-      bunkerBatch.addBox(1.9, 0.28, 2.1, PAL.light.ivory, bx, FL + 0.56, bz);
-      bunkerBatch.addBox(1.9, 0.12, 1.3, c, bx, FL + 0.84, bz + 0.4);
-      bunkerBatch.addBox(1.4, 0.18, 0.5, K.white, bx, FL + 0.84, bz - 0.8);
-      bunkerBatch.addBox(2.1, 1.3, 0.14, K.woodD, bx, FL + 0.06, bz - 1.15);
-      bunkerBatch.addBox(0.5, 0.45, 0.5, K.woodL, bx + 1.5, FL + 0.06, bz - 0.8);
-      bunkerBatch.addBox(0.5, 0.45, 0.5, K.woodL, bx - 1.5, FL + 0.06, bz - 0.8);
-    }
-    function addBunkerSingleBed(bx, bz, c) {
-      bunkerBatch.addBox(1.1, 0.4, 2.0, K.woodD, bx, FL + 0.06, bz);
-      bunkerBatch.addBox(1.0, 0.22, 1.9, PAL.light.ivory, bx, FL + 0.46, bz);
-      bunkerBatch.addBox(1.0, 0.1, 1.2, c, bx, FL + 0.68, bz + 0.35);
-      bunkerBatch.addBox(1.2, 1.0, 0.12, K.woodD, bx, FL + 0.06, bz - 1.05);
-    }
-    function wardrobe(wx, wz, r) {
-      bunkerBatch.setOrigin(wx, 0, wz, r || 0);
-      bunkerBatch.addBox(1.6, 2.3, 0.6, K.woodD, 0, FL + 0.06, 0);
-      bunkerBatch.addBox(0.03, 2.0, 0.05, PAL.clay.gold, 0, FL + 0.26, 0.32);
-      bunkerBatch.setOrigin(0, 0, 0, 0);
-    }
-    function desk(x, z, len, rot) {
-      bunkerBatch.setOrigin(x, 0, z, rot || 0);
-      bunkerBatch.addBox(len, 0.05, 0.8, K.woodL, 0, FL + 0.76, 0);
-      bunkerBatch.addBox(0.06, 0.7, 0.7, K.woodD, -len / 2 + 0.05, FL + 0.06, 0);
-      bunkerBatch.addBox(0.06, 0.7, 0.7, K.woodD, len / 2 - 0.05, FL + 0.06, 0);
-      bunkerBatch.setOrigin(0, 0, 0, 0);
-    }
-    function chair(x, z, c) {
-      bunkerBatch.addBox(0.5, 0.1, 0.5, c || PAL.dark.deviceBlack, x, FL + 0.5, z);
-      bunkerBatch.addBox(0.5, 0.8, 0.08, c || PAL.dark.deviceBlack, x, FL + 0.55, z - 0.26);
-      bunkerBatch.addCylinder(0.05, 0.44, K.steelD, x, FL + 0.06, z, 6);
-      bunkerBatch.addCylinder(0.28, 0.04, K.steelD, x, FL + 0.06, z, 8);
-    }
-    function plant(x, z, s) {
-      bunkerBatch.addCylinder(0.22 * s, 0.35 * s, PAL.clay.terracotta, x, FL + 0.06, z, 8);
-      bunkerBatch.addSphere(0.4 * s, 0x3fae52, x, FL + 0.6 * s + 0.2, z, 1, 1.2, 1);
-    }
-
-    /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
-    /* ---- SUÍTE CYBERPUNK DO MESTRE (7,0 × 16,6 m): closet · lounge e estação dev · cama-casulo com mosquiteiro · banheiro ---- */
-    (function () {
-      const x0 = -11.25,
-        x1 = -4.55;
-      addBunkerBathroom(
-        -7.35,
-        2.8,
-        Z1,
-        -5.6,
-        -4.7,
-        false,
-      ); /* banheiro-cabine no canto leste dos fundos */
-      wardrobe(x0 + 0.3, -57.2, Math.PI / 2);
-      wardrobe(x0 + 0.3, -58.8, Math.PI / 2);
-      bunkerBatch.addBox(0.5, 0.8, 1.6, PAL.dark.navyBlack, x1 - 0.3, FL + 0.06, -57.4);
-      neonBatch.addBox(0.04, 1.5, 1.2, CY, x1 - 0.04, FL + 0.9, -57.4);
-      bunkerBatch.addBox(0.4, 0.05, 1.0, K.steelD, x1 - 0.4, FL + 0.5, -59.0);
-      for (let i = 0; i < 5; i++)
-        bunkerBatch.addBox(
-          0.3,
-          0.1,
-          0.18,
-          [K.red, K.white, PAL.glass.windowDeep, K.yellow, PAL.dark.deviceBlack][i],
-          x0 + 0.55,
-          FL + 0.06 + i * 0.0,
-          -59.9 + 0.0,
-        );
-      /* estação dev: mesa em L, 3 monitores curvos, PC com RGB, rack e cadeira gamer */
-      desk(x0 + 0.5, -62.2, 3.8, Math.PI / 2);
-      [-63.5, -62.2, -60.9].forEach(function (mz, n) {
-        bunkerBatch.addBox(
-          0.08,
-          0.62,
-          1.28,
-          PAL.dark.void,
-          x0 + 0.2,
-          FL + 1.0,
-          mz + (n === 0 ? 0.08 : n === 2 ? -0.08 : 0),
-        );
-        neonBatch.addBox(0.04, 0.56, 1.2, [CY, NEON, GRN][n], x0 + 0.28, FL + 1.03, mz);
-      });
-      bunkerBatch.addBox(0.3, 0.5, 0.6, PAL.dark.navyBlack, x0 + 0.5, FL + 0.81, -64.0);
-      neonBatch.addBox(0.02, 0.4, 0.5, CY, x0 + 0.66, FL + 0.86, -64.0);
-      bunkerBatch.addBox(0.5, 0.03, 0.2, K.black, x0 + 1.0, FL + 0.8, -62.2);
-      chair(x0 + 1.7, -62.2, PAL.dark.deviceBlack);
-      bunkerBatch.addBox(0.9, 1.9, 0.8, PAL.dark.graphite, x0 + 0.5, FL + 0.06, -65.4);
-      for (let i = 0; i < 9; i++)
-        neonBatch.addBox(
-          0.05,
-          0.05,
-          0.5,
-          [CY, GRN, NEON][i % 3],
-          x0 + 0.92,
-          FL + 0.3 + i * 0.19,
-          -65.4,
-        );
-      neonBatch.addBox(0.04, 0.04, 3.6, CY, x0 + 0.08, FL + 0.72, -62.2);
-      /* mesa holográfica e área de lounge */
-      bunkerBatch.addCylinder(0.9, 0.6, DARK, -6.9, FL + 0.06, -61.6, 16);
-      neonBatch.addCylinder(0.95, 0.04, CY, -6.9, FL + 0.66, -61.6, 16);
-      neonBatch.addSphere(0.55, CY, -6.9, FL + 1.6, -61.6, 1, 1, 1, 1);
-      neonBatch.addCylinder(1.0, 0.03, NEON, -6.9, FL + 0.07, -61.6, 22);
-      bunkerBatch.addBox(0.9, 0.5, 2.4, PAL.fabric.indigo, x1 - 0.5, FL + 0.06, -61.6);
-      bunkerBatch.addBox(0.3, 0.8, 2.4, PAL.fabric.indigo, x1 - 0.2, FL + 0.06, -61.6);
-      bunkerBatch.addCylinder(0.5, 0.4, PAL.flora.violet, -9.2, FL + 0.06, -59.9, 10);
-      bunkerBatch.addCylinder(0.5, 0.4, PAL.neon.cyan, -9.2, FL + 0.06, -65.3, 10);
-      bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, -9.2, FL + 0.06, -56.8);
-      neonBatch.addBox(
-        0.7,
-        0.5,
-        0.04,
-        NEON,
-        -9.2,
-        FL + 1.2,
-        -56.4,
-      ); /* fliperama (ao lado da porta) */
-      /* cama-casulo redonda com mosquiteiro, cabeceira em arco e anel de neon */
-      const bx = -8.1,
-        bz = -67.9;
-      bunkerBatch.addCylinder(1.95, 0.3, 0x15171f, bx, FL + 0.06, bz, 28);
-      bunkerBatch.addCylinder(1.7, 0.3, 0xf0eef6, bx, FL + 0.36, bz, 28);
-      neonBatch.addCylinder(2.0, 0.03, NEON, bx, FL + 0.07, bz, 32);
-      bunkerBatch.addCylinder(
-        0.55,
-        0.18,
-        PAL.flora.violet,
-        bx - 0.6,
-        FL + 0.66,
-        bz - 0.8,
-        10,
-        0.45,
-      );
-      bunkerBatch.addCylinder(0.55, 0.18, PAL.neon.cyan, bx + 0.2, FL + 0.66, bz - 0.9, 10, 0.45);
-      bunkerBatch.addCylinder(1.0, 0.06, PAL.dark.slate, bx, FL + 0.66, bz + 0.5, 20, 0.9);
-      for (let th = -Math.PI / 2 - 1.1; th <= -Math.PI / 2 + 1.11; th += 0.275) {
-        const sx = bx + 2.25 * Math.cos(th),
-          sz = bz + 2.25 * Math.sin(th),
-          rr2 = Math.atan2(-Math.cos(th), -Math.sin(th));
-        bunkerBatch.addBox(0.48, 1.7, 0.12, DARK, sx, FL + 0.06, sz, [0, rr2, 0]);
-        neonBatch.addBox(0.04, 1.5, 0.04, NEON, sx, FL + 0.16, sz + (sz < bz ? 0.07 : -0.07));
-      }
-      for (let i = 0; i < 16; i++) {
-        const a2 = (i / 16) * Math.PI * 2,
-          cx2 = bx + 2.15 * Math.cos(a2),
-          cz2 = bz + 2.15 * Math.sin(a2);
-        const giroY = Math.atan2(-Math.cos(a2), -Math.sin(a2));
-        neonBatch.addBox(0.5, 0.05, 0.1, CY, cx2, FL + 3.0, cz2, [0, giroY, 0]);
-      }
-      netBatch.addCylinder(
-        2.1,
-        2.9,
-        0xeeeaff,
-        bx,
-        FL + 0.08,
-        bz,
-        28,
-        0.35,
-      ); /* mosquiteiro translúcido em cúpula */
-      bunkerBatch.addCylinder(0.04, 0.5, K.steelD, bx, FL + 3.0, bz, 6);
-      neonBatch.addSphere(0.14, PAL.light.warmGlow, bx, FL + 3.1, bz, 1, 1, 1, 1);
-      /* parede aquário, skyline e prateleiras */
-      bunkerBatch.addBox(3.6, 1.5, 0.3, 0x0a2a3a, -9.45, FL + 0.5, -72.2);
-      neonBatch.addBox(3.4, 1.3, 0.05, 0x1a6fd0, -9.45, FL + 0.6, -72.0);
-      [
-        [-10.5, 0.9, 0xffa14a],
-        [-9.4, 1.2, PAL.neon.magenta],
-        [-8.4, 0.8, PAL.neon.yellow],
-        [-9.9, 1.5, PAL.neon.mint],
-      ].forEach(function (f) {
-        neonBatch.addSphere(0.12, f[2], f[0], FL + f[1], -71.95, 1.6, 1, 0.6);
-      });
-      bunkerBatch.addBox(0.1, 2.6, 5.4, PAL.dark.void, x0 - 0.05, FL + 0.3, -68.6);
-      for (let i = 0; i < 18; i++) {
-        const skh = 0.5 + (((i * 37) % 17) / 17) * 1.9;
-        neonBatch.addBox(
-          0.08,
-          skh,
-          0.26,
-          [CY, NEON, PAL.neon.yellow, PAL.neon.violet][i % 4],
-          x0 + 0.08,
-          FL + 0.4,
-          -71.0 + i * 0.3,
-        );
-      }
-      for (let i = 0; i < 3; i++) {
-        bunkerBatch.addBox(0.3, 0.05, 1.6, K.woodD, x1 - 0.2, FL + 1.0 + i * 0.5, -68.4);
-        for (let j = 0; j < 4; j++)
-          bunkerBatch.addSphere(
-            0.1,
-            [PAL.neon.magenta, PAL.neon.cyan, PAL.neon.yellow, PAL.flora.lime][(i + j) % 4],
-            x1 - 0.2,
-            FL + 1.15 + i * 0.5,
-            -69.0 + j * 0.4,
-            1,
-            1.4,
-            1,
-          );
-      }
-      bunkerBatch.addBox(0.9, 0.8, 0.5, PAL.dark.slate, x1 - 0.4, FL + 0.06, -65.5);
-      bunkerBatch.addBox(0.5, 0.1, 0.4, K.black, x1 - 0.4, FL + 0.86, -65.5);
-      bunkerBatch.addCylinder(
-        0.2,
-        0.04,
-        PAL.dark.deviceBlack,
-        x1 - 0.4,
-        FL + 0.96,
-        -65.5,
-        16,
-      ); /* aparador com vitrola */
-      bunkerBatch.addBox(0.4, 1.4, 0.3, PAL.dark.deviceBlack, x1 - 0.2, FL + 0.06, -64.6);
+    else if (m === 1) bunkerBatch.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
+    else if (m === 2) bunkerBatch.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
+    else
       bunkerBatch.addBox(
-        0.4,
-        1.4,
         0.3,
-        PAL.dark.deviceBlack,
-        x1 - 0.2,
-        FL + 0.06,
-        -66.4,
-      ); /* caixas de som */
-      plant(x0 + 0.45, -70.5, 1.2);
-      plant(x1 - 0.4, -69.9, 1.0);
-      neonBatch.addBox(6.4, 0.05, 0.05, NEON, -7.9, FL + 3.4, -62);
-      neonBatch.addBox(6.4, 0.05, 0.05, CY, -7.9, FL + 3.4, -67);
-    })();
-    /* ---- SUÍTE DOS PAIS (4,5 × 16,6 m): cama king, poltrona de leitura, penteadeira, adega, TV, banheiro ---- */
-    (function () {
-      const x0 = -4.25,
-        x1 = -0.05;
-      addBunkerBathroom(x0, 2.6, Z1, -2.7, -1.8, true);
-      wardrobe(-0.9, -72.1, 0);
-      addBunkerDoubleBed(-1.9, -65.6, PAL.flora.grass);
-      bunkerBatch.addBox(3.2, 1.6, 0.16, PAL.wood.darkWalnut, -1.9, FL + 0.06, -67.0);
-      neonBatch.addBox(2.8, 0.05, 0.05, PAL.neon.amber, -1.9, FL + 1.55, -66.88);
-      bunkerBatch.addBox(0.9, 1.0, 0.4, K.woodD, -3.9, FL + 0.06, -67.3);
-      neonBatch.addCylinder(0.06, 0.05, PAL.light.warmGlow, -3.9, FL + 1.1, -67.3, 6);
-      bunkerBatch.addBox(1.6, 0.9, 0.5, K.woodD, x1 - 0.3, FL + 0.06, -60.8);
-      bunkerBatch.addBox(0.08, 1.1, 1.6, PAL.dark.void, x1 - 0.08, FL + 0.9, -60.8);
-      neonBatch.addBox(0.03, 1.0, 1.5, PAL.neon.blue, x1 - 0.14, FL + 0.95, -60.8);
-      bunkerBatch.addBox(1.0, 0.8, 0.5, K.woodL, x0 + 0.35, FL + 0.06, -57.3);
-      bunkerBatch.addBox(0.04, 1.4, 0.9, PAL.glass.showerGlass, x0 + 0.1, FL + 0.9, -57.3);
-      neonBatch.addBox(0.02, 1.4, 0.04, PAL.light.warmGlow, x0 + 0.12, FL + 0.9, -56.8);
-      bunkerBatch.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, x0 + 0.7, FL + 0.06, -61.5);
-      bunkerBatch.addBox(0.2, 0.6, 0.9, PAL.fabric.burgundy, x0 + 0.3, FL + 0.06, -61.5);
-      bunkerBatch.addCylinder(0.03, 1.2, K.steelD, x0 + 1.3, FL + 0.06, -61.6, 5);
-      neonBatch.addSphere(0.16, PAL.light.warmGlow, x0 + 1.3, FL + 1.3, -61.6, 1, 1, 1, 1);
-      bunkerBatch.addBox(0.7, 1.9, 0.5, PAL.wood.darkWalnut, x1 - 0.4, FL + 0.06, -70.8);
-      for (let i = 0; i < 6; i++)
-        bunkerBatch.addCylinder(
-          0.07,
-          0.3,
-          [PAL.fabric.wine, 0x2a4a1f, PAL.fabric.wine][i % 3],
-          x1 - 0.45 + ((i % 2) * 0.2 - 0.1),
-          FL + 0.4 + ((i / 2) | 0) * 0.45,
-          -70.75,
-          6,
-        );
-      bunkerBatch.addCylinder(1.2, 0.03, PAL.stone.sandstone, -1.9, FL + 0.06, -63.2, 20);
-      neonBatch.addBox(3.6, 0.04, 0.04, PAL.neon.amber, -2.1, FL + 3.3, -64);
-    })();
-    /* ---- IRMÃ (3,5 m) · SOBRINHA 11 anos (2,9 m) · CONVIDADO (2,7 m) ---- */
-    addBunkerBathroom(0.25, 2.4, Z1, 1.0, 1.9, true);
-    addBunkerDoubleBed(2.4, -64.0, PAL.flora.salmon);
-    wardrobe(3.45, -60.6, -Math.PI / 2);
-    desk(0.7, -58.2, 1.3, 0);
-    bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 0.7, FL + 0.85, -58.5);
-    chair(0.7, -57.6, PAL.flora.purple);
-    plant(3.4, -57.0, 1.0);
-    bunkerBatch.addCylinder(0.9, 0.03, PAL.flora.purple, 1.0, FL + 0.06, -60.5, 18);
-    addBunkerBathroom(4.05, 2.9, Z1, 5.0, 5.9, false);
-    addBunkerSingleBed(6.0, -64.0, PAL.flora.violet);
-    wardrobe(4.35, -60.5, Math.PI / 2);
-    bunkerBatch.addBox(1.2, 0.06, 0.6, K.woodL, 5.6, FL + 0.76, -57.4);
-    bunkerBatch.addBox(0.5, 0.4, 0.05, K.black, 5.6, FL + 0.85, -57.7);
-    chair(5.6, -56.9, 0xff7ac8);
-    neonBatch.addBox(2.6, 0.05, 0.05, 0xffd98a, 5.5, FL + 3.2, -70);
-    bunkerBatch.addCone(0.7, 1.5, 0xe8c9a0, 4.8, FL + 0.06, -61.6, 6);
-    neonBatch.addSphere(
-      0.1,
-      PAL.light.warmGlow,
-      4.8,
-      FL + 0.6,
-      -61.6,
-      1,
-      1,
-      1,
-      1,
-    ); /* cabaninha de leitura */
-    for (let i = 0; i < 10; i++)
-      neonBatch.addBox(
-        0.06,
-        0.06,
-        0.06,
-        [PAL.neon.yellow, PAL.light.white, PAL.glass.iceBlue][i % 3],
-        4.2 + ((i * 7) % 11) * 0.25,
-        FL + 3.45,
-        -57.5 - ((i * 5) % 9) * 1.2,
-      ); /* estrelinhas no teto */
-    addBunkerBathroom(7.25, 2.7, Z1, 8.2, 9.1, false);
-    addBunkerSingleBed(9.1, -64.0, PAL.flora.cornflower);
-    wardrobe(7.55, -60.5, Math.PI / 2);
-    desk(8.6, -57.6, 1.2, 0);
-    chair(8.6, -57.0, PAL.glass.windowDeep);
-
-    /* =================== FILEIRA DOS FUNDOS: técnico (x 10,1 → 27,4) =================== */
-    /* datacenter imerso */
-    [
-      [11.5, -68.4],
-      [14.5, -68.4],
-      [11.5, -65.4],
-      [14.5, -65.4],
-      [11.5, -62.4],
-      [14.5, -62.4],
-      [11.5, -59.4],
-      [14.5, -59.4],
-    ].forEach(function (t, n) {
-      bunkerBatch.addBox(2.2, 1.0, 1.4, K.steel, t[0], FL, t[1]);
-      bunkerBatch.addBox(2.0, 0.1, 1.2, 0x2c6f78, t[0], FL + 1.0, t[1]);
-      glowBatch.addBox(1.8, 0.05, 1.0, 0x35e0b0, t[0], FL + 1.1, t[1]);
-      ledBatchA.addBox(1.4, 0.06, 0.04, [CY, GRN][n % 2], t[0], FL + 0.6, t[1] + 0.72);
-    });
-    for (let i = 0; i < 5; i++) {
-      const rx = 10.95 + i * 1.1;
-      bunkerBatch.addBox(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
-      for (let j = 0; j < 10; j++)
-        for (let k = 0; k < 3; k++)
-          [ledBatchA, ledBatchB, ledBatchC][(i + j + k) % 3].addBox(
-            0.12,
-            0.07,
-            0.04,
-            [CY, GRN, PAL.flora.violet, PAL.neon.amber][(i * 3 + j + k) % 4],
-            rx - 0.28 + k * 0.28,
-            FL + 0.25 + j * 0.2,
-            -71.42,
-          );
-    }
-    /* laboratórios */
-    bunkerBatch.addBox(0.9, 0.95, 12, K.white, 16.6, FL, -64.2);
-    bunkerBatch.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 16.6, FL + 0.95, -64.2);
-    bunkerBatch.addBox(0.9, 0.95, 12, K.white, 19.5, FL, -64.2);
-    bunkerBatch.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 19.5, FL + 0.95, -64.2);
-    [-70.5, -67.5, -64.5, -61.5].forEach(function (z, n) {
-      bunkerBatch.addCylinder(0.2, 1.0, K.white, 16.6, FL + 1.02, z, 10);
-      bunkerBatch.addSphere(0.35, PAL.glass.showerGlass, 16.6, FL + 1.7, z, 1, 1, 1, 1);
-      bunkerBatch.addBox(0.6, 0.5, 0.6, [K.steelD, K.white][n % 2], 19.5, FL + 1.02, z);
-      glowBatch.addBox(0.3, 0.3, 0.04, CY, 19.2, FL + 1.3, z);
-    });
-    bunkerBatch.addBox(1.2, 1.9, 1.0, K.steel, 18.0, FL, -57.2);
-    /* sala limpa */
-    bunkerBatch.addBox(1.4, 0.9, 3.0, 0x191c22, 21.6, FL, -69.6);
-    bunkerBatch.addBox(0.7, 0.5, 0.9, K.white, 21.4, FL + 0.9, -70.2);
-    glowBatch.addBox(0.6, 0.04, 0.8, PAL.neon.violet, 21.4, FL + 0.9, -70.2);
-    bunkerBatch.addBox(0.2, 1.2, 0.2, K.steelD, 21.4, FL + 1.4, -70.2);
-    bunkerBatch.addCylinder(0.5, 3.0, PAL.light.tileGrey, 22.4, FL, -64.6, 12);
-    bunkerBatch.addBox(1.1, 1.1, 1.1, K.white, 21.6, FL, -59.4);
-    ledBatchC.addBox(0.2, 0.06, 6, PAL.neon.violet, 21.5, FL + 3.2, -64);
-    /* suporte de vida e baterias térmicas */
-    [-70.6, -68.2, -65.8, -63.4].forEach(function (bz) {
-      bunkerBatch.addGeometry(
-        cylG(1, 16),
-        K.steel,
-        25.2,
-        FL + 1.0,
-        bz,
-        [0.7, 3.0, 0.7],
-        [0, 0, Math.PI / 2],
+        0.3,
+        0.3,
+        [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][n % 3],
+        x,
+        y,
+        z,
       );
-      bunkerBatch.addGeometry(
-        cylG(1, 16),
-        K.orange,
-        23.7,
-        FL + 1.0,
-        bz,
-        [0.55, 0.14, 0.55],
-        [0, 0, Math.PI / 2],
-      );
-      bunkerBatch.addBox(0.2, 1.0, 0.2, K.steelD, 24.4, FL, bz);
-      bunkerBatch.addBox(0.2, 1.0, 0.2, K.steelD, 26.0, FL, bz);
-      ledBatchC.addBox(0.12, 0.9, 0.9, 0xff7a2a, 23.6, FL + 0.55, bz);
-    });
-    [
-      [24.2, -60.6],
-      [25.4, -60.6],
-      [26.6, -60.6],
-    ].forEach(function (t) {
-      bunkerBatch.addCylinder(0.5, 2.4, K.blue, t[0], FL, t[1], 12);
-      bunkerBatch.addCylinder(0.52, 0.2, K.steel, t[0], FL + 2.4, t[1], 12);
-    });
-    for (let i = 0; i < 4; i++) {
-      bunkerBatch.addCylinder(0.24, 0.9, K.red, 24.0 + i * 0.7, FL, -58.2, 8);
-      bunkerBatch.addCylinder(0.18, 0.2, K.white, 24.0 + i * 0.7, FL + 0.9, -58.2, 8);
+  }
+  function shelfZ(z1, z2, x) {
+    const L = z2 - z1;
+    const n = Math.floor(L / 0.5);
+    const nu = Math.round(L / 1.5);
+    for (let a = 0; a < 3; a++) {
+      bunkerBatch.addBox(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
+      for (let b = 0; b < n; b++)
+        addBunkerPantryItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
     }
-
-    /* =================== FILEIRA DA FRENTE (x −11,4 → 27,4) =================== */
-    /* estar, jantar e cozinha (13,6 × 14,6 m) */
-    bunkerBatch.addBox(8.0, 0.9, 0.7, PAL.light.linen, -4.4, FL + 0.06, -52.7);
-    bunkerBatch.addBox(8.1, 0.06, 0.8, PAL.light.cream, -4.4, FL + 0.96, -52.7);
-    bunkerBatch.addBox(0.8, 0.12, 0.5, K.steel, -6.4, FL + 1.0, -52.7);
-    bunkerBatch.addCylinder(0.035, 0.3, K.steel, -6.4, FL + 1.12, -52.5, 5);
-    bunkerBatch.addBox(0.9, 0.1, 0.6, K.black, -3.4, FL + 1.02, -52.7);
-    bunkerBatch.addBox(0.9, 1.9, 0.8, K.white, 0.9, FL + 0.06, -52.7);
-    bunkerBatch.addBox(2.0, 0.1, 0.8, K.steelD, -3.4, FL + 2.5, -52.9);
-    bunkerBatch.addBox(3.2, 0.95, 1.1, PAL.light.linen, -4.6, FL + 0.06, -49.4);
-    bunkerBatch.addBox(3.3, 0.06, 1.2, MARB, -4.6, FL + 1.01, -49.4);
-    for (let i = 0; i < 4; i++)
-      bunkerBatch.addCylinder(0.22, 0.6, K.woodD, -5.8 + i * 0.8, FL + 0.06, -48.2, 8);
-    bunkerBatch.addBox(3.4, 0.08, 1.3, K.woodD, -4.6, FL + 0.76, -44.6);
-    [
-      [-1.5, -0.5],
-      [1.5, -0.5],
-      [-1.5, 0.5],
-      [1.5, 0.5],
-    ].forEach(function (l) {
-      bunkerBatch.addBox(0.12, 0.7, 0.12, K.woodD, -4.6 + l[0], FL + 0.06, -44.6 + l[1]);
-    });
-    for (let i = 0; i < 4; i++) {
-      bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -46.0);
-      bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -5.9 + i * 0.8, FL + 0.06, -43.2);
-    }
-    bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -7.7, FL + 0.06, -44.6);
-    bunkerBatch.addBox(0.42, 0.5, 0.42, K.woodL, -1.5, FL + 0.06, -44.6);
-    bunkerBatch.addBox(1.0, 0.5, 3.8, PAL.fabric.royalBlue, -9.6, FL + 0.06, -41.9);
-    bunkerBatch.addBox(0.3, 0.8, 3.8, PAL.fabric.royalBlue, -10.4, FL + 0.06, -41.9);
-    bunkerBatch.addBox(3.2, 0.5, 1.0, PAL.fabric.royalBlue, -7.8, FL + 0.06, -39.9);
-    bunkerBatch.addBox(1.0, 0.4, 1.0, K.woodD, -8.2, FL + 0.06, -42.2);
-    bunkerBatch.addCylinder(1.6, 0.03, PAL.fabric.rust, -8.4, FL + 0.06, -43.0, 22);
-    bunkerBatch.addBox(0.1, 1.5, 3.2, PAL.dark.void, -11.15, FL + 1.0, -47.5);
-    neonBatch.addBox(0.02, 1.4, 3.1, PAL.neon.blue, -11.05, FL + 1.05, -47.5);
-    bunkerBatch.addBox(0.5, 0.4, 2.6, K.woodD, -10.9, FL + 0.06, -47.5);
-    bunkerBatch.addBox(2.2, 1.1, 0.5, PAL.dark.slate, 0.4, FL + 0.06, -40.2);
-    neonBatch.addBox(1.8, 0.04, 0.04, PAL.neon.amber, 0.4, FL + 0.9, -39.9);
-    [[-0.4], [0.4], [1.2]].forEach(function (s) {
-      bunkerBatch.addCylinder(0.2, 0.5, K.woodD, s[0], FL + 0.06, -41.0, 8);
-    }); /* bar com bancos */
-    plant(-10.8, -52.6, 1.3);
-    plant(1.7, -45.0, 1.3);
-    neonBatch.addBox(12, 0.05, 0.05, PAL.light.warmGlow, -4.6, FL + 3.3, -46);
-    /* despensa 90 dias */
-    function addBunkerPantryItem(x, y, z, n) {
-      const m = n % 5;
-      if (m === 0 || m === 3)
-        bunkerBatch.addCylinder(
-          0.12,
-          0.3,
-          [
-            PAL.flora.coral,
-            PAL.flora.marigold,
-            PAL.flora.sage,
-            PAL.light.wheat,
-            PAL.flora.purple,
-            PAL.clay.copperBrown,
-          ][n % 6],
-          x,
-          y,
-          z,
-          6,
-        );
-      else if (m === 1) bunkerBatch.addCylinder(0.09, 0.2, K.steel, x, y, z, 6);
-      else if (m === 2) bunkerBatch.addBox(0.34, 0.24, 0.3, PAL.clay.sandGold, x, y, z);
-      else
-        bunkerBatch.addBox(
-          0.3,
-          0.3,
-          0.3,
-          [K.woodL, PAL.clay.mustard, PAL.clay.terracotta][n % 3],
-          x,
-          y,
-          z,
-        );
-    }
-    function shelfZ(z1, z2, x) {
-      const L = z2 - z1;
-      const n = Math.floor(L / 0.5);
-      const nu = Math.round(L / 1.5);
-      for (let a = 0; a < 3; a++) {
-        bunkerBatch.addBox(0.5, 0.06, L, K.woodL, x, FL + 0.6 + a * 0.7, (z1 + z2) / 2);
-        for (let b = 0; b < n; b++)
-          addBunkerPantryItem(x, FL + 0.66 + a * 0.7, z1 + 0.25 + b * 0.5, b + a * 3);
-      }
-      for (let c = 0; c <= nu; c++)
-        bunkerBatch.addBox(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);
-    }
-    shelfZ(-52.4, -39.4, 2.6);
-    shelfZ(-52.4, -39.4, 5.4);
-    for (let i = 0; i < 4; i++)
-      bunkerBatch.addCylinder(
-        0.4,
+    for (let c = 0; c <= nu; c++)
+      bunkerBatch.addBox(0.54, 2.3, 0.08, K.woodD, x, FL + 0.06, z1 + (c * L) / nu);
+  }
+  shelfZ(-52.4, -39.4, 2.6);
+  shelfZ(-52.4, -39.4, 5.4);
+  for (let i = 0; i < 4; i++)
+    bunkerBatch.addCylinder(
+      0.4,
+      0.9,
+      K.wood,
+      3.5 + (i % 2) * 1.0,
+      FL + 0.06,
+      -47 + ((i / 2) | 0) * 1.0,
+      10,
+      0.37,
+    );
+  bunkerBatch.addBox(1.4, 0.85, 0.7, K.white, 4.0, FL + 0.06, -40.6);
+  /* cinema e jogos */
+  bunkerBatch.addBox(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
+  neonBatch.addBox(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
+  [-50.0, -47.8].forEach(function (z, n) {
+    for (let i = 0; i < 3; i++) {
+      bunkerBatch.addBox(0.9, 0.5, 0.9, PAL.fabric.burgundy, 7.2 + i * 1.5, FL + 0.06 + n * 0.3, z);
+      bunkerBatch.addBox(
         0.9,
-        K.wood,
-        3.5 + (i % 2) * 1.0,
-        FL + 0.06,
-        -47 + ((i / 2) | 0) * 1.0,
-        10,
-        0.37,
+        0.7,
+        0.2,
+        PAL.fabric.burgundy,
+        7.2 + i * 1.5,
+        FL + 0.4 + n * 0.3,
+        z + 0.45,
       );
-    bunkerBatch.addBox(1.4, 0.85, 0.7, K.white, 4.0, FL + 0.06, -40.6);
-    /* cinema e jogos */
-    bunkerBatch.addBox(5.2, 2.6, 0.2, PAL.dark.void, 9.1, FL + 0.6, -52.9);
-    neonBatch.addBox(4.9, 2.3, 0.04, PAL.neon.blue, 9.1, FL + 0.75, -52.78);
-    [-50.0, -47.8].forEach(function (z, n) {
-      for (let i = 0; i < 3; i++) {
-        bunkerBatch.addBox(
-          0.9,
-          0.5,
-          0.9,
-          PAL.fabric.burgundy,
-          7.2 + i * 1.5,
-          FL + 0.06 + n * 0.3,
-          z,
-        );
-        bunkerBatch.addBox(
-          0.9,
-          0.7,
-          0.2,
-          PAL.fabric.burgundy,
-          7.2 + i * 1.5,
-          FL + 0.4 + n * 0.3,
-          z + 0.45,
-        );
-      }
-    });
-    bunkerBatch.addBox(2.4, 0.8, 1.3, 0x1a5a3a, 8.6, FL + 0.06, -42.4);
-    bunkerBatch.addBox(2.5, 0.1, 1.4, K.woodD, 8.6, FL + 0.8, -42.4);
-    bunkerBatch.addCylinder(0.1, 0.1, PAL.light.white, 8.2, FL + 0.92, -42.4, 8);
-    bunkerBatch.addCylinder(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
-    bunkerBatch.addBox(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
-    neonBatch.addBox(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
-    for (let i = 0; i < 2; i++) {
-      bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
-      neonBatch.addBox(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
     }
-    neonBatch.addBox(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
-    /* hidroponia */
-    [14.2, 16.4, 18.6].forEach(function (hx) {
-      for (let j = 0; j < 4; j++) {
-        bunkerBatch.addBox(1.0, 0.08, 12.4, K.steelD, hx, FL + 0.5 + j * 0.7, -46.2);
-        for (let k = 0; k < 19; k++)
-          bunkerBatch.addSphere(
-            0.26,
-            [PAL.flora.cropGreenA, PAL.flora.cropGreenC, PAL.flora.lime][(k + j) % 3],
-            hx + (k % 2 ? 0.2 : -0.2),
-            FL + 0.78 + j * 0.7,
-            -52.0 + k * 0.62,
-            1,
-            0.8,
-            1,
-          );
-        neonBatch.addBox(0.9, 0.03, 12.0, 0xd44cff, hx, FL + 0.38 + j * 0.7, -46.2);
-      }
-      bunkerBatch.addBox(0.1, 3.0, 12.4, K.steelD, hx - 0.55, FL, -46.2);
-      bunkerBatch.addBox(0.1, 3.0, 12.4, K.steelD, hx + 0.55, FL, -46.2);
-    });
-    bunkerBatch.addCylinder(0.5, 1.4, K.blue, 13.0, FL, -39.8, 10);
-    bunkerBatch.addCylinder(0.5, 1.4, K.blue, 19.6, FL, -39.8, 10);
-    /* oficina maker */
-    bunkerBatch.addBox(0.8, 0.95, 10, K.woodL, 26.8, FL, -46.2);
-    bunkerBatch.addBox(0.9, 0.06, 10.1, PAL.light.cream, 26.8, FL + 0.95, -46.2);
-    [-51, -49, -47].forEach(function (pz) {
-      bunkerBatch.addBox(0.5, 0.5, 0.5, K.white, 26.8, FL + 1.01, pz);
-      glowBatch.addBox(0.3, 0.3, 0.04, CY, 26.54, FL + 1.3, pz);
-    });
-    bunkerBatch.addBox(1.6, 1.5, 1.4, K.steelD, 22.2, FL, -51.6);
-    glowBatch.addBox(1.0, 0.5, 0.05, PAL.neon.amber, 22.2, FL + 0.8, -50.9);
-    bunkerBatch.addBox(2.2, 0.8, 0.8, K.steel, 22.2, FL, -47.4);
-    bunkerBatch.addCylinder(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
-    bunkerBatch.addBox(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);
-    bunkerBatch.addBox(1.2, 0.12, 2.4, K.steelD, 24.2, FL, -41.2);
-    for (let i = 0; i < 4; i++)
-      bunkerBatch.addBox(0.2, 0.2, 0.9, K.woodL, 24.2, FL + 0.12 + i * 0.2, -41.2);
-    bunkerBatch.addBox(0.2, 0.2, 1.6, K.yellow, 22.6, FL + 0.06, -40.6);
-    bunkerBatch.addBox(0.9, 0.05, 1.6, K.steelD, 22.6, FL + 0.26, -40.6);
-    for (let i = 0; i < 9; i++)
-      bunkerBatch.addBox(
-        0.1,
-        0.3,
-        0.5 + (i % 3) * 0.12,
-        [K.red, K.steel, K.yellow][i % 3],
-        27.3,
-        FL + 1.3 + (i % 3) * 0.4,
-        -51 + i * 1.0,
-      );
+  });
+  bunkerBatch.addBox(2.4, 0.8, 1.3, 0x1a5a3a, 8.6, FL + 0.06, -42.4);
+  bunkerBatch.addBox(2.5, 0.1, 1.4, K.woodD, 8.6, FL + 0.8, -42.4);
+  bunkerBatch.addCylinder(0.1, 0.1, PAL.light.white, 8.2, FL + 0.92, -42.4, 8);
+  bunkerBatch.addCylinder(0.1, 0.1, PAL.flora.tomatoRed, 8.9, FL + 0.92, -42.4, 8);
+  bunkerBatch.addBox(0.08, 0.08, 1.5, K.woodD, 11.6, FL + 1.4, -42.4);
+  neonBatch.addBox(2.2, 0.04, 0.04, NEON, 8.6, FL + 2.4, -42.4);
+  for (let i = 0; i < 2; i++) {
+    bunkerBatch.addBox(0.9, 1.8, 0.8, PAL.dark.slate, 10.2 + i * 1.1, FL + 0.06, -39.6);
+    neonBatch.addBox(0.7, 0.5, 0.04, [NEON, CY][i], 10.2 + i * 1.1, FL + 1.2, -39.98);
+  }
+  neonBatch.addBox(6.2, 0.05, 0.05, CY, 9.1, FL + 3.3, -46);
+  /* hidroponia */
+  [14.2, 16.4, 18.6].forEach(function (hx) {
+    for (let j = 0; j < 4; j++) {
+      bunkerBatch.addBox(1.0, 0.08, 12.4, K.steelD, hx, FL + 0.5 + j * 0.7, -46.2);
+      for (let k = 0; k < 19; k++)
+        bunkerBatch.addSphere(
+          0.26,
+          [PAL.flora.cropGreenA, PAL.flora.cropGreenC, PAL.flora.lime][(k + j) % 3],
+          hx + (k % 2 ? 0.2 : -0.2),
+          FL + 0.78 + j * 0.7,
+          -52.0 + k * 0.62,
+          1,
+          0.8,
+          1,
+        );
+      neonBatch.addBox(0.9, 0.03, 12.0, 0xd44cff, hx, FL + 0.38 + j * 0.7, -46.2);
+    }
+    bunkerBatch.addBox(0.1, 3.0, 12.4, K.steelD, hx - 0.55, FL, -46.2);
+    bunkerBatch.addBox(0.1, 3.0, 12.4, K.steelD, hx + 0.55, FL, -46.2);
+  });
+  bunkerBatch.addCylinder(0.5, 1.4, K.blue, 13.0, FL, -39.8, 10);
+  bunkerBatch.addCylinder(0.5, 1.4, K.blue, 19.6, FL, -39.8, 10);
+  /* oficina maker */
+  bunkerBatch.addBox(0.8, 0.95, 10, K.woodL, 26.8, FL, -46.2);
+  bunkerBatch.addBox(0.9, 0.06, 10.1, PAL.light.cream, 26.8, FL + 0.95, -46.2);
+  [-51, -49, -47].forEach(function (pz) {
+    bunkerBatch.addBox(0.5, 0.5, 0.5, K.white, 26.8, FL + 1.01, pz);
+    glowBatch.addBox(0.3, 0.3, 0.04, CY, 26.54, FL + 1.3, pz);
+  });
+  bunkerBatch.addBox(1.6, 1.5, 1.4, K.steelD, 22.2, FL, -51.6);
+  glowBatch.addBox(1.0, 0.5, 0.05, PAL.neon.amber, 22.2, FL + 0.8, -50.9);
+  bunkerBatch.addBox(2.2, 0.8, 0.8, K.steel, 22.2, FL, -47.4);
+  bunkerBatch.addCylinder(0.3, 0.5, K.black, 21.4, FL + 0.8, -47.4, 8);
+  bunkerBatch.addBox(1.0, 0.9, 0.9, K.red, 21.6, FL, -43.4);
+  bunkerBatch.addBox(1.2, 0.12, 2.4, K.steelD, 24.2, FL, -41.2);
+  for (let i = 0; i < 4; i++)
+    bunkerBatch.addBox(0.2, 0.2, 0.9, K.woodL, 24.2, FL + 0.12 + i * 0.2, -41.2);
+  bunkerBatch.addBox(0.2, 0.2, 1.6, K.yellow, 22.6, FL + 0.06, -40.6);
+  bunkerBatch.addBox(0.9, 0.05, 1.6, K.steelD, 22.6, FL + 0.26, -40.6);
+  for (let i = 0; i < 9; i++)
+    bunkerBatch.addBox(
+      0.1,
+      0.3,
+      0.5 + (i % 3) * 0.12,
+      [K.red, K.steel, K.yellow][i % 3],
+      27.3,
+      FL + 1.3 + (i % 3) * 0.4,
+      -51 + i * 1.0,
+    );
 
-    bunkerWallBatch.build(under);
-    bunkerBatch.build(under);
-    glowBatch.build(under, { unlit: true, outline: false });
-    neonBatch.build(under, { unlit: true, outline: false });
-    const netMat = toonMat.clone();
-    netMat.transparent = true;
-    netMat.opacity = 0.3;
-    netMat.depthWrite = false;
-    netMat.side = THREE.DoubleSide;
-    netBatch.build(under, { mat: netMat, outline: false });
-    hatchBatch.build(surface);
-    [ledBatchA, ledBatchB, ledBatchC].forEach(function (L) {
-      ledGroups.push(L.build(under, { unlit: true, outline: false }));
-    });
-  })();
+  bunkerWallBatch.build(under);
+  bunkerBatch.build(under);
+  glowBatch.build(under, { unlit: true, outline: false });
+  neonBatch.build(under, { unlit: true, outline: false });
+  const netMat = toonMat.clone();
+  netMat.transparent = true;
+  netMat.opacity = 0.3;
+  netMat.depthWrite = false;
+  netMat.side = THREE.DoubleSide;
+  netBatch.build(under, { mat: netMat, outline: false });
+  hatchBatch.build(surface);
+  [ledBatchA, ledBatchB, ledBatchC].forEach(function (L) {
+    ledGroups.push(L.build(under, { unlit: true, outline: false }));
+  });
 
   /* sombra falsa chapada sob a maquete */
   (function () {

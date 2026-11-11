@@ -1,0 +1,15 @@
+{
+  "stay": [[39, 99]],
+  "modules": [
+    {
+      "file": "src/world/bunker/shell.js",
+      "header": "Bunker · parte comum: limites, lotes de geometria, casca, cobertura, paredes, pisos por ambiente, corredor e escada de emergência.",
+      "lines": [108, 266]
+    },
+    {
+      "file": "src/world/bunker/fixtures.js",
+      "header": "Bunker · louças e móveis reutilizáveis: vaso, pia, chuveiro, banheiro de fundos, camas, guarda-roupa, mesa, cadeira e planta.",
+      "lines": [267, 354]
+    }
+  ]
+}

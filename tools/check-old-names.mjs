@@ -16,6 +16,7 @@ const files = [];
 
 const depthOf = (sc) => { let d = 0; for (let p = sc.upper; p; p = p.upper) d++; return d; };
 const kindOf = (v) => { const d = v.defs[0]; return d.type === 'FunctionName' || (d.type === 'Variable' && d.node.init && /Function/.test(d.node.init.type)) ? 'function' : 'variable'; };
+const carved = (f) => /^src[\\/](world|app|ui)[\\/]/.test(f); // modulos cortados do IIFE: um nivel de escopo a menos
 const problems = [];
 const declared = new Set();
 for (const file of files) {
@@ -31,8 +32,8 @@ for (const file of files) {
       idents.filter((n) => n.name === e.old).forEach((n) => problems.push(`${file}:${n.loc.start.line}  nome antigo ${e.old} (novo: ${e.new})`));
       const re = new RegExp('\\b' + e.old + '\\b');
       if (!e.noComment) ast.comments.filter((c) => re.test(c.value)).forEach((c) => problems.push(`${file}:${c.loc.start.line}  nome antigo ${e.old} em comentario (novo: ${e.new})`));
-    } else if (file === map.file) {
-      vars.filter((x) => x.v.name === e.old && (e.depth === undefined || x.depth === e.depth) && (!e.kind || kindOf(x.v) === e.kind))
+    } else if (file === map.file || carved(file)) {
+      vars.filter((x) => x.v.name === e.old && (e.depth === undefined || x.depth + (carved(file) ? 1 : 0) === e.depth) && (!e.kind || kindOf(x.v) === e.kind))
         .forEach((x) => problems.push(`${file}:${x.v.defs[0].name.loc.start.line}  declaracao antiga ${e.old} (novo: ${e.new})`));
     }
   }

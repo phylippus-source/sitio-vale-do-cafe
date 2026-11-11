@@ -1,0 +1,30 @@
+{
+  "stay": [[39, 94]],
+  "modules": [
+    {
+      "file": "src/app/page.js",
+      "header": "Referências da página (elementos do DOM) e preferência de movimento reduzido.",
+      "names": ["reduce", "$", "glHost", "stage"]
+    },
+    {
+      "file": "src/world/scene.js",
+      "header": "Cena base: renderizador, câmera, luzes, grupos do diorama e lista de colisões da 1ª pessoa.",
+      "lines": [95, 132]
+    },
+    {
+      "file": "src/world/terrain.js",
+      "header": "Terreno 100 × 150 m (1 unidade = 1 m): estratos, córrego, caminhos, cercas, lavouras e lagoa.",
+      "lines": [133, 422]
+    },
+    {
+      "file": "src/world/sisteminha.js",
+      "header": "Núcleo Sisteminha Embrapa: tanque no centro, canteiros, galinheiro, chiqueiro e apoio, tudo perto e sem árvore.",
+      "lines": [423, 994]
+    },
+    {
+      "file": "src/world/flora.js",
+      "header": "Flora: árvores facetadas, bambuzal, silvicultura e capim.",
+      "lines": [995, 1235]
+    }
+  ]
+}

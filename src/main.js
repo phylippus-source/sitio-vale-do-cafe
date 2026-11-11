@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { clamp, smooth } from './core/math.js';
 import { C } from './core/color.js';
 import { toonMat, hullMat, waterMat, pondMat } from './core/materials.js';
-import { cylG } from './core/geometries.js';
 import { BFL, GF, UF } from './config/dimensions.js';
 import { K, MARB, PAL } from './config/palette.js';
 import { validateData } from './data/validate.js';
@@ -55,7 +54,6 @@ import {
   CY,
   NEON,
   netBatch,
-  GRN,
   glowBatch,
   ledBatchA,
   ledBatchB,
@@ -71,6 +69,10 @@ import { buildParentsSuite } from './world/bunker/rooms/parents-suite.js';
 import { buildSisterRoom } from './world/bunker/rooms/sister-room.js';
 import { buildNieceRoom } from './world/bunker/rooms/niece-room.js';
 import { buildGuestRoom } from './world/bunker/rooms/guest-room.js';
+import { buildDatacenter } from './world/bunker/rooms/datacenter.js';
+import { buildLaboratories } from './world/bunker/rooms/laboratories.js';
+import { buildCleanRoom } from './world/bunker/rooms/clean-room.js';
+import { buildLifeSupport } from './world/bunker/rooms/life-support.js';
 
 (function () {
   'use strict';
@@ -133,94 +135,10 @@ import { buildGuestRoom } from './world/bunker/rooms/guest-room.js';
   buildNieceRoom(roomRect('Quarto da sobrinha'));
   buildGuestRoom(roomRect('Quarto do convidado'));
 
-  /* =================== FILEIRA DOS FUNDOS: técnico (x 10,1 → 27,4) =================== */
-  /* datacenter imerso */
-  [
-    [11.5, -68.4],
-    [14.5, -68.4],
-    [11.5, -65.4],
-    [14.5, -65.4],
-    [11.5, -62.4],
-    [14.5, -62.4],
-    [11.5, -59.4],
-    [14.5, -59.4],
-  ].forEach(function (t, n) {
-    bunkerBatch.addBox(2.2, 1.0, 1.4, K.steel, t[0], FL, t[1]);
-    bunkerBatch.addBox(2.0, 0.1, 1.2, 0x2c6f78, t[0], FL + 1.0, t[1]);
-    glowBatch.addBox(1.8, 0.05, 1.0, 0x35e0b0, t[0], FL + 1.1, t[1]);
-    ledBatchA.addBox(1.4, 0.06, 0.04, [CY, GRN][n % 2], t[0], FL + 0.6, t[1] + 0.72);
-  });
-  for (let i = 0; i < 5; i++) {
-    const rx = 10.95 + i * 1.1;
-    bunkerBatch.addBox(0.95, 2.3, 0.9, PAL.dark.graphite, rx, FL, -71.9);
-    for (let j = 0; j < 10; j++)
-      for (let k = 0; k < 3; k++)
-        [ledBatchA, ledBatchB, ledBatchC][(i + j + k) % 3].addBox(
-          0.12,
-          0.07,
-          0.04,
-          [CY, GRN, PAL.flora.violet, PAL.neon.amber][(i * 3 + j + k) % 4],
-          rx - 0.28 + k * 0.28,
-          FL + 0.25 + j * 0.2,
-          -71.42,
-        );
-  }
-  /* laboratórios */
-  bunkerBatch.addBox(0.9, 0.95, 12, K.white, 16.6, FL, -64.2);
-  bunkerBatch.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 16.6, FL + 0.95, -64.2);
-  bunkerBatch.addBox(0.9, 0.95, 12, K.white, 19.5, FL, -64.2);
-  bunkerBatch.addBox(1.0, 0.07, 12.1, PAL.metal.blueSteel, 19.5, FL + 0.95, -64.2);
-  [-70.5, -67.5, -64.5, -61.5].forEach(function (z, n) {
-    bunkerBatch.addCylinder(0.2, 1.0, K.white, 16.6, FL + 1.02, z, 10);
-    bunkerBatch.addSphere(0.35, PAL.glass.showerGlass, 16.6, FL + 1.7, z, 1, 1, 1, 1);
-    bunkerBatch.addBox(0.6, 0.5, 0.6, [K.steelD, K.white][n % 2], 19.5, FL + 1.02, z);
-    glowBatch.addBox(0.3, 0.3, 0.04, CY, 19.2, FL + 1.3, z);
-  });
-  bunkerBatch.addBox(1.2, 1.9, 1.0, K.steel, 18.0, FL, -57.2);
-  /* sala limpa */
-  bunkerBatch.addBox(1.4, 0.9, 3.0, 0x191c22, 21.6, FL, -69.6);
-  bunkerBatch.addBox(0.7, 0.5, 0.9, K.white, 21.4, FL + 0.9, -70.2);
-  glowBatch.addBox(0.6, 0.04, 0.8, PAL.neon.violet, 21.4, FL + 0.9, -70.2);
-  bunkerBatch.addBox(0.2, 1.2, 0.2, K.steelD, 21.4, FL + 1.4, -70.2);
-  bunkerBatch.addCylinder(0.5, 3.0, PAL.light.tileGrey, 22.4, FL, -64.6, 12);
-  bunkerBatch.addBox(1.1, 1.1, 1.1, K.white, 21.6, FL, -59.4);
-  ledBatchC.addBox(0.2, 0.06, 6, PAL.neon.violet, 21.5, FL + 3.2, -64);
-  /* suporte de vida e baterias térmicas */
-  [-70.6, -68.2, -65.8, -63.4].forEach(function (bz) {
-    bunkerBatch.addGeometry(
-      cylG(1, 16),
-      K.steel,
-      25.2,
-      FL + 1.0,
-      bz,
-      [0.7, 3.0, 0.7],
-      [0, 0, Math.PI / 2],
-    );
-    bunkerBatch.addGeometry(
-      cylG(1, 16),
-      K.orange,
-      23.7,
-      FL + 1.0,
-      bz,
-      [0.55, 0.14, 0.55],
-      [0, 0, Math.PI / 2],
-    );
-    bunkerBatch.addBox(0.2, 1.0, 0.2, K.steelD, 24.4, FL, bz);
-    bunkerBatch.addBox(0.2, 1.0, 0.2, K.steelD, 26.0, FL, bz);
-    ledBatchC.addBox(0.12, 0.9, 0.9, 0xff7a2a, 23.6, FL + 0.55, bz);
-  });
-  [
-    [24.2, -60.6],
-    [25.4, -60.6],
-    [26.6, -60.6],
-  ].forEach(function (t) {
-    bunkerBatch.addCylinder(0.5, 2.4, K.blue, t[0], FL, t[1], 12);
-    bunkerBatch.addCylinder(0.52, 0.2, K.steel, t[0], FL + 2.4, t[1], 12);
-  });
-  for (let i = 0; i < 4; i++) {
-    bunkerBatch.addCylinder(0.24, 0.9, K.red, 24.0 + i * 0.7, FL, -58.2, 8);
-    bunkerBatch.addCylinder(0.18, 0.2, K.white, 24.0 + i * 0.7, FL + 0.9, -58.2, 8);
-  }
+  buildDatacenter(roomRect('Datacenter'));
+  buildLaboratories(roomRect('Laboratórios'));
+  buildCleanRoom(roomRect('Sala limpa'));
+  buildLifeSupport(roomRect('Suporte de vida e baterias'));
 
   /* =================== FILEIRA DA FRENTE (x −11,4 → 27,4) =================== */
   /* estar, jantar e cozinha (13,6 × 14,6 m) */

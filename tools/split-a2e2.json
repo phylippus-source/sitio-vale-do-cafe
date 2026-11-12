@@ -1,0 +1,31 @@
+{
+  "stay": [[51, 105]],
+  "modules": [
+    {
+      "file": "src/ui/camera.js",
+      "header": "Câmera e estado da vista: tamanho da tela, foco em um setor, texto do painel e abertura do corte (raios-X).",
+      "sections": ["CÂMERA E ESTADO"],
+      "names": ["SECTOR"]
+    },
+    {
+      "file": "src/ui/orbit.js",
+      "header": "Interação com a maquete: arrastar para girar, pinça e roda para zoom, deslizador de raios-X.",
+      "lines": [174, 241]
+    },
+    {
+      "file": "src/ui/controls.js",
+      "header": "Controles do painel: sol e estação, velocidade, sabor da água, legendas, recentrar e setas.",
+      "lines": [242, 314]
+    },
+    {
+      "file": "src/ui/drawers.js",
+      "header": "Painel e gavetas (lista de materiais e Aura): a maquete se reenquadra no espaço que sobra.",
+      "lines": [315, 372]
+    },
+    {
+      "file": "src/ui/firstperson.js",
+      "header": "1ª pessoa (Orbwalk): colisão, escada, passos, joystick virtual, teclado e olhar livre.",
+      "sections": ["1ª PESSOA"]
+    }
+  ]
+}

@@ -35,3 +35,6 @@ export const walker = {
   bob: 0,
   moved: 0,
 };
+
+/* Parâmetros da simulação: vazão da água, vento, velocidade do tempo, estação e hora do sol. */
+export const simulation = { flow: 0.65, wind: 0.5, speed: 1, season: 'set', hour: 0 };

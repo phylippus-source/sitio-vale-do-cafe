@@ -1,0 +1,15 @@
+{
+  "stay": [[45, 50]],
+  "modules": [
+    {
+      "file": "src/ui/lists.js",
+      "header": "Botões de setor (grade e fitas) e tabela da lista de materiais.",
+      "lines": [51, 93]
+    },
+    {
+      "file": "src/app/loop.js",
+      "header": "Laço de animação: qualidade adaptativa, suavização da vista, câmera, bússola, abertura do corte e desenho.",
+      "lines": [94, 230]
+    }
+  ]
+}

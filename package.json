@@ -16,7 +16,7 @@
     "build": "vite build",
     "build:debug": "vite build --mode debug",
     "test:smoke": "node tests/smoke.js",
-    "lint": "eslint --max-warnings 4 src tests/unit vitest.config.js",
+    "lint": "eslint --max-warnings 0 src tests/unit vitest.config.js",
     "format": "prettier --write src tests/unit vitest.config.js styles index.html",
     "format:check": "prettier --check src tests/unit vitest.config.js",
     "test:unit": "vitest run",

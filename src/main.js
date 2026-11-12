@@ -5,15 +5,12 @@ import { hullMat, waterMat, pondMat } from './core/materials.js';
 import { BFL, GF, UF } from './config/dimensions.js';
 import { validateData } from './data/validate.js';
 import { SECTORS } from './data/sectors.js';
-import { LABELS } from './data/labels.js';
 import { BOM } from './data/bom.js';
 import { AURA } from './data/aura.js';
-import { ROOMS } from './data/rooms.js';
 import { FPSPOT } from './data/fpspots.js';
 import { $, stage, glHost, reduce } from './app/page.js';
 import {
   surface,
-  under,
   diorama,
   camera,
   renderer,
@@ -46,7 +43,11 @@ import { animals } from './world/animals.js';
 import { fishList } from './world/fish.js';
 import './world/foam.js';
 import { capMat, bunkCapMesh } from './world/bunker/shell.js';
-import { buildBunker } from './world/bunker/index.js';
+import './world/bunker/index.js';
+import { viewTarget, viewCurrent, walker } from './app/state.js';
+import './world/finish.js';
+import { fpHud, PLQ } from './ui/hud.js';
+import { labelState, labelHooks, updateLabels } from './ui/labels.js';
 
 (function () {
   'use strict';
@@ -101,242 +102,7 @@ import { buildBunker } from './world/bunker/index.js';
     });
   })();
 
-  /* =================== FILEIRA DOS FUNDOS: dormitórios (x −11,4 → 10,1) =================== */
-  /* ---- SUÍTE CYBERPUNK DO MESTRE (7,0 × 16,6 m): closet · lounge e estação dev · cama-casulo com mosquiteiro · banheiro ---- */
-  buildBunker();
-
-  /* sombra falsa chapada sob a maquete */
-  (function () {
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(1, 1),
-      new THREE.MeshBasicMaterial({
-        color: 0x2a2018,
-        transparent: true,
-        opacity: 0.12,
-        depthWrite: false,
-      }),
-    );
-    m.rotation.x = -Math.PI / 2;
-    m.scale.set(108, 158, 1);
-    m.position.set(3, -10.12, 3);
-    diorama.add(m);
-  })();
-
-  /* ================= HUD DA 1ª PESSOA E PLACAS DE PORTA ================= */
-  function roomAt(x, z, lvl) {
-    for (let i = 0; i < ROOMS.length; i++) {
-      const r = ROOMS[i];
-      if (r[5] === lvl && x >= r[1] && x <= r[3] && z >= r[2] && z <= r[4]) return r;
-    }
-    return null;
-  }
-  let hudEl = null;
-  let hudLast = '';
-  function fpHud() {
-    hudEl = hudEl || $('#fp-hud');
-    const r = roomAt(walker.x, walker.z, walker.lvl),
-      t = r
-        ? r[0] + ' · ' + Math.round((r[3] - r[1]) * (r[4] - r[2])) + ' m²'
-        : 'Sítio Vale do Café';
-    if (t !== hudLast) {
-      hudLast = t;
-      hudEl.textContent = t;
-    }
-  }
-  const PLQ = [];
-  function plaque(parent, txt, x, y, z, ry) {
-    const cv = document.createElement('canvas');
-    cv.width = 256;
-    cv.height = 64;
-    const c = cv.getContext('2d');
-    c.fillStyle = '#2b1d12';
-    c.fillRect(0, 0, 256, 64);
-    c.strokeStyle = '#d4a24a';
-    c.lineWidth = 4;
-    c.strokeRect(3, 3, 250, 58);
-    c.fillStyle = '#f6e7c3';
-    c.font = 'bold 26px Georgia, serif';
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText(txt, 128, 34);
-    const tex = new THREE.CanvasTexture(cv);
-    tex.encoding = THREE.sRGBEncoding;
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.0, 0.25),
-      new THREE.MeshBasicMaterial({ map: tex }),
-    );
-    m.position.set(x, y, z);
-    m.rotation.y = ry || 0;
-    m.visible = false;
-    parent.add(m);
-    PLQ.push(m);
-  }
-  /* casa: placas nas portas internas (coordenadas locais da casa) */
-  plaque(casaG, 'CAPELA', -6.75, GF + 3.05, 5.7, Math.PI / 2);
-  plaque(casaG, 'ESCRITÓRIO', 6.75, GF + 3.05, 5.7, -Math.PI / 2);
-  plaque(casaG, 'SALA DE JANTAR', 0, GF + 3.3, -3.8, 0);
-  plaque(casaG, 'COZINHA', -6.75, GF + 3.05, -6.3, Math.PI / 2);
-  plaque(casaG, 'DESPENSA', 6.75, GF + 3.05, -6.4, -Math.PI / 2);
-  plaque(casaG, 'BANHEIROS', 6.75, GF + 3.05, -1.85, -Math.PI / 2);
-  plaque(casaUp, 'CORREDOR DAS SUÍTES', 0, 3.2, 2.3, 0);
-  plaque(casaUp, 'SALA ÍNTIMA', 0, 3.2, -1.2, 0);
-  plaque(barnG, 'ENGENHO 1850', -6.0, 4.2, 4.4, Math.PI);
-  plaque(barnG, 'OFICINA', 3.0, 4.2, 4.4, Math.PI);
-  plaque(under, 'SUÍTE DO MESTRE', -8.2, BFL + 2.9, -55.6, 0);
-  plaque(under, 'PAIS', -2.3, BFL + 2.9, -55.6, 0);
-  plaque(under, 'IRMÃ', 2.0, BFL + 2.9, -55.6, 0);
-  plaque(under, 'SOBRINHA', 5.5, BFL + 2.9, -55.6, 0);
-  plaque(under, 'CONVIDADO', 8.6, BFL + 2.9, -55.6, 0);
-  plaque(under, 'DATACENTER', 13.1, BFL + 2.9, -55.6, 0);
-  plaque(under, 'LABORATÓRIOS', 18.05, BFL + 2.9, -55.6, 0);
-  plaque(under, 'SALA LIMPA', 21.5, BFL + 2.9, -55.6, 0);
-  plaque(under, 'SUPORTE DE VIDA', 25.2, BFL + 2.9, -55.6, 0);
-  plaque(under, 'DESPENSA', 4.0, BFL + 2.9, -53.0, Math.PI);
-  plaque(under, 'CINEMA E JOGOS', 9.1, BFL + 2.9, -53.0, Math.PI);
-  plaque(under, 'HIDROPONIA', 16.4, BFL + 2.9, -53.0, Math.PI);
-  plaque(under, 'OFICINA MAKER', 23.9, BFL + 2.9, -53.0, Math.PI);
-
-  /* ================= LEGENDAS ================= */
-  const labelsHost = $('#labels'),
-    svg = $('#leaders'),
-    NS = 'http://www.w3.org/2000/svg';
-  const labelItems = LABELS.map(function (d) {
-    const anchor = new THREE.Object3D();
-    anchor.position.set(d.p[0], d.p[1], d.p[2]);
-    (
-      ({ s: surface, u: under, c: casaRoofG, b: barnRoofG, i: casaG, e: barnG, U: casaUp })[d.L] ||
-      surface
-    ).add(anchor);
-    const el = document.createElement('button');
-    el.className = 'lbl';
-    el.type = 'button';
-    const b = document.createElement('span');
-    b.textContent = d.t;
-    el.appendChild(b);
-    if (d.s) {
-      const s = document.createElement('small');
-      s.textContent = d.s;
-      el.appendChild(s);
-    }
-    el.addEventListener('click', function () {
-      focusOn(d.k);
-    });
-    labelsHost.appendChild(el);
-    const line = document.createElementNS(NS, 'line'),
-      dot = document.createElementNS(NS, 'circle');
-    dot.setAttribute('r', '3');
-    svg.appendChild(line);
-    svg.appendChild(dot);
-    return { d: d, anchor: anchor, el: el, line: line, dot: dot, w: 0, h: 0 };
-  });
-  let needMeasure = true;
-  let showLabels = true;
-  const vTmp = new THREE.Vector3();
-  function measure() {
-    labelItems.forEach(function (it) {
-      it.el.hidden = false;
-      it.w = it.el.offsetWidth;
-      it.h = it.el.offsetHeight;
-    });
-    needMeasure = false;
-  }
-
-  function updateLabels(W, H) {
-    if (!showLabels || walker.on) return;
-    if (needMeasure) measure();
-    const narrow = W < 640,
-      items = [];
-    labelItems.forEach(function (it) {
-      const hide =
-        (narrow && !it.d.m) ||
-        (!it.d.m && viewCurrent.zoom < 1.5) ||
-        (it.d.i && viewCurrent.lift < 40) ||
-        (it.d.z && viewCurrent.zoom < it.d.z);
-      vTmp.setFromMatrixPosition(it.anchor.matrixWorld).project(camera);
-      it.sx = (vTmp.x * 0.5 + 0.5) * W;
-      it.sy = (-vTmp.y * 0.5 + 0.5) * H;
-      it.vis =
-        !hide && vTmp.z < 1 && it.sx > -20 && it.sx < W + 20 && it.sy > -20 && it.sy < H + 20;
-      if (it.vis) items.push(it);
-      else {
-        it.el.hidden = true;
-        it.line.style.display = 'none';
-        it.dot.style.display = 'none';
-      }
-    });
-    items.sort(function (a, b) {
-      return b.d.m - a.d.m || b.sy - a.sy;
-    });
-    const placed = [];
-    items.forEach(function (it) {
-      const w = it.w;
-      const h = it.h;
-      const bx = it.sx - w / 2;
-      const by = it.sy - 16 - h;
-      let ok = false;
-      let px = 0;
-      let py = 0;
-      for (let step = 0; step < 9 && !ok; step++) {
-        for (let k = 0; k < 5 && !ok; k++) {
-          const dx = [0, 1, -1, 2, -2][k] * (w * 0.55 + 4),
-            x = clamp(bx + dx, 4, Math.max(4, W - w - 4)),
-            y = by - step * (h + 5);
-          if (y < 4 || y > H - h - 4) continue;
-          let hit = false;
-          for (let i = 0; i < placed.length; i++) {
-            const p = placed[i];
-            if (x < p.x + p.w + 4 && x + w + 4 > p.x && y < p.y + p.h + 4 && y + h + 4 > p.y) {
-              hit = true;
-              break;
-            }
-          }
-          if (!hit) {
-            ok = true;
-            px = x;
-            py = y;
-          }
-        }
-      }
-      if (!ok) {
-        it.el.hidden = true;
-        it.line.style.display = 'none';
-        it.dot.style.display = 'none';
-        return;
-      }
-      placed.push({ x: px, y: py, w: w, h: h });
-      it.el.hidden = false;
-      it.el.style.transform = 'translate(' + px.toFixed(1) + 'px,' + py.toFixed(1) + 'px)';
-      const lx = clamp(it.sx, px + 6, px + w - 6);
-      it.line.style.display = '';
-      it.dot.style.display = '';
-      it.line.setAttribute('x1', it.sx.toFixed(1));
-      it.line.setAttribute('y1', it.sy.toFixed(1));
-      it.line.setAttribute('x2', lx.toFixed(1));
-      it.line.setAttribute('y2', (py + h).toFixed(1));
-      it.dot.setAttribute('cx', it.sx.toFixed(1));
-      it.dot.setAttribute('cy', it.sy.toFixed(1));
-    });
-  }
-
   /* ================= CÂMERA E ESTADO ================= */
-  const viewTarget = {
-    rotY: -0.55,
-    rotX: 0.17,
-    zoom: 1.12,
-    panX: 0,
-    panY: 0,
-    lift: 0,
-    f: new THREE.Vector3(2, -4, 2),
-  };
-  const viewCurrent = {
-    rotY: -0.55,
-    rotX: 0.17,
-    zoom: 1.12,
-    panX: 0,
-    panY: 0,
-    lift: 0,
-    f: new THREE.Vector3(2, -4, 2),
-  };
   const simulation = { flow: 0.65, wind: 0.5 };
   let viewWidth = 1;
   let viewHeight = 1;
@@ -348,7 +114,7 @@ import { buildBunker } from './world/bunker/index.js';
     renderer.setSize(viewWidth, viewHeight);
     camera.aspect = viewWidth / viewHeight;
     camera.updateProjectionMatrix();
-    needMeasure = true;
+    labelState.needMeasure = true;
     hullMat.uniforms.uRes.value.set(viewWidth, viewHeight);
     hullMat.uniforms.uThick.value = viewWidth < 640 ? 1.15 : 1.5;
   }
@@ -385,6 +151,7 @@ import { buildBunker } from './world/bunker/index.js';
       }
     }
   }
+  labelHooks.onPick = focusOn;
   function setInfo(s) {
     $('#info-tag').textContent =
       ['bunker', 'datacenter', 'labs', 'clean', 'refuge', 'battery'].indexOf(s.k) >= 0
@@ -532,11 +299,11 @@ import { buildBunker } from './world/bunker/index.js';
     });
   });
   $('#b-labels').addEventListener('click', function (e) {
-    showLabels = !showLabels;
-    e.currentTarget.setAttribute('aria-pressed', String(showLabels));
-    e.currentTarget.textContent = 'Legendas: ' + (showLabels ? 'on' : 'off');
-    document.body.classList.toggle('nolabels', !showLabels);
-    if (showLabels) needMeasure = true;
+    labelState.show = !labelState.show;
+    e.currentTarget.setAttribute('aria-pressed', String(labelState.show));
+    e.currentTarget.textContent = 'Legendas: ' + (labelState.show ? 'on' : 'off');
+    document.body.classList.toggle('nolabels', !labelState.show);
+    if (labelState.show) labelState.needMeasure = true;
   });
   $('#b-reset').addEventListener('click', function () {
     focusOn('overview');
@@ -613,22 +380,6 @@ import { buildBunker } from './world/bunker/index.js';
   });
 
   /* ================= 1ª PESSOA (ORBWALK): joystick virtual + olhar livre ================= */
-  const walker = {
-    on: false,
-    x: 1,
-    z: -50.6,
-    yaw: 0,
-    pitch: 0,
-    lvl: 's',
-    eye: 1.7,
-    eyeY: 1.9,
-    jx: 0,
-    jy: 0,
-    keys: {},
-    prevLift: 0,
-    bob: 0,
-    moved: 0,
-  };
   const FPR = 0.38;
   function stairY(lx, lz) {
     return clamp(GF + ((9.4 - lz) / 6.6) * (UF - GF), GF, UF);
@@ -755,7 +506,7 @@ import { buildBunker } from './world/bunker/index.js';
     b.textContent = '🕹️ 1ª Pessoa (Orbwalk)';
     camera.fov = 26;
     setLift(walker.prevLift);
-    needMeasure = true;
+    labelState.needMeasure = true;
     resize();
   }
   $('#fp-btn').addEventListener('click', function () {

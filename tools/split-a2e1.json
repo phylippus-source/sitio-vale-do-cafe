@@ -1,0 +1,25 @@
+{
+  "stay": [[51, 102]],
+  "modules": [
+    {
+      "file": "src/app/state.js",
+      "header": "Estado compartilhado da interface: câmera (alvo e atual) e andarilho da 1ª pessoa.",
+      "names": ["viewTarget", "viewCurrent", "walker"]
+    },
+    {
+      "file": "src/world/finish.js",
+      "header": "Acabamento da cena: monta o bunker (depois de todo o mundo) e a sombra falsa chapada sob a maquete.",
+      "lines": [104, 123]
+    },
+    {
+      "file": "src/ui/hud.js",
+      "header": "HUD da 1ª pessoa (nome do ambiente) e placas das portas.",
+      "sections": ["HUD DA 1ª PESSOA"]
+    },
+    {
+      "file": "src/ui/labels.js",
+      "header": "Legendas flutuantes com linhas-guia: posicionamento sem sobreposição.",
+      "sections": ["LEGENDAS"]
+    }
+  ]
+}

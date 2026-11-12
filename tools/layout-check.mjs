@@ -143,7 +143,79 @@ function printMap(P) {
   console.log(ids.map((id, i) => sym[i] + '=' + id).join(' '));
 }
 
+
+/* ---------- implantacao do lote ---------- */
+function checkSite() {
+  const S = JSON.parse(fs.readFileSync(path.join(ROOT, 'plan/site.json'), 'utf8'));
+  const B = JSON.parse(fs.readFileSync(path.join(ROOT, 'plan/bunker.json'), 'utf8'));
+  const R = (o) => ({ u: o.x, v: o.z, w: o.w, d: o.d });
+  const box = (o) => ({ u: o.x1, v: o.z1, w: o.x2 - o.x1, d: o.z2 - o.z1 });
+  const bunker = { u: B.mundo.x0, v: B.mundo.z0, w: B.pegada.w, d: B.pegada.d };
+  const byId = new Map(S.itens.map((i) => [i.id, i]));
+  /* gap entre retangulos (0 se encostam ou se sobrepoem) */
+  const gap = (a, b) => Math.hypot(Math.max(a.u - (b.u + b.w), b.u - (a.u + a.w), 0), Math.max(a.v - (b.v + b.d), b.v - (a.v + a.d), 0));
+  let total = 0;
+  for (const [id, [w, d]] of Object.entries(S.medidas)) {
+    const it = byId.get(id);
+    if (!it) {
+      err('lote: falta no layout: ' + id);
+      continue;
+    }
+    const ok = (Math.abs(it.w - w) < EPS && Math.abs(it.d - d) < EPS) || (Math.abs(it.w - d) < EPS && Math.abs(it.d - w) < EPS);
+    if (!ok) err(`lote: ${id} mede ${it.w}×${it.d} e o plano pede ${w}×${d}`);
+    if (id === 'quadras') {
+      const q = S.quadras_internas;
+      const need = [2 * q.cada[0] + q.vao, 2 * q.cada[1] + q.vao];
+      if (it.w !== need[0] || it.d !== need[1]) err(`lote: as quadras giradas medem ${need[0]}×${need[1]}, o layout tem ${it.w}×${it.d}`);
+      total += 4 * q.cada[0] * q.cada[1];
+    } else total += w * d;
+    if (S.areas_plano[id] !== undefined) {
+      const a = id === 'quadras' ? 4 * S.quadras_internas.cada[0] * S.quadras_internas.cada[1] : w * d;
+      if (id !== 'pomar' && Math.abs(a - S.areas_plano[id]) > EPS) err(`lote: área de ${id} (${a}) difere do plano (${S.areas_plano[id]})`);
+    }
+  }
+  for (const id of byId.keys()) if (!(id in S.medidas)) err('lote: item fora do plano: ' + id);
+  if (Math.abs(total - S.total_itens) > EPS) err(`lote: soma das áreas ${total} difere do plano ${S.total_itens}`);
+  /* 0/5, limites, margens, sobreposicao */
+  const L = S.lote;
+  const obstacles = [
+    ['estrada', box(S.estrada)],
+    ['córrego', box({ x1: S.corrego.x1, x2: S.corrego.x2, z1: L.z1, z2: L.z2 })],
+  ];
+  for (const it of S.itens) {
+    for (const k of ['x', 'z', 'w', 'd']) if (!half(it[k])) err(`lote: ${it.id}.${k}=${it[k]} não termina em 0 ou 5`);
+    if (it.x < L.x1 + S.margem - EPS || it.x + it.w > L.x2 - EPS || it.z < L.z1 + S.margem - EPS || it.z + it.d > L.z2 - S.margem + EPS) err(`lote: ${it.id} sai do lote ou fica a menos de ${S.margem} m da divisa`);
+    for (const [nome, o] of obstacles) {
+      const g = gap(R(it), o);
+      const enc = (it.encosta || []).includes(nome.replace('ó', 'o'));
+      if (overlap(R(it), o)) err(`lote: ${it.id} invade a ${nome}`);
+      else if (g < S.margem - EPS && !enc) err(`lote: ${it.id} fica a ${g.toFixed(1)} m da ${nome} (mínimo ${S.margem} m)`);
+    }
+    if (['arvore', 'escavacao'].includes(it.tipo) && overlap(R(it), bunker)) err(`lote: ${it.id} (${it.tipo}) está sobre a projeção do bunker`);
+  }
+  for (let i = 0; i < S.itens.length; i++)
+    for (let j = i + 1; j < S.itens.length; j++) {
+      const a = S.itens[i], b = S.itens[j];
+      if (overlap(R(a), R(b))) err(`lote: ${a.id} e ${b.id} se sobrepõem`);
+      else if (gap(R(a), R(b)) < S.margem - EPS) err(`lote: ${a.id} e ${b.id} ficam a ${gap(R(a), R(b)).toFixed(1)} m (mínimo ${S.margem} m)`);
+    }
+  /* casa sobre o bunker; distancias do plano */
+  const c = R(byId.get('casa'));
+  if (!(c.u >= bunker.u && c.v >= bunker.v && c.u + c.w <= bunker.u + bunker.w && c.v + c.d <= bunker.v + bunker.d)) err('lote: a Casa Grande não está sobre o bunker');
+  const g2 = (a, b) => gap(R(byId.get(a)), R(byId.get(b)));
+  const rule = S.regras;
+  if (g2('animais', 'casa') < rule.animais_longe_da_casa) err(`lote: animais a ${g2('animais', 'casa').toFixed(1)} m da casa (mínimo ${rule.animais_longe_da_casa} m)`);
+  if (g2('pomar', 'nucleo') > rule.pomar_perto_do_nucleo) err(`lote: pomar a ${g2('pomar', 'nucleo').toFixed(1)} m do núcleo (máximo ${rule.pomar_perto_do_nucleo} m)`);
+  if (g2('estufa', 'nucleo') > rule.estufa_perto_do_nucleo) err(`lote: estufa a ${g2('estufa', 'nucleo').toFixed(1)} m do núcleo (máximo ${rule.estufa_perto_do_nucleo} m)`);
+  if (g2('animais', 'nucleo') > rule.animais_perto_do_nucleo) err(`lote: animais a ${g2('animais', 'nucleo').toFixed(1)} m do núcleo (máximo ${rule.animais_perto_do_nucleo} m)`);
+  const lotArea = (L.x2 - L.x1) * (L.z2 - L.z1);
+  const env = S.itens.reduce((a, i) => a + i.w * i.d, 0);
+  console.log(`lote: ${S.itens.length} itens, áreas do plano ${total} m², envelopes ${env} m² de ${lotArea} m² (${((env / lotArea) * 100).toFixed(0)}%)`);
+  console.log(`lote: margem mínima ${S.margem} m; distâncias: animais–casa ${g2('animais', 'casa').toFixed(0)} m, pomar–núcleo ${g2('pomar', 'nucleo').toFixed(1)} m, estufa–núcleo ${g2('estufa', 'nucleo').toFixed(1)} m, animais–núcleo ${g2('animais', 'nucleo').toFixed(1)} m`);
+}
+
 checkBunker();
+checkSite();
 if (errors.length) {
   console.error('\nFALHOU (' + errors.length + '):\n- ' + errors.join('\n- '));
   process.exit(1);

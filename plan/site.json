@@ -1,0 +1,64 @@
+{
+  "titulo": "Implantação do lote 100×150 m",
+  "mundo": { "nota": "x e z em metros, mesmas coordenadas do modelo; z cresce em direção à estrada e ao núcleo Sisteminha (norte, pela convenção do código)." },
+  "lote": { "x1": -50, "x2": 50, "z1": -75, "z2": 75 },
+  "margem": 2,
+  "estrada": { "x1": -50, "x2": 43, "z1": 25.5, "z2": 30.5 },
+  "corrego": { "x1": 43, "x2": 48 },
+  "total_itens": 7850,
+  "medidas": {
+    "casa": [25, 25],
+    "engenho": [20, 10],
+    "quadras": [65, 55],
+    "nucleo": [25, 30],
+    "estufa": [20, 7.5],
+    "animais": [15, 15],
+    "galpao": [10, 15],
+    "bambuzal": [25, 25],
+    "silvicultura": [25, 25],
+    "jazida": [20, 25],
+    "pomar": [25, 40]
+  },
+  "areas_plano": {
+    "casa": 625, "engenho": 200, "quadras": 3000, "nucleo": 750, "estufa": 150, "animais": 225,
+    "galpao": 150, "bambuzal": 625, "silvicultura": 625, "jazida": 500, "pomar": 1000
+  },
+  "nomes": {
+    "casa": "Casa Grande com varanda (25×20 + 25×5)",
+    "engenho": "Engenho",
+    "quadras": "4 quadras de rotação, 2×2 com vãos de 5 m (cada 30×25)",
+    "nucleo": "Núcleo Sisteminha",
+    "estufa": "Estufa",
+    "animais": "Zona de caprinos e suínos, 2 terraços",
+    "galpao": "Galpão técnico com laje-jardim",
+    "bambuzal": "Bambuzal",
+    "silvicultura": "Silvicultura (eucalipto 3×2 m)",
+    "jazida": "Jazida de argila",
+    "pomar": "Pomar"
+  },
+  "itens": [
+    { "id": "casa", "x": -11.5, "z": -68, "w": 25, "d": 25, "tipo": "predio", "fixo": true },
+    { "id": "engenho", "x": 23, "z": -43, "w": 20, "d": 10, "tipo": "predio", "fixo": true, "encosta": ["corrego"] },
+    { "id": "quadras", "x": -48, "z": -31.5, "w": 65, "d": 55, "tipo": "lavoura" },
+    { "id": "nucleo", "x": 16, "z": 32.5, "w": 25, "d": 30, "tipo": "lavoura" },
+    { "id": "estufa", "x": 16, "z": 64.5, "w": 20, "d": 7.5, "tipo": "predio" },
+    { "id": "pomar", "x": -11, "z": 32.5, "w": 25, "d": 40, "tipo": "arvore" },
+    { "id": "silvicultura", "x": -39, "z": 48, "w": 25, "d": 25, "tipo": "arvore" },
+    { "id": "bambuzal", "x": -39, "z": -73, "w": 25, "d": 25, "tipo": "arvore" },
+    { "id": "animais", "x": 22, "z": 8.5, "w": 15, "d": 15, "tipo": "predio" },
+    { "id": "galpao", "x": 19, "z": -60, "w": 10, "d": 15, "tipo": "predio" },
+    { "id": "jazida", "x": 21, "z": -31, "w": 20, "d": 25, "tipo": "escavacao" }
+  ],
+  "quadras_internas": { "cada": [30, 25], "vao": 5 },
+  "regras": {
+    "animais_longe_da_casa": 25,
+    "pomar_perto_do_nucleo": 5,
+    "estufa_perto_do_nucleo": 5,
+    "animais_perto_do_nucleo": 20
+  },
+  "notas": [
+    "Quadras giradas: 30 (x) × 25 (z) cada, para caber entre o pátio da casa e a estrada sem mover a estrada.",
+    "Árvores, bambu e escavação ficam fora da projeção do bunker (raízes e escavação sobre 7 m de terra).",
+    "Estimativa [E]: a terra do bunker rende cerca de 6.000 m³ de sobra, sem destino nas pranchas."
+  ]
+}

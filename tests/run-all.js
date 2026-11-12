@@ -26,6 +26,7 @@ const browser = (file) => ['node', ['tests/' + file + '.js', ...extra]];
 const FAST = [
   ['lint', ...npm('lint')],
   ['names', ...npm('check:names')],
+  ['layout', 'node', ['tools/layout-check.mjs']],
   ['format', ...npm('format:check')],
   ['unit', ...npm('test:unit')],
   ['build', ...npm('build')],

@@ -37,6 +37,42 @@
   },
   "extras": { "ramal": [5, 15] },
   "circulacao": ["galeria", "montacarga", "escada", "saida2", "ramal"],
+  "tolerancia": {
+    "nota": "Regras das opções de encaixe (tools/pack-bunker.py). As medidas acima são nominais: cada lado varia até ± o lado do cenário; giro de 90° permitido.",
+    "cenarios": [
+      { "id": "exato", "nome": "Medidas exatas", "lado": 0 },
+      { "id": "mais-menos-1", "nome": "Variação de ±1 m", "lado": 1 },
+      { "id": "mais-menos-2-5", "nome": "Variação de ±2,5 m", "lado": 2.5 }
+    ],
+    "area_min": 0.9,
+    "nao_encolhem": ["mestre", "pais", "irma", "sobrinha", "convidado"],
+    "lado_min": { "ambiente": 3, "circulacao": 4 },
+    "giro": true,
+    "ramal": { "opcional": true, "lado_curto": [2.5, 5], "lado_longo": [5, 15] },
+    "pegada_max": { "w": 50, "d": 40, "nota": "limites do lote atual: córrego (x ≤ 38) e jazida (z ≤ −33)" }
+  },
+  "acesso_por": { "adega": ["estar"], "agua": ["hidroponia"], "limpa": ["labs"], "baterias": ["suporte"], "datacenter": ["oficina", "baterias"] },
+  "saidas": { "a": "escada", "b": "saida2", "distancia_min": 30 },
+  "afinidades": [
+    { "a": "suporte", "b": "baterias", "peso": 3 },
+    { "a": "agua", "b": "hidroponia", "peso": 3 },
+    { "a": "labs", "b": "limpa", "peso": 3 },
+    { "a": "despensa", "b": "montacarga", "peso": 3 },
+    { "a": "baterias", "b": "datacenter", "peso": 2 },
+    { "a": "estar", "b": "despensa", "peso": 2 },
+    { "a": "despensa", "b": "adega", "peso": 2 },
+    { "a": "estar", "b": "adega", "peso": 1 },
+    { "a": "hidroponia", "b": "estar", "peso": 1 },
+    { "a": "oficina", "b": "montacarga", "peso": 1 },
+    { "a": "cinema", "b": "estar", "peso": 1 }
+  ],
+  "ruido": { "fontes": ["oficina", "datacenter", "suporte"], "sensiveis": ["mestre", "pais", "irma", "sobrinha", "convidado"] },
+  "notas_regua": [
+    "Afinidade: vale quando as bordas dos dois ambientes se tocam em 1 m ou mais; peso de 1 a 3.",
+    "Ruído: distância entre a fonte e o quarto mais próximo; quanto maior, melhor.",
+    "acesso_por: ambientes que podem servir de passagem; só o que o plano atual já usa.",
+    "Valores propostos, a confirmar pelo Mestre: pesos, fontes de ruído e distância mínima entre as saídas."
+  ],
   "salas": [
     { "id": "galeria", "u": 5, "v": 15, "w": 40, "d": 5, "grupo": "circulação" },
     { "id": "montacarga", "u": 0, "v": 15, "w": 5, "d": 5, "grupo": "circulação" },

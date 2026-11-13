@@ -1,6 +1,6 @@
 {
   "titulo": "Planta do bunker (cota −10 m)",
-  "mundo": { "x0": -12, "z0": -73, "piso": -10, "pe_direito": 3, "nota": "u vai para +x e v para +z; x = x0 + u, z = z0 + v. Tudo em metros." },
+  "mundo": { "x0": -12, "z0": -73, "piso": -10, "pe_direito": 3, "distancia_corrego": 5, "nota": "u vai para +x e v para +z; x = x0 + u, z = z0 + v. Tudo em metros." },
   "pegada": { "w": 50, "d": 40 },
   "total_util": 1687.5,
   "areas": {

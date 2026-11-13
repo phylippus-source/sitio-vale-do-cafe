@@ -2,10 +2,8 @@
 // tools/layout-check.mjs e por tests/unit/layout.test.js. Metros; u vai para +x e v para +z.
 // As mensagens saem sem prefixo: quem chama acrescenta "bunker: " ou "opção X: ".
 export const EPS = 1e-9;
-const LOTE = { x1: -50, x2: 50, z1: -75, z2: 75 };
-const CORREGO_X = 43;
-const MARGEM_CORREGO = 5;
-const SALTOS_MAX = 2;
+const SALTOS_MAX = 2; // ambiente a até 2 saltos da circulação
+const BORDA_MIN = 1; // m de borda comum para dois ambientes valerem como "encostados"
 
 export const half = (n) => Math.abs(n * 2 - Math.round(n * 2)) < EPS; // múltiplos de 0,5: termina em 0 ou 5
 export const overlap = (a, b) =>
@@ -28,6 +26,63 @@ export const gap = (a, b) =>
   );
 
 const porId = (salas) => new Map(salas.map((s) => [s.id, s]));
+const num = (x) => typeof x === 'number' && Number.isFinite(x);
+
+/* o que o bunker herda do lote (plan/site.json): limites, córrego e a Casa Grande na grade do bunker */
+export function contextoLote(P, S) {
+  const c = S.itens.find((i) => i.id === 'casa');
+  return {
+    lote: S.lote,
+    corregoX: S.corrego.x1,
+    casa: c ? { u: c.x - P.mundo.x0, v: c.z - P.mundo.z0, w: c.w, d: c.d } : null,
+  };
+}
+
+/* ---------- o próprio plano: ids e valores das regras ---------- */
+
+export function conferirPlano(P) {
+  const erros = [];
+  const ids = new Set([...Object.keys(P.medidas), ...Object.keys(P.extras || {})]);
+  const existe = (onde, id) => {
+    if (!ids.has(id)) erros.push(`${onde}: ambiente desconhecido "${id}"`);
+  };
+  P.circulacao.forEach((id) => existe('circulacao', id));
+  for (const a of P.afinidades || []) {
+    existe('afinidades', a.a);
+    existe('afinidades', a.b);
+    if (a.a === a.b) erros.push(`afinidades: ${a.a} com ele mesmo`);
+    if (!num(a.peso) || a.peso <= 0) erros.push(`afinidades: peso inválido em ${a.a}–${a.b}`);
+  }
+  if (P.ruido) [...P.ruido.fontes, ...P.ruido.sensiveis].forEach((id) => existe('ruido', id));
+  for (const [id, vias] of Object.entries(P.acesso_por || {})) {
+    existe('acesso_por', id);
+    vias.forEach((v) => existe('acesso_por', v));
+  }
+  if (P.saidas) {
+    existe('saidas', P.saidas.a);
+    existe('saidas', P.saidas.b);
+    if (!num(P.saidas.distancia_min)) erros.push('saidas: distancia_min inválida');
+  }
+  const T = P.tolerancia;
+  if (T) {
+    (T.nao_encolhem || []).forEach((id) => existe('tolerancia.nao_encolhem', id));
+    if (!(T.area_min > 0 && T.area_min <= 1)) erros.push('tolerancia.area_min deve estar entre 0 e 1');
+    const vistos = new Set();
+    for (const c of T.cenarios || []) {
+      if (vistos.has(c.id)) erros.push(`tolerancia.cenarios: id repetido "${c.id}"`);
+      vistos.add(c.id);
+      if (!num(c.lado) || c.lado < 0) erros.push(`tolerancia.cenarios: lado inválido em "${c.id}"`);
+    }
+    if (!vistos.size) erros.push('tolerancia.cenarios vazio');
+    if (!T.lado_min || !num(T.lado_min.ambiente) || !num(T.lado_min.circulacao))
+      erros.push('tolerancia.lado_min precisa de ambiente e circulacao');
+    if (!T.pegada_max || !num(T.pegada_max.w) || !num(T.pegada_max.d))
+      erros.push('tolerancia.pegada_max precisa de w e d');
+    if (P.extras && Object.keys(P.extras).length && !T.ramal) erros.push('tolerancia.ramal ausente');
+  }
+  if (!num(P.mundo.distancia_corrego)) erros.push('mundo.distancia_corrego ausente');
+  return erros;
+}
 
 /* ---------- medidas ---------- */
 
@@ -65,24 +120,23 @@ function conferirMedidasBase(P, salas) {
   return { erros, total };
 }
 
-/* um ambiente de opção: erro (texto) ou null. Cada lado varia até ± lado; giro permitido */
+/* um ambiente de opção: mensagem de erro ou null. Cada lado varia até ± lado; giro permitido */
 function medidaFlexivel(P, s, lado) {
   const T = P.tolerancia;
   const [w0, d0] = P.medidas[s.id];
   const orientacoes = T.giro === false ? [[w0, d0]] : [[w0, d0], [d0, w0]];
-  let c = orientacoes.filter(
+  let cand = orientacoes.filter(
     ([a, b]) => Math.abs(s.w - a) <= lado + EPS && Math.abs(s.d - b) <= lado + EPS,
   );
-  if (!c.length) return `${s.id} mede ${s.w}×${s.d}, fora de ±${lado} m de ${w0}×${d0}`;
+  if (!cand.length) return `${s.id} mede ${s.w}×${s.d}, fora de ±${lado} m de ${w0}×${d0}`;
   if ((T.nao_encolhem || []).includes(s.id)) {
-    c = c.filter(([a, b]) => s.w >= a - EPS && s.d >= b - EPS);
-    if (!c.length) return `${s.id} não pode encolher (plano ${w0}×${d0}, layout ${s.w}×${s.d})`;
+    cand = cand.filter(([a, b]) => s.w >= a - EPS && s.d >= b - EPS);
+    if (!cand.length) return `${s.id} não pode encolher (plano ${w0}×${d0}, layout ${s.w}×${s.d})`;
   }
   const area = s.w * s.d;
   if (area < T.area_min * w0 * d0 - EPS)
     return `${s.id} tem ${area} m², abaixo de ${T.area_min * 100}% do plano (${w0 * d0} m²)`;
-  const eCirc = P.circulacao.includes(s.id);
-  const min = eCirc ? T.lado_min.circulacao : T.lado_min.ambiente;
+  const min = P.circulacao.includes(s.id) ? T.lado_min.circulacao : T.lado_min.ambiente;
   if (Math.min(s.w, s.d) < min - EPS)
     return `${s.id} tem lado ${Math.min(s.w, s.d)} m, abaixo do mínimo ${min} m`;
   return null;
@@ -90,11 +144,10 @@ function medidaFlexivel(P, s, lado) {
 
 /* ramal: opcional, com faixa própria de lados */
 function medidaRamal(P, s) {
-  const R = P.tolerancia.ramal;
+  const [c1, c2] = P.tolerancia.ramal.lado_curto;
+  const [l1, l2] = P.tolerancia.ramal.lado_longo;
   const curto = Math.min(s.w, s.d);
   const longo = Math.max(s.w, s.d);
-  const [c1, c2] = R.lado_curto;
-  const [l1, l2] = R.lado_longo;
   if (curto < c1 - EPS || curto > c2 + EPS || longo < l1 - EPS || longo > l2 + EPS)
     return `${s.id} mede ${s.w}×${s.d}, fora das faixas ${c1}–${c2} × ${l1}–${l2} m`;
   return null;
@@ -109,14 +162,14 @@ function conferirMedidasOpcao(P, salas, lado) {
   }
   for (const id of Object.keys(P.medidas)) {
     const s = byId.get(id);
-    if (!s) erros.push('falta no layout: ' + id);
-    else erros.push(...[medidaFlexivel(P, s, lado)].filter(Boolean));
+    const e = s ? medidaFlexivel(P, s, lado) : 'falta no layout: ' + id;
+    if (e) erros.push(e);
   }
-  const ramal = P.tolerancia.ramal;
   for (const id of Object.keys(P.extras || {})) {
     const s = byId.get(id);
-    if (!s && !ramal.opcional) erros.push('falta o extra ' + id);
-    else if (s) erros.push(...[medidaRamal(P, s)].filter(Boolean));
+    if (!s && !P.tolerancia.ramal.opcional) erros.push('falta o extra ' + id);
+    const e = s && medidaRamal(P, s);
+    if (e) erros.push(e);
   }
   for (const id of byId.keys())
     if (!(id in P.medidas) && !(id in (P.extras || {}))) erros.push('ambiente fora do plano: ' + id);
@@ -139,14 +192,18 @@ function conferirGeometria(F, salas) {
   return erros;
 }
 
-function conferirMundo(P, F) {
+function conferirMundo(P, F, ctx) {
   const erros = [];
   const x1 = P.mundo.x0;
   const x2 = x1 + F.w;
   const z1 = P.mundo.z0;
   const z2 = z1 + F.d;
-  if (x1 < LOTE.x1 || x2 > LOTE.x2 || z1 < LOTE.z1 || z2 > LOTE.z2) erros.push('sai do lote');
-  if (x2 > CORREGO_X - MARGEM_CORREGO) erros.push('a menos de 5 m do córrego (x ≥ 43)');
+  const L = ctx.lote;
+  if (x1 < L.x1 - EPS || x2 > L.x2 + EPS || z1 < L.z1 - EPS || z2 > L.z2 + EPS)
+    erros.push('sai do lote');
+  const dist = P.mundo.distancia_corrego;
+  if (x2 > ctx.corregoX - dist + EPS)
+    erros.push(`a menos de ${dist} m do córrego (x ≥ ${ctx.corregoX})`);
   return erros;
 }
 
@@ -160,14 +217,15 @@ export function saltosAcesso(P, salas) {
     for (const id of circ) {
       if (reach.has(id)) continue;
       const s = byId.get(id);
-      if ([...reach.keys()].some((o) => circ.has(o) && shared(s, byId.get(o)) >= 1)) reach.set(id, 0);
+      if ([...reach.keys()].some((o) => circ.has(o) && shared(s, byId.get(o)) >= BORDA_MIN))
+        reach.set(id, 0);
     }
   for (let pass = 0; pass < 4; pass++)
     for (const s of salas) {
       if (reach.has(s.id)) continue;
       const links = [...circ, ...(s.acesso || [])].map((id) => byId.get(id)).filter(Boolean);
       for (const o of links) {
-        if (o !== s && reach.has(o.id) && shared(s, o) >= 1) {
+        if (o !== s && reach.has(o.id) && shared(s, o) >= BORDA_MIN) {
           reach.set(s.id, reach.get(o.id) + 1);
           break;
         }
@@ -178,13 +236,17 @@ export function saltosAcesso(P, salas) {
 
 function conferirAcesso(P, salas) {
   const erros = [];
-  if (P.acesso_por) {
-    const circ = new Set(P.circulacao);
-    for (const s of salas)
-      for (const id of s.acesso || [])
-        if (!circ.has(id) && !(P.acesso_por[s.id] || []).includes(id))
-          erros.push(`${s.id}: acesso por ${id} não está previsto em acesso_por`);
-  }
+  const byId = porId(salas);
+  const circ = new Set(P.circulacao);
+  for (const s of salas)
+    for (const id of s.acesso || []) {
+      if (P.acesso_por && !circ.has(id) && !(P.acesso_por[s.id] || []).includes(id))
+        erros.push(`${s.id}: acesso por ${id} não está previsto em acesso_por`);
+      const o = byId.get(id);
+      if (!o) erros.push(`${s.id}: acesso por ${id}, que não existe no layout`);
+      else if (shared(s, o) < BORDA_MIN)
+        erros.push(`${s.id}: acesso por ${id}, mas as bordas não se tocam`);
+    }
   const reach = saltosAcesso(P, salas);
   for (const s of salas) {
     if (!reach.has(s.id)) erros.push(`${s.id} não tem acesso até a circulação`);
@@ -202,16 +264,18 @@ function distanciaSaidas(P, byId) {
 }
 
 function conferirSaidas(P, salas) {
+  if (!P.saidas) return [];
   const d = distanciaSaidas(P, porId(salas));
-  if (d !== null && d < P.saidas.distancia_min - EPS)
-    return [`${P.saidas.a} e ${P.saidas.b} ficam a ${d.toFixed(1)} m (saídas: mínimo ${P.saidas.distancia_min} m)`];
+  const { a, b, distancia_min: min } = P.saidas;
+  if (d === null) return [`saídas: falta ${a} ou ${b} no layout`];
+  if (d < min - EPS) return [`${a} e ${b} ficam a ${d.toFixed(1)} m (saídas: mínimo ${min} m)`];
   return [];
 }
 
-function conferirRegras(P, F, salas) {
+function conferirRegras(P, F, salas, ctx) {
   return [
     ...conferirGeometria(F, salas),
-    ...conferirMundo(P, F),
+    ...conferirMundo(P, F, ctx),
     ...conferirAcesso(P, salas),
     ...conferirSaidas(P, salas),
   ];
@@ -267,7 +331,7 @@ function medirAfinidades(P, byId) {
     r.maximo += peso;
     const A = byId.get(a);
     const B = byId.get(b);
-    if (A && B && shared(A, B) >= 1) {
+    if (A && B && shared(A, B) >= BORDA_MIN) {
       r.atendidas++;
       r.pontos += peso;
     } else r.faltam.push(`${a}–${b}`);
@@ -326,38 +390,60 @@ export function medir(P, F, salas) {
 
 /* ---------- conferências completas ---------- */
 
-/* o plano atual (plan/bunker.json): medidas exatas */
-export function conferirBase(P) {
+/* o plano atual (plan/bunker.json): medidas exatas. S = plan/site.json */
+export function conferirBase(P, S) {
   const m = conferirMedidasBase(P, P.salas);
-  const erros = [...m.erros, ...conferirRegras(P, P.pegada, P.salas)];
+  const erros = [...conferirPlano(P), ...m.erros, ...conferirRegras(P, P.pegada, P.salas, contextoLote(P, S))];
   return { erros, metricas: { ...medir(P, P.pegada, P.salas), nominal: m.total } };
 }
 
-/* uma opção gerada ({ id, pegada, salas }): tolerância do cenário, pegada máxima e casa sobre o bunker.
-   extra.casa = retângulo da Casa Grande na grade do bunker ({ u, v, w, d }). */
-export function conferirOpcao(P, opcao, extra = {}) {
+/* forma da opção: sem isto um arquivo malformado derrubaria o conferidor */
+function conferirEstrutura(opcao) {
+  if (!opcao || typeof opcao !== 'object') return ['opção inválida'];
+  const erros = [];
+  const F = opcao.pegada;
+  if (!F || !num(F.w) || !num(F.d) || F.w <= 0 || F.d <= 0) erros.push('pegada sem w e d numéricos');
+  if (!Array.isArray(opcao.salas)) return [...erros, 'salas ausente'];
+  opcao.salas.forEach((s, i) => {
+    if (!s || typeof s.id !== 'string') return erros.push(`sala ${i} sem id`);
+    for (const k of ['u', 'v', 'w', 'd']) if (!num(s[k])) erros.push(`${s.id}.${k} não é número`);
+    if (num(s.w) && s.w <= 0) erros.push(`${s.id}.w deve ser positivo`);
+    if (num(s.d) && s.d <= 0) erros.push(`${s.id}.d deve ser positivo`);
+    if (s.acesso !== undefined && !(Array.isArray(s.acesso) && s.acesso.every((a) => typeof a === 'string')))
+      erros.push(`${s.id}.acesso deve ser lista de ids`);
+  });
+  return erros;
+}
+
+/* uma opção gerada ({ id, pegada, salas }): tolerância do cenário, pegada máxima e Casa Grande sobre o
+   bunker. S = plan/site.json */
+export function conferirOpcao(P, opcao, S) {
   const T = P.tolerancia;
   if (!T) return { erros: ['o plano não tem o bloco tolerancia'], metricas: null };
+  const forma = conferirEstrutura(opcao);
+  if (forma.length) return { erros: forma, metricas: null };
   const erros = [];
   const cen = T.cenarios.find((c) => c.id === opcao.id);
   if (!cen) erros.push(`cenário ${opcao.id} não existe em tolerancia.cenarios`);
   const F = opcao.pegada;
   const salas = opcao.salas;
+  const ctx = contextoLote(P, S);
   for (const k of ['w', 'd']) if (!half(F[k])) erros.push(`pegada.${k}=${F[k]} não termina em 0 ou 5`);
   if (F.w > T.pegada_max.w + EPS || F.d > T.pegada_max.d + EPS)
     erros.push(`pegada ${F.w}×${F.d} maior que o máximo ${T.pegada_max.w}×${T.pegada_max.d}`);
-  const c = extra.casa;
+  const c = ctx.casa;
   if (c && (c.u < -EPS || c.v < -EPS || c.u + c.w > F.w + EPS || c.v + c.d > F.d + EPS))
     erros.push(`a Casa Grande (u ${c.u}–${c.u + c.w}, v ${c.v}–${c.v + c.d}) não cabe na pegada`);
   erros.push(...conferirMedidasOpcao(P, salas, cen ? cen.lado : 0));
-  erros.push(...conferirRegras(P, F, salas));
+  erros.push(...conferirRegras(P, F, salas, ctx));
   return { erros, metricas: medir(P, F, salas) };
 }
 
 /* desenho em texto: uma letra por ambiente, a cada 1 m */
 export function mapa(F, salas) {
-  const sym = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghij';
+  const sym = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const ids = salas.map((s) => s.id);
+  const letra = (id) => sym[ids.indexOf(id)] || '?';
   const rows = [];
   for (let v = 0; v < F.d; v++) {
     let line = '';
@@ -365,10 +451,10 @@ export function mapa(F, salas) {
       const s = salas.find(
         (r) => u + 0.5 > r.u && u + 0.5 < r.u + r.w && v + 0.5 > r.v && v + 0.5 < r.v + r.d,
       );
-      line += s ? sym[ids.indexOf(s.id)] : '·';
+      line += s ? letra(s.id) : '·';
     }
     rows.push(line);
   }
-  rows.push(ids.map((id, i) => sym[i] + '=' + id).join(' '));
+  rows.push(ids.map((id) => letra(id) + '=' + id).join(' '));
   return rows.join('\n');
 }

@@ -11,7 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const showMap = process.argv.includes('--map');
 const errors = [];
 const err = (m) => errors.push(m);
-const lerJson = (rel) => JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+const lerJson = (rel) => JSON.parse(fs.readFileSync(path.resolve(ROOT, rel), 'utf8'));
 
 const fmt = (n) => String(Math.round(n * 100) / 100);
 function resumo(m) {
@@ -24,8 +24,8 @@ function resumo(m) {
   );
 }
 
-function checkBunker(P) {
-  const r = conferirBase(P);
+function checkBunker(P, S) {
+  const r = conferirBase(P, S);
   r.erros.forEach((m) => err('bunker: ' + m));
   const m = r.metricas;
   const F = P.pegada;
@@ -41,21 +41,22 @@ function checkBunker(P) {
 function checkOpcoes(P, S) {
   const i = process.argv.indexOf('--opcoes');
   const rel = i > 0 ? process.argv[i + 1] : 'plan/bunker-opcoes.json';
-  if (!fs.existsSync(path.join(ROOT, rel))) {
+  if (!fs.existsSync(path.resolve(ROOT, rel))) {
     if (i > 0) err('opções: arquivo não encontrado: ' + rel);
     return;
   }
-  const c = S.itens.find((it) => it.id === 'casa');
-  const casa = { u: c.x - P.mundo.x0, v: c.z - P.mundo.z0, w: c.w, d: c.d };
-  for (const o of lerJson(rel).opcoes) {
-    const r = conferirOpcao(P, o, { casa });
-    r.erros.forEach((m) => err(`opção ${o.id}: ${m}`));
-    if (!r.metricas) continue;
+  const lista = lerJson(rel).opcoes;
+  if (!Array.isArray(lista)) return err('opções: o arquivo precisa ter a lista "opcoes"');
+  lista.forEach((o, i) => {
+    const nome = o && o.id ? o.id : '#' + (i + 1);
+    const r = conferirOpcao(P, o, S);
+    r.erros.forEach((m) => err(`opção ${nome}: ${m}`));
+    if (!r.metricas) return;
     const m = r.metricas;
-    console.log(`opção ${o.id}: ${m.ambientes} ambientes, pegada ${o.pegada.w}×${o.pegada.d} = ${m.pegada.area} m², vazios ${m.vazio} m² em ${m.bolsoes.length} bolsões (maior ${m.bolsoes.length ? m.bolsoes[0].area : 0} m²)`);
-    console.log(`opção ${o.id}: ` + resumo(m));
+    console.log(`opção ${nome}: ${m.ambientes} ambientes, pegada ${o.pegada.w}×${o.pegada.d} = ${m.pegada.area} m², vazios ${m.vazio} m² em ${m.bolsoes.length} bolsões (maior ${m.bolsoes.length ? m.bolsoes[0].area : 0} m²)`);
+    console.log(`opção ${nome}: ` + resumo(m));
     if (showMap) console.log(mapa(o.pegada, o.salas));
-  }
+  });
 }
 
 /* ---------- implantacao do lote ---------- */
@@ -126,7 +127,7 @@ function checkSite(S, B) {
 
 const planoBunker = lerJson('plan/bunker.json');
 const planoLote = lerJson('plan/site.json');
-checkBunker(planoBunker);
+checkBunker(planoBunker, planoLote);
 checkSite(planoLote, planoBunker);
 checkOpcoes(planoBunker, planoLote);
 if (errors.length) {

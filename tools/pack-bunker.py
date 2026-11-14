@@ -15,7 +15,8 @@ Etapa atual (B0-4d-2c): etapas em ordem lexicográfica: 1 menor pegada; 2 menor 
 ou em parceiro de acesso_por). A opção gerada passa no conferidor.
 
 Uso (precisa de ortools: python3 -m venv venv && venv/bin/pip install -r tools/requirements-solver.txt):
-  venv/bin/python tools/pack-bunker.py --cenario mais-menos-1 --tempo 60 --saida opcao.json
+  venv/bin/python tools/pack-bunker.py --cenario mais-menos-1 --tempo 300 --partir opcao-exato.json --saida opcao.json
+  (--partir: começa de uma opção já resolvida, ex. ±1 m a partir do exato; rodar um cenário por vez, são 2 núcleos)
 """
 import argparse
 import json
@@ -272,18 +273,20 @@ def construir(P, S, lado_m):
     return m, dict(W=W, D=D, A=A, v=v, base=base, t=t, DIR=DIR, **objetivos)
 
 
-def dica(m, ctx, P):
-    """Planta atual como ponto de partida (vale em qualquer cenário)."""
+def dica(m, ctx, P, partida=None):
+    """Ponto de partida: a planta atual (vale em qualquer cenário) ou uma opção já resolvida (--partir)."""
     v, base = ctx["v"], ctx["base"]
-    for id_, s in base.items():
-        r = v[id_]
+    salas = {s["id"]: s for s in partida["salas"]} if partida else base
+    pegada = partida["pegada"] if partida else P["pegada"]
+    for id_, r in v.items():
+        s = salas.get(id_) or dict(u=0, v=0, w=0, d=0)
         w, d = u(s["w"]), u(s["d"])
         for k, val in (("x", u(s["u"])), ("y", u(s["v"])), ("w", w), ("d", d), ("a", w * d),
                        ("ex", u(s["u"]) + w), ("ey", u(s["v"]) + d)):
             m.add_hint(r[k], val)
         if r["pres"] is not None:
-            m.add_hint(r["pres"], 1)
-    W, D = u(P["pegada"]["w"]), u(P["pegada"]["d"])
+            m.add_hint(r["pres"], 1 if id_ in salas else 0)
+    W, D = u(pegada["w"]), u(pegada["d"])
     m.add_hint(ctx["W"], W)
     m.add_hint(ctx["D"], D)
     m.add_hint(ctx["A"], W * D)
@@ -328,12 +331,12 @@ def dica_da_solucao(m, s):
         m.add_hint(x, s.value(x))
 
 
-def resolver(P, S, cenario, tempo, log=False):
+def resolver(P, S, cenario, tempo, log=False, partida=None):
     """Etapas em ordem lexicográfica: 1 menor pegada; 2 menor desvio de área (pulada no cenário exato);
     3 conforto (afinidades, acesso direto, ruído). Cada etapa trava o resultado da anterior."""
     lado = next(c for c in P["tolerancia"]["cenarios"] if c["id"] == cenario)
     m, ctx = construir(P, S, lado["lado"])
-    dica(m, ctx, P)
+    dica(m, ctx, P, partida)
     t0 = time.time()
     exato = lado["lado"] == 0
     fatias = (0.4, 0.0, 0.6) if exato else (0.4, 0.2, 0.4)
@@ -376,9 +379,11 @@ def main():
     ap.add_argument("--tempo", type=float, default=60)
     ap.add_argument("--saida", help="arquivo .json da opção")
     ap.add_argument("--log", action="store_true")
+    ap.add_argument("--partir", help="arquivo .json de uma opção já resolvida, usada como ponto de partida")
     a = ap.parse_args()
     P, S = ler("plan/bunker.json"), ler("plan/site.json")
-    opcao, info = resolver(P, S, a.cenario, a.tempo, a.log)
+    opcao, info = resolver(P, S, a.cenario, a.tempo, a.log,
+                            json.loads(Path(a.partir).read_text(encoding="utf8"))["opcoes"][0] if a.partir else None)
     if opcao is None:
         print("sem solução:", info, file=sys.stderr)
         sys.exit(1)

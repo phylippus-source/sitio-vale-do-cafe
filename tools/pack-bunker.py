@@ -70,6 +70,46 @@ def pares_ramal(P):
     return sorted(saida)
 
 
+BORDA_MIN = 2  # unidades: 1 m de borda comum, igual à régua
+
+
+def pares_de_toque(P):
+    """Pares (a, b) cujo toque interessa: circulação×todos, passagens (acesso_por) e afinidades."""
+    ids = list(P["medidas"]) + list(P.get("extras", {}))
+    ps = set()
+    for c in P["circulacao"]:
+        for o in ids:
+            if o != c:
+                ps.add(tuple(sorted((c, o))))
+    for a, outros in P.get("acesso_por", {}).items():
+        for b in outros:
+            ps.add(tuple(sorted((a, b))))
+    for f in P.get("afinidades", []):
+        ps.add(tuple(sorted((f["a"], f["b"]))))
+    return sorted(p for p in ps if p[0] in ids and p[1] in ids)
+
+
+def toques(m, v, pares):
+    """Literal t[(a,b)] = 1 só se a e b se tocam com borda comum >= BORDA_MIN (t -> geometria)."""
+    t = {}
+    for a, b in pares:
+        A, B = v[a], v[b]
+        lit = m.new_bool_var(f"toca_{a}_{b}")
+        rel = []
+        for p, q, eixo, outro in ((A, B, "x", "y"), (B, A, "x", "y"), (A, B, "y", "x"), (B, A, "y", "x")):
+            r = m.new_bool_var(f"rel_{a}_{b}_{len(rel)}")
+            m.add(p["e" + eixo] == q[eixo]).only_enforce_if(r)
+            m.add(p["e" + outro] - q[outro] >= BORDA_MIN).only_enforce_if(r)
+            m.add(q["e" + outro] - p[outro] >= BORDA_MIN).only_enforce_if(r)
+            rel.append(r)
+        m.add_bool_or(rel).only_enforce_if(lit)
+        for id_, o in ((a, A), (b, B)):
+            if o["pres"] is not None:
+                m.add_implication(lit, o["pres"])
+        t[(a, b)] = lit
+    return t
+
+
 def construir(P, S, lado_m):
     T = P["tolerancia"]
     lado = u(lado_m)
@@ -145,11 +185,13 @@ def construir(P, S, lado_m):
             m.add(e["y"] >= y2).only_enforce_if(lits[3])
             m.add_bool_or(lits)
 
+    t = toques(m, v, pares_de_toque(P))
+
     A = m.new_int_var(0, Wmax * Dmax, "A")
     m.add_multiplication_equality(A, [W, D])
     m.add(sum(areas) <= A)  # redundante, mas dá limite inferior forte
     m.minimize(A)
-    return m, dict(W=W, D=D, A=A, v=v, base=base)
+    return m, dict(W=W, D=D, A=A, v=v, base=base, t=t)
 
 
 def dica(m, ctx, P):

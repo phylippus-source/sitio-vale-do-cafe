@@ -10,8 +10,9 @@ tolerância (tolerancia.cenarios). Modelo CP-SAT (OR-tools) numa grade de 0,5 m:
   - poço da escada de emergência fora da Casa Grande e dos itens do lote (regras.escotilha); poço e monta-carga
     separados de saidas.distancia_min (em x ou em z);
   - dica inicial: a planta atual, que vale em qualquer cenário.
-Etapa atual (B0-4c): só a menor pegada. Acesso, afinidades e ruído entram na B0-4d, por isso a opção
-gerada ainda NÃO passa no conferidor de acesso.
+Etapa atual (B0-4d-2b): menor pegada com toques e acesso (como a régua: circulação ligada à galeria; cada ambiente toca a
+circulação ou um parceiro de acesso_por que toca). Afinidades, ruído e encolhimento vêm nas próximas partes;
+a opção gerada passa no conferidor (régua).
 
 Uso (precisa de ortools: python3 -m venv venv && venv/bin/pip install -r tools/requirements-solver.txt):
   venv/bin/python tools/pack-bunker.py --cenario mais-menos-1 --tempo 60 --saida opcao.json
@@ -110,6 +111,45 @@ def toques(m, v, pares):
     return t
 
 
+def chave(a, b):
+    return (a, b) if a < b else (b, a)
+
+
+def acesso(m, v, t, P):
+    """Acesso como a régua: circulação ligada à galeria (até 2 trechos); cada ambiente toca a circulação
+    ou toca um parceiro de acesso_por que toca a circulação. Devolve D[id] (toca a circulação)."""
+    circ = [c for c in P["circulacao"] if c in v]
+    outros = [i for i in v if i not in circ]
+    for c in circ:
+        if c == "galeria":
+            continue
+        opc = [t[chave(c, "galeria")]]
+        for k in circ:
+            if k not in (c, "galeria"):
+                y = m.new_bool_var(f"liga_{c}_{k}")
+                m.add_implication(y, t[chave(c, k)])
+                m.add_implication(y, t[chave(k, "galeria")])
+                opc.append(y)
+        if v[c]["pres"] is None:
+            m.add_bool_or(opc)
+        else:
+            m.add_bool_or(opc).only_enforce_if(v[c]["pres"])
+    D = {}
+    for r in outros:
+        D[r] = m.new_bool_var(f"D_{r}")
+        m.add_bool_or([t[chave(r, c)] for c in circ if c != r]).only_enforce_if(D[r])
+    for r in outros:
+        opc = [D[r]]
+        for p in P.get("acesso_por", {}).get(r, []):
+            if p in D:
+                y = m.new_bool_var(f"via_{r}_{p}")
+                m.add_implication(y, t[chave(r, p)])
+                m.add_implication(y, D[p])
+                opc.append(y)
+        m.add_bool_or(opc)
+    return D
+
+
 def construir(P, S, lado_m):
     T = P["tolerancia"]
     lado = u(lado_m)
@@ -186,12 +226,13 @@ def construir(P, S, lado_m):
             m.add_bool_or(lits)
 
     t = toques(m, v, pares_de_toque(P))
+    DIR = acesso(m, v, t, P)
 
     A = m.new_int_var(0, Wmax * Dmax, "A")
     m.add_multiplication_equality(A, [W, D])
     m.add(sum(areas) <= A)  # redundante, mas dá limite inferior forte
     m.minimize(A)
-    return m, dict(W=W, D=D, A=A, v=v, base=base, t=t)
+    return m, dict(W=W, D=D, A=A, v=v, base=base, t=t, DIR=DIR)
 
 
 def dica(m, ctx, P):
@@ -209,6 +250,29 @@ def dica(m, ctx, P):
     m.add_hint(ctx["W"], W)
     m.add_hint(ctx["D"], D)
     m.add_hint(ctx["A"], W * D)
+
+
+def borda(a, b):
+    """Borda comum em metros entre duas salas (dicts u, v, w, d), como a régua."""
+    ox = min(a["u"] + a["w"], b["u"] + b["w"]) - max(a["u"], b["u"])
+    oy = min(a["v"] + a["d"], b["v"] + b["d"]) - max(a["v"], b["v"])
+    if (ox == 0 and oy > 0) or (oy == 0 and ox > 0):
+        return max(ox, oy)
+    return 0
+
+
+def anotar_acesso(P, salas):
+    """Preenche 'acesso' (parceiro) nas salas que só chegam à circulação por outro ambiente."""
+    por = {s["id"]: s for s in salas}
+    circ = set(P["circulacao"])
+    direto = {i for i, s in por.items() if i in circ or any(borda(s, por[c]) >= 1 for c in circ if c in por and c != i)}
+    for i, s in por.items():
+        if i in direto:
+            continue
+        for p in P.get("acesso_por", {}).get(i, []):
+            if p in direto and p in por and borda(s, por[p]) >= 1:
+                s["acesso"] = [p]
+                break
 
 
 def resolver(P, S, cenario, tempo, log=False):
@@ -234,6 +298,7 @@ def resolver(P, S, cenario, tempo, log=False):
         if ctx["base"].get(id_, {}).get("grupo"):
             sala["grupo"] = ctx["base"][id_]["grupo"]
         salas.append(sala)
+    anotar_acesso(P, salas)
     Wm, Dm = s.value(ctx["W"]) / U, s.value(ctx["D"]) / U
     info = dict(
         status=nome, segundos=round(dt, 1), area=Wm * Dm,

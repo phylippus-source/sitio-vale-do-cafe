@@ -7,8 +7,8 @@ tolerância (tolerancia.cenarios). Modelo CP-SAT (OR-tools) numa grade de 0,5 m:
     com as mesmas regras do conferidor (lado ±, giro, quartos que só crescem, área >= 90%, lados mínimos);
   - NoOverlap2D entre todos; o ramal é opcional (tamanho 0 = ausente);
   - a pegada W×D começa no canto fixo do bunker; a Casa Grande tem de caber nela;
-  - escada inteira sob a Casa Grande (regras.escada_sob_casa); saídas separadas de saidas.distancia_min
-    (em x ou em z) quando esse valor for maior que 0;
+  - poço da escada de emergência fora da Casa Grande e dos itens do lote (regras.escotilha); poço e monta-carga
+    separados de saidas.distancia_min (em x ou em z);
   - dica inicial: a planta atual, que vale em qualquer cenário.
 Etapa atual (B0-4c): só a menor pegada. Acesso, afinidades e ruído entram na B0-4d, por isso a opção
 gerada ainda NÃO passa no conferidor de acesso.
@@ -42,7 +42,8 @@ def pares_ambiente(P, id_, w0, d0, lado):
     a0, b0 = u(w0), u(d0)
     orient = [(a0, b0)] + ([(b0, a0)] if T.get("giro", True) else [])
     nao_encolhe = id_ in T.get("nao_encolhem", [])
-    minimo = u(T["lado_min"]["circulacao" if id_ in P["circulacao"] else "ambiente"])
+    LM = T["lado_min"]
+    minimo = u(LM.get("por_id", {}).get(id_, LM["circulacao" if id_ in P["circulacao"] else "ambiente"]))
     saida = set()
     for a, b in orient:
         for w in range(a - lado, a + lado + 1):
@@ -129,12 +130,20 @@ def construir(P, S, lado_m):
             opc.append(lit)
         m.add_bool_or(opc)
 
-    if P.get("regras", {}).get("escada_sob_casa"):
-        e = v["escada"]
-        m.add(e["x"] >= u(cu))
-        m.add(e["ex"] <= u(cu + casa["w"]))
-        m.add(e["y"] >= u(cv))
-        m.add(e["ey"] <= u(cv + casa["d"]))
+    # escotilha: o poço fica fora da Casa Grande (sombra de queda) e dos outros itens do lote
+    R = P.get("regras", {}).get("escotilha")
+    if R:
+        e = v[R["ambiente"]]
+        for it in S["itens"]:
+            marg = u(R["fora_da_casa_m"] if it["id"] == "casa" else R["fora_de_itens_m"])
+            x1, x2 = u(it["x"] - P["mundo"]["x0"]) - marg, u(it["x"] + it["w"] - P["mundo"]["x0"]) + marg
+            y1, y2 = u(it["z"] - P["mundo"]["z0"]) - marg, u(it["z"] + it["d"] - P["mundo"]["z0"]) + marg
+            lits = [m.new_bool_var(f"esc_{it['id']}_{k}") for k in range(4)]
+            m.add(e["ex"] <= x1).only_enforce_if(lits[0])
+            m.add(e["x"] >= x2).only_enforce_if(lits[1])
+            m.add(e["ey"] <= y1).only_enforce_if(lits[2])
+            m.add(e["y"] >= y2).only_enforce_if(lits[3])
+            m.add_bool_or(lits)
 
     A = m.new_int_var(0, Wmax * Dmax, "A")
     m.add_multiplication_equality(A, [W, D])

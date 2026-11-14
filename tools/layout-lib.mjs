@@ -34,6 +34,7 @@ export function contextoLote(P, S) {
   return {
     lote: S.lote,
     corregoX: S.corrego.x1,
+    itens: S.itens,
     casa: c ? { u: c.x - P.mundo.x0, v: c.z - P.mundo.z0, w: c.w, d: c.d } : null,
   };
 }
@@ -136,7 +137,9 @@ function medidaFlexivel(P, s, lado) {
   const area = s.w * s.d;
   if (area < T.area_min * w0 * d0 - EPS)
     return `${s.id} tem ${area} m², abaixo de ${T.area_min * 100}% do plano (${w0 * d0} m²)`;
-  const min = P.circulacao.includes(s.id) ? T.lado_min.circulacao : T.lado_min.ambiente;
+  const min =
+    (T.lado_min.por_id || {})[s.id] ??
+    (P.circulacao.includes(s.id) ? T.lado_min.circulacao : T.lado_min.ambiente);
   if (Math.min(s.w, s.d) < min - EPS)
     return `${s.id} tem lado ${Math.min(s.w, s.d)} m, abaixo do mínimo ${min} m`;
   return null;
@@ -272,20 +275,27 @@ function conferirSaidas(P, salas) {
   return [];
 }
 
-/* regras.escada_sob_casa: a escada inteira dentro do retângulo da Casa Grande */
-function conferirEscada(P, salas, ctx) {
-  const e = salas.find((s) => s.id === 'escada');
-  const c = ctx.casa;
-  if (!(P.regras && P.regras.escada_sob_casa) || !e || !c) return [];
-  if (e.u < c.u - EPS || e.v < c.v - EPS || e.u + e.w > c.u + c.w + EPS || e.v + e.d > c.v + c.d + EPS)
-    return [`a escada (u ${e.u}–${e.u + e.w}, v ${e.v}–${e.v + e.d}) sai de baixo da Casa Grande (u ${c.u}–${c.u + c.w}, v ${c.v}–${c.v + c.d})`];
-  return [];
+/* regras.escotilha: o poço da escada de emergência sobe até uma escotilha que não pode ficar sob/ao lado
+   da Casa Grande (sombra de queda) nem dentro dos outros itens do lote */
+function conferirEscotilha(P, salas, ctx) {
+  const R = P.regras && P.regras.escotilha;
+  const e = R && salas.find((s) => s.id === R.ambiente);
+  if (!e) return [];
+  const erros = [];
+  const c = { x: P.mundo.x0 + e.u, z: P.mundo.z0 + e.v, w: e.w, d: e.d };
+  for (const it of ctx.itens) {
+    const m = it.id === 'casa' ? R.fora_da_casa_m : R.fora_de_itens_m;
+    const fora =
+      c.x + c.w <= it.x - m + EPS || c.x >= it.x + it.w + m - EPS || c.z + c.d <= it.z - m + EPS || c.z >= it.z + it.d + m - EPS;
+    if (!fora) erros.push(`a escotilha (x ${c.x}–${c.x + c.w}, z ${c.z}–${c.z + c.d}) fica a menos de ${m} m de ${it.id}`);
+  }
+  return erros;
 }
 
 function conferirRegras(P, F, salas, ctx) {
   return [
     ...conferirGeometria(F, salas),
-    ...conferirEscada(P, salas, ctx),
+    ...conferirEscotilha(P, salas, ctx),
     ...conferirMundo(P, F, ctx),
     ...conferirAcesso(P, salas),
     ...conferirSaidas(P, salas),

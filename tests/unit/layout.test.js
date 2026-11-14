@@ -135,9 +135,9 @@ describe('plano atual', () => {
   it('pegada, vazios e bolsões fecham a conta', () => {
     const m = r.metricas;
     expect(m.pegada.area).toBe(2000);
-    expect(m.util).toBe(1740); // 1665 do plano + 75 do ramal
+    expect(m.util).toBe(1706.5); // 1641.5 do plano + 65 do ramal
     expect(m.vazio).toBe(m.pegada.area - m.util);
-    expect(m.bolsoes.map((b) => b.area)).toEqual([175, 79.75, 2.75, 2.5]); // conta à mão: 225 - 25 (enfermaria) - 90 (mestre) - 27,5 (escada) = 82,5 em 2 bolsões;
+    expect(m.bolsoes.map((b) => b.area)).toEqual([175, 110, 4, 2.5, 2]); // 110 = u 0–15 × v 0–10 menos a enfermaria (25) e a ponta do mestre
     expect(m.bolsoes.reduce((a, b) => a + b.area, 0)).toBe(m.vazio);
     expect(m.encolhe).toBe(0);
     expect(m.cresce).toBe(0);
@@ -146,7 +146,7 @@ describe('plano atual', () => {
   it('acesso, saídas e ruído', () => {
     const m = r.metricas;
     expect(m.acesso).toEqual({ max: 2, direto: 14, ambientes: 18 });
-    expect(m.saidas).toBe(39.5); // escada em u 0,5–5,5, saída 2 em u 45–50
+    expect(m.saidas).toBeCloseTo(33.62, 2); // poço da escada (u 36–38, v 0–2) ao monta-carga (u 0–5, v 15–20)
     expect(m.ruido.distancia).toBe(5); // oficina (v 20) a 5 m do fundo dos quartos (v 15)
   });
 
@@ -159,7 +159,7 @@ describe('plano atual', () => {
   it('exige a medida do plano', () => {
     const p = copia(P);
     p.salas.find((s) => s.id === 'mestre').w = 12;
-    expect(tem(conferirBase(p, S).erros, 'mestre mede 12×10')).toBe(true);
+    expect(tem(conferirBase(p, S).erros, 'mestre mede 12×9')).toBe(true);
   });
 
   it('exige a distância do córrego a partir do site.json', () => {
@@ -227,13 +227,13 @@ describe('opções com tolerância', () => {
   });
 
   it('crescer 1 m só passa no cenário de ±1 m', () => {
-    const ajuste = { mestre: { v: 4, d: 11 } }; // sobe 1 m para dentro do vazio de cima
-    expect(tem(erros(opcao('exato', ajuste)), 'mestre mede 9×11, fora de ±0 m')).toBe(true);
+    const ajuste = { mestre: { v: 4, d: 11 } }; // 10×11: sobe 2 m para o vazio de cima (girado 9×10 + 1 + 1)
+    expect(tem(erros(opcao('exato', ajuste)), 'mestre mede 10×11, fora de ±0 m')).toBe(true);
     expect(erros(opcao('mais-menos-1', ajuste))).toEqual([]);
   });
 
   it('crescer além do lado do cenário falha', () => {
-    const ajuste = { mestre: { v: 3, d: 12 } }; // +3 m no fundo: nem girado cabe em ±1 m
+    const ajuste = { mestre: { v: 3, d: 12 } }; // 10×12: nem girado cabe em ±1 m
     expect(tem(erros(opcao('mais-menos-1', ajuste)), 'fora de ±1 m')).toBe(true);
     expect(erros(opcao('mais-menos-2-5', ajuste))).toEqual([]);
   });
@@ -247,13 +247,12 @@ describe('opções com tolerância', () => {
   });
 
   it('quarto aprovado nunca encolhe, mesmo com área sobrando', () => {
-    const e = erros(opcao('mais-menos-1', { mestre: { d: 9.5 } }));
+    const e = erros(opcao('mais-menos-1', { mestre: { d: 8.5 } }));
     expect(tem(e, 'mestre não pode encolher')).toBe(true);
   });
 
   it('quarto quase quadrado gira para não encolher', () => {
-    // o plano guarda o quarto girado (9×10); voltar a 10×9 também vale, é só giro
-    expect(tem(erros(opcao('mais-menos-1', { mestre: { w: 10, d: 9 } })), 'mestre não pode')).toBe(
+    expect(tem(erros(opcao('mais-menos-1', { mestre: { w: 9, d: 10 } })), 'mestre não pode')).toBe(
       false,
     );
   });
@@ -336,27 +335,34 @@ describe('opções com tolerância', () => {
     expect(erros(opcao('exato'))).toEqual([]);
   });
 
-  it('saídas: sem mínimo (liberado pelo Mestre), mas a regra funciona se o mínimo voltar', () => {
-    const perto = opcao('exato', { saida2: { u: 25, v: 35 } }); // a 27,9 m da escada
-    expect(tem(erros(perto), 'saídas: mínimo')).toBe(false);
+  it('saídas: poço da escada a 15 m do monta-carga', () => {
+    expect(tem(erros(opcao('exato')), 'saídas: mínimo')).toBe(false);
     const p = copia(P);
-    p.saidas.distancia_min = 30;
-    expect(tem(erros(perto, p), 'saídas: mínimo 30 m')).toBe(true);
+    p.saidas.distancia_min = 40; // o plano tem 33,62 m
+    expect(tem(erros(opcao('exato'), p), 'saídas: mínimo 40 m')).toBe(true);
+    p.saidas.distancia_min = 33.6;
     expect(tem(erros(opcao('exato'), p), 'saídas: mínimo')).toBe(false);
   });
 
-  it('a escada fica toda sob a Casa Grande (u 0,5–25,5; v 5–30)', () => {
-    const fora = erros(opcao('exato', { escada: { u: 0 } }));
-    expect(tem(fora, 'a escada (u 0–5')).toBe(true);
-    expect(tem(erros(opcao('exato', { escada: { u: 20, v: 24.5 } })), 'a escada')).toBe(false);
+  it('escotilha: fora da Casa Grande (10 m) e dos itens do lote (2 m)', () => {
+    // casa: u 0,5–25,5, v 5–30; margem de 10 m vai até u 35,5
+    expect(tem(erros(opcao('exato', { escada: { u: 10, v: 10 } })), 'a escotilha')).toBe(true);
+    expect(tem(erros(opcao('exato', { escada: { u: 33, v: 0 } })), 'a escotilha')).toBe(true);
+    expect(tem(erros(opcao('exato', { escada: { u: 36, v: 0 } })), 'a escotilha')).toBe(false);
+    // engenho: z −43..−33 (v 30–40); 2 m de margem
+    expect(tem(erros(opcao('exato', { escada: { u: 40, v: 28 } })), 'a escotilha')).toBe(true);
     const p = copia(P);
-    p.regras.escada_sob_casa = false;
-    expect(tem(erros(opcao('exato', { escada: { u: 0 } }), p), 'a escada')).toBe(false);
+    delete p.regras.escotilha;
+    expect(tem(erros(opcao('exato', { escada: { u: 10, v: 10 } }), p), 'a escotilha')).toBe(false);
   });
 
-  it('a escada real não encolhe: 5×5,5 m, queda de 10 m', () => {
-    const e = erros(opcao('mais-menos-1', { escada: { w: 4.5 } }));
-    expect(tem(e, 'escada não pode encolher')).toBe(true);
+  it('a escada de marinheiro mede 2×2 e não encolhe', () => {
+    expect(
+      tem(erros(opcao('mais-menos-1', { escada: { w: 1.5 } })), 'escada não pode encolher'),
+    ).toBe(true);
+    expect(tem(erros(opcao('mais-menos-1', { escada: { w: 2.5, d: 2.5 } })), 'escada mede')).toBe(
+      false,
+    );
   });
 
   it('passagens abertas: quarto por estar sim, por oficina não', () => {
@@ -373,8 +379,8 @@ describe('opções com tolerância', () => {
 
   it('saída ausente é erro, não passa em silêncio', () => {
     const sem = opcao('exato');
-    sem.salas = sem.salas.filter((s) => s.id !== 'saida2');
-    expect(tem(erros(sem), 'saídas: falta escada ou saida2')).toBe(true);
+    sem.salas = sem.salas.filter((s) => s.id !== 'montacarga');
+    expect(tem(erros(sem), 'saídas: falta escada ou montacarga')).toBe(true);
   });
 
   it('sobreposição, regra 0/5 e fora da pegada', () => {
@@ -391,7 +397,7 @@ describe('opções com tolerância', () => {
     const r = conferirOpcao(P, o, S);
     expect(r.erros).toEqual([]);
     expect(r.metricas.encolhe).toBe(10);
-    expect(r.metricas.vazio).toBe(2000 - 1740 + 10);
+    expect(r.metricas.vazio).toBe(2000 - 1706.5 + 10);
   });
 });
 
@@ -426,7 +432,7 @@ describe('comando tools/layout-check.mjs', () => {
   it('opção com erro, opção nula e arquivo sem lista saem com 1', () => {
     const ruim = rodar({ opcoes: [opcao('exato', { mestre: { d: 9.5 } }), null] });
     expect(ruim.codigo).toBe(1);
-    expect(ruim.texto).toContain('opção exato: mestre mede 9×9.5');
+    expect(ruim.texto).toContain('opção exato: mestre mede 10×9.5');
     expect(ruim.texto).toContain('opção #2: opção inválida');
     expect(rodar({ x: 1 }).codigo).toBe(1);
   });

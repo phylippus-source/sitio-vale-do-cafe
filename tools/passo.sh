@@ -56,3 +56,4 @@ total=$((now - t0 - pausa))
 printf '%s %s %s %s %s\n' "$etapa" "$t0" "$now" "$n" "$pausa" > "$STATE"
 printf '%s | %s | #%s | +%s | %s | %s\n' "$stamp" "$etapa" "$n" "$(fmt $delta)" "$(fmt $total)" "$*" >> "$DIR/passos-$etapa.log"
 echo "⏱ $(date +%H:%M:%S) · +$(fmt $delta) · passo $n · $etapa $(fmt $total) — $*"
+python3 "$(dirname "$0")/tokens.py" --linha 2>/dev/null || true

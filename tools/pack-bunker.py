@@ -10,9 +10,9 @@ tolerância (tolerancia.cenarios). Modelo CP-SAT (OR-tools) numa grade de 0,5 m:
   - poço da escada de emergência fora da Casa Grande e dos itens do lote (regras.escotilha); poço e monta-carga
     separados de saidas.distancia_min (em x ou em z);
   - dica inicial: a planta atual, que vale em qualquer cenário.
-Etapa atual (B0-4d-2b): menor pegada com toques e acesso (como a régua: circulação ligada à galeria; cada ambiente toca a
-circulação ou um parceiro de acesso_por que toca). Afinidades, ruído e encolhimento vêm nas próximas partes;
-a opção gerada passa no conferidor (régua).
+Etapa atual (B0-4d-2c): etapas em ordem lexicográfica: 1 menor pegada; 2 menor desvio de área (pulada no "exato"); 3 conforto
+(afinidades ×10 por ponto, acesso direto ×3, ruído ×1 por 0,5 m até 10 m). Acesso como na régua (toque na circulação
+ou em parceiro de acesso_por). A opção gerada passa no conferidor.
 
 Uso (precisa de ortools: python3 -m venv venv && venv/bin/pip install -r tools/requirements-solver.txt):
   venv/bin/python tools/pack-bunker.py --cenario mais-menos-1 --tempo 60 --saida opcao.json
@@ -150,6 +150,40 @@ def acesso(m, v, t, P):
     return D
 
 
+PESO_AFINIDADE, PESO_ACESSO_DIRETO, PESO_RUIDO = 10, 3, 1  # por ponto, por ambiente, por 0,5 m (até RUIDO_TETO)
+RUIDO_TETO = 20  # unidades: 10 m
+
+
+def desvio_de_area(m, v, P, ids):
+    """Soma de |área − área nominal| dos ambientes do plano (o ramal não conta)."""
+    devs = []
+    for id_ in P["medidas"]:
+        a0 = u(P["medidas"][id_][0]) * u(P["medidas"][id_][1])
+        dv = m.new_int_var(0, 10**6, f"dev_{id_}")
+        m.add(dv >= a0 - v[id_]["a"])
+        m.add(dv >= v[id_]["a"] - a0)
+        devs.append(dv)
+    return sum(devs)
+
+
+def conforto(m, v, t, DIR, P):
+    """Expressão a maximizar: afinidades ×10/ponto + acesso direto ×3 + ruído (distância mínima fonte–quarto)."""
+    af = sum(f["peso"] * t[chave(f["a"], f["b"])] for f in P.get("afinidades", []))
+    ruido = P.get("ruido")
+    nmin = m.new_int_var(0, RUIDO_TETO, "ruido_min")
+    if ruido:
+        for f in ruido["fontes"]:
+            for q in ruido["sensiveis"]:
+                F, Q = v[f], v[q]
+                lits = [m.new_bool_var(f"rd_{f}_{q}_{k}") for k in range(4)]
+                m.add(F["ex"] + nmin <= Q["x"]).only_enforce_if(lits[0])
+                m.add(Q["ex"] + nmin <= F["x"]).only_enforce_if(lits[1])
+                m.add(F["ey"] + nmin <= Q["y"]).only_enforce_if(lits[2])
+                m.add(Q["ey"] + nmin <= F["y"]).only_enforce_if(lits[3])
+                m.add_bool_or(lits)
+    return PESO_AFINIDADE * af + PESO_ACESSO_DIRETO * sum(DIR.values()) + PESO_RUIDO * nmin, nmin
+
+
 def construir(P, S, lado_m):
     T = P["tolerancia"]
     lado = u(lado_m)
@@ -231,8 +265,11 @@ def construir(P, S, lado_m):
     A = m.new_int_var(0, Wmax * Dmax, "A")
     m.add_multiplication_equality(A, [W, D])
     m.add(sum(areas) <= A)  # redundante, mas dá limite inferior forte
-    m.minimize(A)
-    return m, dict(W=W, D=D, A=A, v=v, base=base, t=t, DIR=DIR)
+    objetivos = dict(
+        desvio=desvio_de_area(m, v, P, ids),
+        conforto=conforto(m, v, t, DIR, P),
+    )
+    return m, dict(W=W, D=D, A=A, v=v, base=base, t=t, DIR=DIR, **objetivos)
 
 
 def dica(m, ctx, P):
@@ -275,20 +312,47 @@ def anotar_acesso(P, salas):
                 break
 
 
-def resolver(P, S, cenario, tempo, log=False):
-    lado = next(c for c in P["tolerancia"]["cenarios"] if c["id"] == cenario)
-    m, ctx = construir(P, S, lado["lado"])
-    dica(m, ctx, P)
+def resolver_etapa(m, tempo, log):
     s = cp_model.CpSolver()
     s.parameters.max_time_in_seconds = tempo
     s.parameters.num_workers = 2
     s.parameters.log_search_progress = log
-    t0 = time.time()
     st = s.solve(m)
-    dt = time.time() - t0
-    nome = s.status_name(st)
+    return s, st
+
+
+def dica_da_solucao(m, s):
+    m.clear_hints()
+    for i in range(len(m.proto.variables)):
+        x = m.get_int_var_from_proto_index(i)
+        m.add_hint(x, s.value(x))
+
+
+def resolver(P, S, cenario, tempo, log=False):
+    """Etapas em ordem lexicográfica: 1 menor pegada; 2 menor desvio de área (pulada no cenário exato);
+    3 conforto (afinidades, acesso direto, ruído). Cada etapa trava o resultado da anterior."""
+    lado = next(c for c in P["tolerancia"]["cenarios"] if c["id"] == cenario)
+    m, ctx = construir(P, S, lado["lado"])
+    dica(m, ctx, P)
+    t0 = time.time()
+    exato = lado["lado"] == 0
+    fatias = (0.4, 0.0, 0.6) if exato else (0.4, 0.2, 0.4)
+    m.minimize(ctx["A"])
+    s, st = resolver_etapa(m, tempo * fatias[0], log)
     if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return None, dict(status=nome, segundos=round(dt, 1))
+        return None, dict(status=s.status_name(st), segundos=round(time.time() - t0, 1))
+    info = dict(limite_inferior=round(s.best_objective_bound / (U * U), 1))
+    m.add(ctx["A"] <= round(s.objective_value))
+    if not exato:
+        dica_da_solucao(m, s)
+        m.minimize(ctx["desvio"])
+        s, st = resolver_etapa(m, tempo * fatias[1], log)
+        m.add(ctx["desvio"] <= round(s.objective_value))
+    dica_da_solucao(m, s)
+    expr, nmin = ctx["conforto"]
+    m.maximize(expr)
+    s, st = resolver_etapa(m, tempo * fatias[2], log)
+    nome = s.status_name(st)
     salas = []
     for id_, r in ctx["v"].items():
         w, d = s.value(r["w"]), s.value(r["d"])
@@ -300,11 +364,8 @@ def resolver(P, S, cenario, tempo, log=False):
         salas.append(sala)
     anotar_acesso(P, salas)
     Wm, Dm = s.value(ctx["W"]) / U, s.value(ctx["D"]) / U
-    info = dict(
-        status=nome, segundos=round(dt, 1), area=Wm * Dm,
-        limite_inferior=round(s.best_objective_bound / (U * U), 1),
-    )
-    opcao = dict(id=cenario, nome=lado["nome"], etapa="pegada (sem acesso)",
+    info.update(status=nome, segundos=round(time.time() - t0, 1), area=Wm * Dm)
+    opcao = dict(id=cenario, nome=lado["nome"], etapa="pegada, desvio de área e conforto",
                  pegada=dict(w=Wm, d=Dm), salas=salas)
     return opcao, info
 

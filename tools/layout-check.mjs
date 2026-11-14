@@ -2,6 +2,7 @@
 // sobreposicoes, limites, regra 0/5 e acesso de cada ambiente.
 // Uso: node tools/layout-check.mjs [--map] [--opcoes arquivo.json]
 // Sem --opcoes, confere plan/bunker-opcoes.json se ele existir. As regras ficam em tools/layout-lib.mjs.
+import { horasDeSombra } from './lote-lib.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -122,6 +123,12 @@ function checkSite(S, B) {
   const lotArea = (L.x2 - L.x1) * (L.z2 - L.z1);
   const env = S.itens.reduce((a, i) => a + i.w * i.d, 0);
   console.log(`lote: ${S.itens.length} itens, áreas do plano ${total} m², envelopes ${env} m² de ${lotArea} m² (${((env / lotArea) * 100).toFixed(0)}%)`);
+  if (S.alturas && S.orientacao) {
+    const cfg = { lat: S.orientacao.latitude, decl: S.orientacao.decl_inverno, horas: [9, 10, 11, 12, 13, 14, 15] };
+    const fontes = S.itens.filter((i) => S.alturas[i.id]).map((i) => ({ caixa: i, h: S.alturas[i.id] }));
+    const lav = S.itens.filter((i) => i.tipo === 'lavoura').map((i) => `${i.id} ${horasDeSombra(i, fontes.filter((f) => f.caixa !== i), cfg, 1).toFixed(1)} h`);
+    console.log(`lote: sombra média no inverno, 9 h–15 h (informativo): ${lav.join(', ')}`);
+  }
   console.log(`lote: margem mínima ${S.margem} m; distâncias: animais–casa ${g2('animais', 'casa').toFixed(0)} m, pomar–núcleo ${g2('pomar', 'nucleo').toFixed(1)} m, estufa–núcleo ${g2('estufa', 'nucleo').toFixed(1)} m, animais–núcleo ${g2('animais', 'nucleo').toFixed(1)} m`);
 }
 

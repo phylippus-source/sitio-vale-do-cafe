@@ -56,6 +56,8 @@
     "estufa_perto_do_nucleo": 5,
     "animais_perto_do_nucleo": 20
   },
+  "orientacao": { "x_mais": "oeste", "z_mais": "norte", "latitude": -22.404, "decl_inverno": 23.44, "nota": "Convenção do modelo (an/ACHADOS_FASE1-2.md); solstício de junho." },
+  "alturas": { "nota": "[E] estimativas do Claude, a confirmar: topo de cada item, em metros.", "casa": 9, "engenho": 8, "galpao": 6, "estufa": 4, "bambuzal": 12, "silvicultura": 15, "pomar": 5, "animais": 4 },
   "notas": [
     "Quadras giradas: 30 (x) × 25 (z) cada, para caber entre o pátio da casa e a estrada sem mover a estrada.",
     "Árvores, bambu e escavação ficam fora da projeção do bunker (raízes e escavação sobre 7 m de terra).",

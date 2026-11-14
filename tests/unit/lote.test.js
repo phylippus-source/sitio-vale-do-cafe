@@ -176,3 +176,18 @@ describe('conferirLote (régua do lote)', () => {
     expect(tem(erros(S), 'soma das áreas')).toBe(true);
   });
 });
+
+describe('opções do lote geradas pelo solver', () => {
+  it('cada opção de plan/lote-opcoes.json passa na régua do lote, com o bunker escolhido', () => {
+    const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
+    const oj = JSON.parse(fs.readFileSync('plan/bunker-opcoes.json', 'utf8'));
+    const pg = oj.opcoes.find((o) => o.id === oj.escolhida).pegada;
+    const lote = JSON.parse(fs.readFileSync('plan/lote-opcoes.json', 'utf8'));
+    expect(lote.opcoes.length).toBeGreaterThan(0);
+    for (const o of lote.opcoes) {
+      expect(
+        conferirLote({ ...S, itens: o.itens }, { u: -12, v: -73, w: pg.w, d: pg.d }).erros,
+      ).toEqual([]);
+    }
+  });
+});

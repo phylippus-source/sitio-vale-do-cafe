@@ -59,6 +59,12 @@
     "animais_perto_do_nucleo": 20
   },
   "orientacao": { "x_mais": "oeste", "z_mais": "norte", "latitude": -22.404, "decl_inverno": 23.44, "nota": "Convenção do modelo (an/ACHADOS_FASE1-2.md); solstício de junho." },
+  "viagens": { "nota": "[E] pesos propostos pelo Claude (viagens do dia a dia entre itens), a confirmar. O solver do lote minimiza a soma peso × distância entre centros.", "pares": [
+    { "a": "casa", "b": "engenho", "peso": 3 }, { "a": "engenho", "b": "jazida", "peso": 3 },
+    { "a": "casa", "b": "galpao", "peso": 2 }, { "a": "casa", "b": "nucleo", "peso": 2 }, { "a": "casa", "b": "quadras", "peso": 2 },
+    { "a": "galpao", "b": "quadras", "peso": 2 }, { "a": "nucleo", "b": "animais", "peso": 2 },
+    { "a": "engenho", "b": "quadras", "peso": 1 }, { "a": "engenho", "b": "galpao", "peso": 1 }, { "a": "quadras", "b": "nucleo", "peso": 1 }, { "a": "nucleo", "b": "pomar", "peso": 1 }
+  ] },
   "alturas": { "nota": "[E] estimativas do Claude, a confirmar: topo de cada item, em metros.", "casa": 9, "engenho": 8, "galpao": 6, "puxadinho": 5, "estufa": 4, "bambuzal": 12, "silvicultura": 15, "pomar": 5, "animais": 4 },
   "notas": [
     "Puxadinho 7×20 m (pedido do Mestre, 14/11): lado longo de 20 m encostado na parede norte da Casa Grande; a piscina fica colada na parede lateral e na dos fundos; as paredes da casa podem tirar medida da piscina. Faixa de 2 m do puxadinho (z −43 a −41) cai sobre a projeção do bunker: conferir carga e impermeabilização.",

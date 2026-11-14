@@ -23,10 +23,10 @@ def ler(arq):
     return sorted(ev.values(), key=lambda x: x[0])
 
 def somar(us):
-    s = dict(i=0, cc=0, cr=0, o=0)
+    s = dict(i=0, cc=0, cr=0, o=0, pens=0)
     for _, u in us:
         s["i"] += u.get("input_tokens", 0); s["cc"] += u.get("cache_creation_input_tokens", 0)
-        s["cr"] += u.get("cache_read_input_tokens", 0); s["o"] += u.get("output_tokens", 0)
+        s["cr"] += u.get("cache_read_input_tokens", 0); s["o"] += u.get("output_tokens", 0); s["pens"] += (u.get("output_tokens_details") or {}).get("thinking_tokens", 0)
     s["peso"] = sum(s[k] * W[k] for k in W)
     return s
 
@@ -51,8 +51,8 @@ def main():
     if a.linha:
         print(f"tokens {cab}: saída {s['o']:,} · entrada nova {s['i'] + s['cc']:,} · cache lido {s['cr']:,}{pct}"); return
     print(cab)
-    for k, n in (("i", "entrada"), ("cc", "cache criado"), ("cr", "cache lido"), ("o", "saída")):
-        print(f"  {n:13}{s[k]:>14,}")
+    for k, n in (("i", "entrada"), ("cc", "cache criado"), ("cr", "cache lido"), ("o", "saída (inclui pensamento)"), ("pens", "  dos quais pensamento")):
+        print(f"  {n:26}{s[k]:>14,}")
     print(f"  peso estimado {s['peso']:>13,.0f}{pct}")
     print(f"sessão inteira: peso {tot['peso']:,.0f}, saída {tot['o']:,}, {len(ev)} respostas")
 main()

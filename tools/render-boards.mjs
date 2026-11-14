@@ -8,7 +8,8 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const GRP = { 'circulação': 'g-circ', privada: 'g-priv', 'convivência': 'g-conv', armazenagem: 'g-arm', 'produção': 'g-prod', 'técnica': 'g-tec' };
 
 /* ---- prancha 1: opções de encaixe do bunker (plano atual como referência) ---- */
-const OP = fs.existsSync('plan/bunker-opcoes.json') ? JSON.parse(fs.readFileSync('plan/bunker-opcoes.json', 'utf8')).opcoes : [];
+const OPJ = fs.existsSync('plan/bunker-opcoes.json') ? JSON.parse(fs.readFileSync('plan/bunker-opcoes.json', 'utf8')) : { opcoes: [] };
+const OP = OPJ.opcoes;
 const num = new Map([...B.salas].sort((a, b) => a.v - b.v || a.u - b.u).map((r, i) => [r.id, i + 1]));
 const nominal = (id) => B.medidas[id] || (B.extras || {})[id];
 const k = 10, pad = 26;
@@ -37,7 +38,7 @@ const bad = met.filter((r) => r.erros.length);
 if (bad.length) throw new Error('opção com erro na régua: ' + bad[0].erros[0]);
 const mt = met.map((r) => r.metricas);
 const hatch = (o) => o.salas.find((r) => r.id === 'escada');
-const cards = OP.map((o, i) => `<figure class="card"><figcaption><b>${esc(o.nome)}</b><span>${f(o.pegada.w)}×${f(o.pegada.d)} m · ${f(o.pegada.w * o.pegada.d)} m²</span></figcaption>${planta(o)}</figure>`).join('');
+const cards = OP.map((o, i) => `<figure class="card"><figcaption><b>${esc(o.nome)}${o.id === OPJ.escolhida ? ' ★ escolhida' : ''}</b><span>${f(o.pegada.w)}×${f(o.pegada.d)} m · ${f(o.pegada.w * o.pegada.d)} m²</span></figcaption>${planta(o)}</figure>`).join('');
 const fmt = (n, d = 1) => f(Number(n.toFixed(d)));
 const medRows = [
   ['Pegada (m²)', (m, o) => f(m.pegada.area)],
@@ -142,7 +143,7 @@ ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}.ask{bo
 <header><h1>Pranchas do Sítio Vale do Café</h1><p class="sub1">Etapa B0, para aprovação do Mestre. Nenhum código de produção mudou; as plantas do bunker são resultado do solver, não escolha minha; as medidas vêm do Plano Mestre e um script confere somas, sobreposições e margens.</p></header>
 <section><h2>Prancha 1 · Opções de encaixe do bunker, cota −10 m (pé-direito 3 m)</h2>
 ${defs}
-<p class="sub1">Três plantas geradas pelo solver, uma por margem de medida (exato, ±1 m, ±2,5 m). O mesmo número é o mesmo ambiente em todas. Todas passam na régua: sem sobreposição, acesso em até 2 saltos, escotilha fora da Casa Grande. Célula destacada = medida diferente da nominal.</p>
+<p class="sub1">Três plantas geradas pelo solver, uma por margem de medida (exato, ±1 m, ±2,5 m). O Mestre escolheu a de ±2,5 m em 14/11 (★). O mesmo número é o mesmo ambiente em todas. Todas passam na régua: sem sobreposição, acesso em até 2 saltos, escotilha fora da Casa Grande. Célula destacada = medida diferente da nominal.</p>
 <div class="cards">${cards}</div>
 <div class="tbl"><table><thead><tr><th>Medida</th>${heads}</tr></thead><tbody>${medRows}</tbody></table></div>
 <div class="tbl"><table><thead><tr><th>Nº</th><th>Ambiente</th><th>Grupo</th><th>Nominal</th>${heads}</tr></thead><tbody>${rows1}</tbody></table></div>
@@ -158,7 +159,7 @@ ${defs}
 <li><b>Decisão 2:</b> pomar 25×40 a oeste do núcleo Sisteminha, a 2 m dele. A estufa fica logo acima do núcleo e a zona de animais do outro lado da estrada, a 9 m (cascata curta).</li>
 <li>Árvores, bambu e escavação ficam fora da projeção do bunker. A jazida fica junto ao córrego, ao sul do engenho. A zona de animais fica a 52 m da casa.</li>
 <li><b>Sem destino nas pranchas:</b> cerca de 6.000 m³ de terra sobram da escavação do bunker (estimativa). Os terraços de aterro (225 m²) não absorvem isso.</li></ul></section>
-<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Escolher uma das três opções do bunker (ou pedir ajuste), e aprovar a implantação do lote.</li><li>Dizer o que fazer com a terra que sobra.</li></ul></section>
+<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Aprovar a implantação do lote (B0-5 liberada em 14/11 para otimizar).</li><li>Dizer o que fazer com a terra que sobra.</li></ul></section>
 </main>`.replace('<svg-holder2></svg-holder2>', s2);
 fs.writeFileSync('plan/pranchas.html', html);
 console.log('ok', html.length);

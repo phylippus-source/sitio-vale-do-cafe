@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sol, sombraDe, horasDeSombra } from '../../tools/lote-lib.mjs';
+import fs from 'node:fs';
+import { sol, sombraDe, horasDeSombra, conferirLote } from '../../tools/lote-lib.mjs';
 
 const LAT = -22.404;
 const DECL = 23.44; // solstício de junho: inverno no sul
@@ -50,5 +51,109 @@ describe('horas de sombra sobre um alvo', () => {
     const manha = { lat: LAT, decl: DECL, horas: [9] };
     expect(horasDeSombra({ x: 0, z: 0, w: 1, d: 1 }, [arvore], manha, 0.5)).toBe(0); // sombra das 9 h cai bem a oeste (x+)
     expect(horasDeSombra({ x: 6, z: 3, w: 1, d: 1 }, [arvore], manha, 0.5)).toBeGreaterThan(0);
+  });
+});
+
+describe('conferirLote (régua do lote)', () => {
+  const site = () => JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
+  const bunker = { u: -12, v: -73, w: 48, d: 32 }; // opção ±2,5 m escolhida
+  const erros = (S, b = bunker) => conferirLote(S, b).erros;
+  const tem = (lista, trecho) => lista.some((e) => e.includes(trecho));
+  const mexe = (S, id, mudancas) =>
+    Object.assign(
+      S.itens.find((i) => i.id === id),
+      mudancas,
+    );
+
+  it('o plano atual passa, com bunker 48×32 e com 50×40', () => {
+    expect(erros(site())).toEqual([]);
+    expect(erros(site(), { u: -12, v: -73, w: 50, d: 40 })).toEqual([]);
+  });
+
+  it('mede lote, envelopes e distâncias', () => {
+    const m = conferirLote(site(), bunker).metricas;
+    expect(m.total).toBe(7850);
+    expect(m.lotArea).toBe(15000);
+    expect(m.dist.animaisCasa).toBeCloseTo(52, 0);
+    expect(m.dist.pomarNucleo).toBe(2);
+  });
+
+  it('item com medida diferente do plano', () => {
+    const S = site();
+    mexe(S, 'engenho', { w: 25 });
+    expect(tem(erros(S), 'engenho mede 25×10')).toBe(true);
+  });
+
+  it('falta item, ou item fora do plano', () => {
+    const S = site();
+    S.itens = S.itens.filter((i) => i.id !== 'galpao');
+    expect(tem(erros(S), 'falta no layout: galpao')).toBe(true);
+    const T = site();
+    T.itens.push({ id: 'piscina', x: 0, z: 0, w: 5, d: 5, tipo: 'predio' });
+    expect(tem(erros(T), 'item fora do plano: piscina')).toBe(true);
+  });
+
+  it('coordenada que não termina em 0 ou 5', () => {
+    const S = site();
+    mexe(S, 'galpao', { x: 19.3 });
+    expect(tem(erros(S), 'galpao.x=19.3 não termina em 0 ou 5')).toBe(true);
+  });
+
+  it('item na divisa, sobreposto ou colado em outro', () => {
+    const S = site();
+    mexe(S, 'galpao', { x: -50 });
+    expect(tem(erros(S), 'galpao sai do lote ou fica a menos de 2 m da divisa')).toBe(true);
+    const T = site();
+    mexe(T, 'galpao', { x: 25, z: -45 });
+    expect(tem(erros(T), 'engenho e galpao se sobrepõem')).toBe(true);
+    const U = site();
+    mexe(U, 'galpao', { z: -58.5 }); // termina em z −43,5, a 0,5 m do engenho
+    expect(tem(erros(U), 'engenho e galpao ficam a 0.5 m')).toBe(true);
+  });
+
+  it('invade a estrada ou o córrego', () => {
+    const S = site();
+    mexe(S, 'animais', { z: 20 });
+    expect(tem(erros(S), 'animais invade a estrada')).toBe(true);
+    const T = site();
+    mexe(T, 'galpao', { x: 35 });
+    expect(tem(erros(T), 'galpao')).toBe(true);
+  });
+
+  it('o engenho pode encostar no córrego (encosta), mas outro item não', () => {
+    expect(tem(erros(site()), 'engenho')).toBe(false);
+    const S = site();
+    delete S.itens.find((i) => i.id === 'engenho').encosta;
+    expect(tem(erros(S), 'engenho fica a')).toBe(true);
+  });
+
+  it('árvore e escavação ficam fora da projeção do bunker', () => {
+    const S = site();
+    mexe(S, 'bambuzal', { x: -10, z: -70 });
+    expect(tem(erros(S), 'bambuzal (arvore) está sobre a projeção do bunker')).toBe(true);
+    const T = site();
+    mexe(T, 'jazida', { x: 15, z: -50 });
+    expect(tem(erros(T), 'jazida (escavacao) está sobre a projeção do bunker')).toBe(true);
+  });
+
+  it('a Casa Grande tem de estar sobre o bunker', () => {
+    expect(
+      tem(erros(site(), { u: -12, v: -73, w: 20, d: 32 }), 'a Casa Grande não está sobre o bunker'),
+    ).toBe(true);
+  });
+
+  it('regras de distância: animais longe da casa, perto do núcleo; pomar e estufa perto do núcleo', () => {
+    const S = site();
+    mexe(S, 'animais', { x: -5, z: -35 });
+    expect(tem(erros(S), 'm da casa (mínimo 25 m)')).toBe(true);
+    const T = site();
+    mexe(T, 'pomar', { z: 20 });
+    expect(tem(erros(T), 'pomar')).toBe(true);
+  });
+
+  it('soma das áreas diferente do plano', () => {
+    const S = site();
+    S.total_itens = 7000;
+    expect(tem(erros(S), 'soma das áreas')).toBe(true);
   });
 });

@@ -55,6 +55,25 @@ describe('horas de sombra sobre um alvo', () => {
 });
 
 describe('conferirLote (régua do lote)', () => {
+  it('o puxadinho da piscina fica colado na casa, mas colado só com quem ele declara', () => {
+    const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
+    const bunker = { u: -12, v: -73, w: 48, d: 32 };
+    const pux = S.itens.find((i) => i.id === 'puxadinho');
+    expect(pux).toMatchObject({ w: 20, d: 7 });
+    expect(conferirLote(S, bunker).erros).toEqual([]);
+    pux.z = -40; // desencosta 3 m da casa
+    expect(conferirLote(S, bunker).erros.some((e) => e.includes('devia estar colado'))).toBe(true);
+    pux.z = -45; // entra na casa
+    expect(
+      conferirLote(S, bunker).erros.some((e) => e.includes('casa e puxadinho se sobrepõem')),
+    ).toBe(true);
+    pux.z = -43;
+    delete pux.colado; // sem a declaração, encostar é erro de margem
+    expect(
+      conferirLote(S, bunker).erros.some((e) => e.includes('casa e puxadinho ficam a 0.0 m')),
+    ).toBe(true);
+  });
+
   const site = () => JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
   const bunker = { u: -12, v: -73, w: 48, d: 32 }; // opção ±2,5 m escolhida
   const erros = (S, b = bunker) => conferirLote(S, b).erros;
@@ -72,7 +91,7 @@ describe('conferirLote (régua do lote)', () => {
 
   it('mede lote, envelopes e distâncias', () => {
     const m = conferirLote(site(), bunker).metricas;
-    expect(m.total).toBe(7850);
+    expect(m.total).toBe(7990);
     expect(m.lotArea).toBe(15000);
     expect(m.dist.animaisCasa).toBeCloseTo(52, 0);
     expect(m.dist.pomarNucleo).toBe(2);

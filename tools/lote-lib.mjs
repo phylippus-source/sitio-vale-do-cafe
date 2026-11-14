@@ -99,8 +99,11 @@ export function conferirLote(S, bunker) {
   for (let i = 0; i < S.itens.length; i++)
     for (let j = i + 1; j < S.itens.length; j++) {
       const a = S.itens[i], b = S.itens[j];
+      const colados = (a.colado || []).includes(b.id) || (b.colado || []).includes(a.id);
       if (overlap(R(a), R(b))) err(`lote: ${a.id} e ${b.id} se sobrepõem`);
-      else if (gap(R(a), R(b)) < S.margem - EPS) err(`lote: ${a.id} e ${b.id} ficam a ${gap(R(a), R(b)).toFixed(1)} m (mínimo ${S.margem} m)`);
+      else if (colados) {
+        if (gap(R(a), R(b)) > EPS) err(`lote: ${a.id} devia estar colado em ${b.id}, mas fica a ${gap(R(a), R(b)).toFixed(1)} m`);
+      } else if (gap(R(a), R(b)) < S.margem - EPS) err(`lote: ${a.id} e ${b.id} ficam a ${gap(R(a), R(b)).toFixed(1)} m (mínimo ${S.margem} m)`);
     }
   const casa = byId.get('casa');
   if (casa) {

@@ -272,9 +272,20 @@ function conferirSaidas(P, salas) {
   return [];
 }
 
+/* regras.escada_sob_casa: a escada inteira dentro do retângulo da Casa Grande */
+function conferirEscada(P, salas, ctx) {
+  const e = salas.find((s) => s.id === 'escada');
+  const c = ctx.casa;
+  if (!(P.regras && P.regras.escada_sob_casa) || !e || !c) return [];
+  if (e.u < c.u - EPS || e.v < c.v - EPS || e.u + e.w > c.u + c.w + EPS || e.v + e.d > c.v + c.d + EPS)
+    return [`a escada (u ${e.u}–${e.u + e.w}, v ${e.v}–${e.v + e.d}) sai de baixo da Casa Grande (u ${c.u}–${c.u + c.w}, v ${c.v}–${c.v + c.d})`];
+  return [];
+}
+
 function conferirRegras(P, F, salas, ctx) {
   return [
     ...conferirGeometria(F, salas),
+    ...conferirEscada(P, salas, ctx),
     ...conferirMundo(P, F, ctx),
     ...conferirAcesso(P, salas),
     ...conferirSaidas(P, salas),

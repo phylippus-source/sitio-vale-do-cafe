@@ -2,7 +2,7 @@
   "titulo": "Planta do bunker (cota −10 m)",
   "mundo": { "x0": -12, "z0": -73, "piso": -10, "pe_direito": 3, "distancia_corrego": 5, "nota": "u vai para +x e v para +z; x = x0 + u, z = z0 + v. Tudo em metros." },
   "pegada": { "w": 50, "d": 40 },
-  "total_util": 1687.5,
+  "total_util": 1665,
   "areas": {
     "mestre": "Suíte do Mestre",
     "pais": "Suíte dos pais",
@@ -33,7 +33,7 @@
     "estar": [15, 15], "cinema": [10, 10], "despensa": [5, 10], "adega": [5, 10], "enfermaria": [5, 5],
     "hidroponia": [10, 10], "oficina": [10, 10], "datacenter": [10, 10], "labs": [5, 15], "limpa": [5, 10],
     "suporte": [10, 10], "baterias": [10, 10], "agua": [10, 10],
-    "escada": [5, 10], "montacarga": [5, 5], "saida2": [5, 10], "galeria": [40, 5]
+    "escada": [5, 5.5], "montacarga": [5, 5], "saida2": [5, 10], "galeria": [40, 5]
   },
   "extras": { "ramal": [5, 15] },
   "circulacao": ["galeria", "montacarga", "escada", "saida2", "ramal"],
@@ -45,14 +45,26 @@
       { "id": "mais-menos-2-5", "nome": "Variação de ±2,5 m", "lado": 2.5 }
     ],
     "area_min": 0.9,
-    "nao_encolhem": ["mestre", "pais", "irma", "sobrinha", "convidado"],
+    "nao_encolhem": ["mestre", "pais", "irma", "sobrinha", "convidado", "escada"],
     "lado_min": { "ambiente": 3, "circulacao": 4 },
     "giro": true,
     "ramal": { "opcional": true, "lado_curto": [2.5, 5], "lado_longo": [5, 15] },
     "pegada_max": { "w": 50, "d": 40, "nota": "limites do lote atual: córrego (x ≤ 38) e jazida (z ≤ −33)" }
   },
-  "acesso_por": { "adega": ["estar"], "agua": ["hidroponia"], "limpa": ["labs"], "baterias": ["suporte"], "datacenter": ["oficina", "baterias"] },
-  "saidas": { "a": "escada", "b": "saida2", "distancia_min": 30 },
+  "acesso_por": {
+    "mestre": ["estar"], "pais": ["estar"], "irma": ["estar"], "sobrinha": ["estar"], "convidado": ["estar"],
+    "enfermaria": ["estar"], "cinema": ["estar"],
+    "despensa": ["estar", "adega"], "adega": ["estar", "despensa"],
+    "hidroponia": ["estar", "despensa", "labs", "agua"], "agua": ["hidroponia", "suporte", "oficina", "baterias"],
+    "labs": ["oficina", "hidroponia", "limpa"], "limpa": ["labs", "oficina"],
+    "oficina": ["suporte", "labs", "baterias", "datacenter"],
+    "suporte": ["oficina", "baterias", "agua", "datacenter"],
+    "baterias": ["suporte", "oficina", "datacenter", "agua"],
+    "datacenter": ["oficina", "baterias", "suporte"]
+  },
+  "regras": { "escada_sob_casa": true },
+  "escada_nota": "Escada de verdade: queda de 10 m = 58 degraus de 17,2 cm, em 4 lances de 14 a 15 degraus (piso de 27 cm, largura de 1,2 m, patamares de 1,2 m) em volta de um poço central: cabe em 5×5,5 m. Fica toda sob a Casa Grande.",
+  "saidas": { "a": "escada", "b": "saida2", "distancia_min": 0 },
   "afinidades": [
     { "a": "suporte", "b": "baterias", "peso": 3 },
     { "a": "agua", "b": "hidroponia", "peso": 3 },
@@ -70,17 +82,19 @@
   "notas_regua": [
     "Afinidade: vale quando as bordas dos dois ambientes se tocam em 1 m ou mais; peso de 1 a 3.",
     "Ruído: distância entre a fonte e o quarto mais próximo; quanto maior, melhor.",
-    "acesso_por: ambientes que podem servir de passagem; só o que o plano atual já usa.",
-    "Valores propostos, a confirmar pelo Mestre: pesos, fontes de ruído e distância mínima entre as saídas."
+    "acesso_por: por quais ambientes cada um pode ser alcançado (além de tocar a circulação); abertas à vontade pelo Mestre em 13/11; quarto só por estar.",
+    "Saídas: o Mestre liberou distância menor que 30 m (distancia_min 0); a distância continua medida.",
+    "Escada: tamanho de escada real e inteira sob a Casa Grande (regras.escada_sob_casa), decisão do Mestre em 13/11.",
+    "Pesos das afinidades e fontes de ruído: valores propostos, o Mestre pode mudar."
   ],
   "salas": [
     { "id": "galeria", "u": 5, "v": 15, "w": 40, "d": 5, "grupo": "circulação" },
     { "id": "montacarga", "u": 0, "v": 15, "w": 5, "d": 5, "grupo": "circulação" },
-    { "id": "escada", "u": 0, "v": 5, "w": 5, "d": 10, "grupo": "circulação", "acesso": ["montacarga"] },
+    { "id": "escada", "u": 0.5, "v": 9.5, "w": 5, "d": 5.5, "grupo": "circulação", "acesso": ["montacarga"] },
     { "id": "saida2", "u": 45, "v": 10, "w": 5, "d": 10, "grupo": "circulação" },
     { "id": "ramal", "u": 35, "v": 0, "w": 5, "d": 15, "grupo": "circulação" },
 
-    { "id": "mestre", "u": 5, "v": 6, "w": 10, "d": 9, "grupo": "privada" },
+    { "id": "mestre", "u": 5.5, "v": 5, "w": 9, "d": 10, "grupo": "privada" },
     { "id": "pais", "u": 15, "v": 10, "w": 9, "d": 5, "grupo": "privada" },
     { "id": "irma", "u": 24, "v": 10, "w": 3.5, "d": 5, "grupo": "privada" },
     { "id": "sobrinha", "u": 27.5, "v": 10, "w": 3.5, "d": 5, "grupo": "privada" },
@@ -88,7 +102,7 @@
 
     { "id": "estar", "u": 5, "v": 20, "w": 15, "d": 15, "grupo": "convivência" },
     { "id": "cinema", "u": 20, "v": 20, "w": 10, "d": 10, "grupo": "convivência" },
-    { "id": "enfermaria", "u": 0, "v": 0, "w": 5, "d": 5, "grupo": "convivência", "acesso": ["escada"] },
+    { "id": "enfermaria", "u": 0, "v": 4.5, "w": 5, "d": 5, "grupo": "convivência", "acesso": ["escada"] },
     { "id": "despensa", "u": 0, "v": 20, "w": 5, "d": 10, "grupo": "armazenagem", "acesso": ["montacarga"] },
     { "id": "adega", "u": 0, "v": 30, "w": 5, "d": 10, "grupo": "armazenagem", "acesso": ["estar"] },
 

@@ -7,14 +7,14 @@ tolerância (tolerancia.cenarios). Modelo CP-SAT (OR-tools) numa grade de 0,5 m:
     com as mesmas regras do conferidor (lado ±, giro, quartos que só crescem, área >= 90%, lados mínimos);
   - NoOverlap2D entre todos; o ramal é opcional (tamanho 0 = ausente);
   - a pegada W×D começa no canto fixo do bunker; a Casa Grande tem de caber nela;
-  - saídas (escada e saída 2) separadas de pelo menos saidas.distancia_min, em x ou em z;
+  - escada inteira sob a Casa Grande (regras.escada_sob_casa); saídas separadas de saidas.distancia_min
+    (em x ou em z) quando esse valor for maior que 0;
   - dica inicial: a planta atual, que vale em qualquer cenário.
 Etapa atual (B0-4c): só a menor pegada. Acesso, afinidades e ruído entram na B0-4d, por isso a opção
 gerada ainda NÃO passa no conferidor de acesso.
 
 Uso (precisa de ortools: python3 -m venv venv && venv/bin/pip install -r tools/requirements-solver.txt):
   venv/bin/python tools/pack-bunker.py --cenario mais-menos-1 --tempo 60 --saida opcao.json
-  [--escada-sob-casa]   exige a escada inteira sob a Casa Grande (desligado: hoje sai 0,5 m)
 """
 import argparse
 import json
@@ -69,7 +69,7 @@ def pares_ramal(P):
     return sorted(saida)
 
 
-def construir(P, S, lado_m, escada_sob_casa):
+def construir(P, S, lado_m):
     T = P["tolerancia"]
     lado = u(lado_m)
     m = cp_model.CpModel()
@@ -119,7 +119,7 @@ def construir(P, S, lado_m, escada_sob_casa):
 
     # saídas: separadas em x ou em z (conservador: o conferidor mede a distância em linha reta)
     S_ = P.get("saidas")
-    if S_:
+    if S_ and S_["distancia_min"] > 0:
         dmin = u(S_["distancia_min"])
         A_, B_ = v[S_["a"]], v[S_["b"]]
         opc = []
@@ -129,7 +129,7 @@ def construir(P, S, lado_m, escada_sob_casa):
             opc.append(lit)
         m.add_bool_or(opc)
 
-    if escada_sob_casa:
+    if P.get("regras", {}).get("escada_sob_casa"):
         e = v["escada"]
         m.add(e["x"] >= u(cu))
         m.add(e["ex"] <= u(cu + casa["w"]))
@@ -160,9 +160,9 @@ def dica(m, ctx, P):
     m.add_hint(ctx["A"], W * D)
 
 
-def resolver(P, S, cenario, tempo, escada_sob_casa, log=False):
+def resolver(P, S, cenario, tempo, log=False):
     lado = next(c for c in P["tolerancia"]["cenarios"] if c["id"] == cenario)
-    m, ctx = construir(P, S, lado["lado"], escada_sob_casa)
+    m, ctx = construir(P, S, lado["lado"])
     dica(m, ctx, P)
     s = cp_model.CpSolver()
     s.parameters.max_time_in_seconds = tempo
@@ -198,11 +198,10 @@ def main():
     ap.add_argument("--cenario", required=True)
     ap.add_argument("--tempo", type=float, default=60)
     ap.add_argument("--saida", help="arquivo .json da opção")
-    ap.add_argument("--escada-sob-casa", action="store_true")
     ap.add_argument("--log", action="store_true")
     a = ap.parse_args()
     P, S = ler("plan/bunker.json"), ler("plan/site.json")
-    opcao, info = resolver(P, S, a.cenario, a.tempo, a.escada_sob_casa, a.log)
+    opcao, info = resolver(P, S, a.cenario, a.tempo, a.log)
     if opcao is None:
         print("sem solução:", info, file=sys.stderr)
         sys.exit(1)

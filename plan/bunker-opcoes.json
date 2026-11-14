@@ -1,0 +1,626 @@
+{
+ "opcoes": [
+  {
+   "id": "exato",
+   "nome": "Medidas exatas",
+   "etapa": "pegada, desvio de área e conforto",
+   "pegada": {
+    "w": 49.0,
+    "d": 35.0
+   },
+   "salas": [
+    {
+     "id": "mestre",
+     "u": 35.0,
+     "v": 0.0,
+     "w": 9.0,
+     "d": 10.0,
+     "grupo": "privada",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "pais",
+     "u": 44.0,
+     "v": 1.0,
+     "w": 5.0,
+     "d": 9.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "irma",
+     "u": 40.0,
+     "v": 25.0,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "sobrinha",
+     "u": 45.5,
+     "v": 21.0,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "convidado",
+     "u": 45.5,
+     "v": 26.0,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "estar",
+     "u": 20.0,
+     "v": 0.0,
+     "w": 15.0,
+     "d": 15.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "cinema",
+     "u": 35.0,
+     "v": 10.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "despensa",
+     "u": 15.0,
+     "v": 15.0,
+     "w": 10.0,
+     "d": 5.0,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "adega",
+     "u": 25.0,
+     "v": 15.0,
+     "w": 10.0,
+     "d": 5.0,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "enfermaria",
+     "u": 0.0,
+     "v": 20.0,
+     "w": 5.0,
+     "d": 5.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "hidroponia",
+     "u": 10.0,
+     "v": 0.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "oficina",
+     "u": 0.0,
+     "v": 10.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "datacenter",
+     "u": 20.0,
+     "v": 25.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "técnica"
+    },
+    {
+     "id": "labs",
+     "u": 30.0,
+     "v": 30.0,
+     "w": 15.0,
+     "d": 5.0,
+     "grupo": "produção",
+     "acesso": [
+      "limpa"
+     ]
+    },
+    {
+     "id": "limpa",
+     "u": 30.0,
+     "v": 25.0,
+     "w": 10.0,
+     "d": 5.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "suporte",
+     "u": 0.0,
+     "v": 25.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "técnica"
+    },
+    {
+     "id": "baterias",
+     "u": 10.0,
+     "v": 25.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "técnica"
+    },
+    {
+     "id": "agua",
+     "u": 0.0,
+     "v": 0.0,
+     "w": 10.0,
+     "d": 10.0,
+     "grupo": "técnica",
+     "acesso": [
+      "hidroponia"
+     ]
+    },
+    {
+     "id": "escada",
+     "u": 43.5,
+     "v": 25.0,
+     "w": 2.0,
+     "d": 2.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "montacarga",
+     "u": 10.0,
+     "v": 15.0,
+     "w": 5.0,
+     "d": 5.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "saida2",
+     "u": 10.0,
+     "v": 10.0,
+     "w": 10.0,
+     "d": 5.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "galeria",
+     "u": 5.0,
+     "v": 20.0,
+     "w": 40.0,
+     "d": 5.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "ramal",
+     "u": 45.0,
+     "v": 10.0,
+     "w": 2.5,
+     "d": 11.0,
+     "grupo": "circulação"
+    }
+   ]
+  },
+  {
+   "id": "mais-menos-1",
+   "nome": "Variação de ±1 m",
+   "etapa": "pegada, desvio de área e conforto",
+   "pegada": {
+    "w": 42.5,
+    "d": 37.0
+   },
+   "salas": [
+    {
+     "id": "mestre",
+     "u": 23.0,
+     "v": 18.5,
+     "w": 10.0,
+     "d": 9.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "pais",
+     "u": 31.0,
+     "v": 9.0,
+     "w": 9.0,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "irma",
+     "u": 6.0,
+     "v": 33.5,
+     "w": 5.0,
+     "d": 3.5,
+     "grupo": "privada"
+    },
+    {
+     "id": "sobrinha",
+     "u": 11.0,
+     "v": 33.0,
+     "w": 5.0,
+     "d": 3.5,
+     "grupo": "privada",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "convidado",
+     "u": 0.5,
+     "v": 33.5,
+     "w": 5.0,
+     "d": 3.5,
+     "grupo": "privada"
+    },
+    {
+     "id": "estar",
+     "u": 9.0,
+     "v": 18.5,
+     "w": 14.0,
+     "d": 14.5,
+     "grupo": "convivência"
+    },
+    {
+     "id": "cinema",
+     "u": 23.0,
+     "v": 27.5,
+     "w": 9.5,
+     "d": 9.5,
+     "grupo": "convivência",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "despensa",
+     "u": 21.0,
+     "v": 9.0,
+     "w": 10.0,
+     "d": 5.0,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "adega",
+     "u": 10.5,
+     "v": 9.5,
+     "w": 10.5,
+     "d": 4.5,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "enfermaria",
+     "u": 16.0,
+     "v": 33.0,
+     "w": 6.0,
+     "d": 4.0,
+     "grupo": "convivência",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "hidroponia",
+     "u": 32.5,
+     "v": 28.0,
+     "w": 10.0,
+     "d": 9.0,
+     "grupo": "produção",
+     "acesso": [
+      "agua"
+     ]
+    },
+    {
+     "id": "oficina",
+     "u": 0.0,
+     "v": 4.5,
+     "w": 10.5,
+     "d": 9.5,
+     "grupo": "produção"
+    },
+    {
+     "id": "datacenter",
+     "u": 32.0,
+     "v": 0.0,
+     "w": 10.5,
+     "d": 9.0,
+     "grupo": "técnica"
+    },
+    {
+     "id": "labs",
+     "u": 0.0,
+     "v": 18.5,
+     "w": 4.5,
+     "d": 15.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "limpa",
+     "u": 0.0,
+     "v": 0.0,
+     "w": 10.5,
+     "d": 4.5,
+     "grupo": "produção",
+     "acesso": [
+      "oficina"
+     ]
+    },
+    {
+     "id": "suporte",
+     "u": 10.5,
+     "v": 0.0,
+     "w": 10.5,
+     "d": 9.5,
+     "grupo": "técnica",
+     "acesso": [
+      "oficina"
+     ]
+    },
+    {
+     "id": "baterias",
+     "u": 21.0,
+     "v": 0.0,
+     "w": 11.0,
+     "d": 9.0,
+     "grupo": "técnica",
+     "acesso": [
+      "datacenter"
+     ]
+    },
+    {
+     "id": "agua",
+     "u": 33.0,
+     "v": 18.5,
+     "w": 9.5,
+     "d": 9.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "escada",
+     "u": 40.0,
+     "v": 9.0,
+     "w": 2.0,
+     "d": 2.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "montacarga",
+     "u": 4.5,
+     "v": 28.5,
+     "w": 4.5,
+     "d": 5.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "saida2",
+     "u": 4.5,
+     "v": 18.5,
+     "w": 4.5,
+     "d": 10.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "galeria",
+     "u": 0.0,
+     "v": 14.0,
+     "w": 40.0,
+     "d": 4.5,
+     "grupo": "circulação"
+    },
+    {
+     "id": "ramal",
+     "u": 40.0,
+     "v": 11.0,
+     "w": 2.5,
+     "d": 7.5,
+     "grupo": "circulação"
+    }
+   ]
+  },
+  {
+   "id": "mais-menos-2-5",
+   "nome": "Variação de ±2,5 m",
+   "etapa": "pegada, desvio de área e conforto",
+   "pegada": {
+    "w": 45.0,
+    "d": 35.0
+   },
+   "salas": [
+    {
+     "id": "mestre",
+     "u": 18.5,
+     "v": 0.0,
+     "w": 9.0,
+     "d": 10.0,
+     "grupo": "privada",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "pais",
+     "u": 18.5,
+     "v": 10.0,
+     "w": 9.0,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "irma",
+     "u": 0.0,
+     "v": 0.0,
+     "w": 5.0,
+     "d": 3.5,
+     "grupo": "privada",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "sobrinha",
+     "u": 12.5,
+     "v": 20.0,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "convidado",
+     "u": 0.0,
+     "v": 13.5,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "estar",
+     "u": 5.0,
+     "v": 0.0,
+     "w": 13.5,
+     "d": 15.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "cinema",
+     "u": 4.0,
+     "v": 20.0,
+     "w": 8.5,
+     "d": 11.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "despensa",
+     "u": 25.5,
+     "v": 20.0,
+     "w": 7.5,
+     "d": 6.0,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "adega",
+     "u": 0.0,
+     "v": 3.5,
+     "w": 5.0,
+     "d": 10.0,
+     "grupo": "armazenagem",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "enfermaria",
+     "u": 16.0,
+     "v": 20.0,
+     "w": 5.0,
+     "d": 5.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "hidroponia",
+     "u": 21.5,
+     "v": 26.0,
+     "w": 11.0,
+     "d": 9.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "oficina",
+     "u": 32.5,
+     "v": 0.0,
+     "w": 12.5,
+     "d": 7.5,
+     "grupo": "produção",
+     "acesso": [
+      "labs"
+     ]
+    },
+    {
+     "id": "datacenter",
+     "u": 32.5,
+     "v": 7.5,
+     "w": 12.5,
+     "d": 7.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "labs",
+     "u": 27.5,
+     "v": 0.0,
+     "w": 5.0,
+     "d": 15.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "limpa",
+     "u": 0.0,
+     "v": 31.0,
+     "w": 12.5,
+     "d": 4.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "suporte",
+     "u": 32.5,
+     "v": 27.5,
+     "w": 12.5,
+     "d": 7.5,
+     "grupo": "técnica",
+     "acesso": [
+      "baterias"
+     ]
+    },
+    {
+     "id": "baterias",
+     "u": 33.0,
+     "v": 20.0,
+     "w": 12.0,
+     "d": 7.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "agua",
+     "u": 12.5,
+     "v": 25.0,
+     "w": 9.0,
+     "d": 10.0,
+     "grupo": "técnica"
+    },
+    {
+     "id": "escada",
+     "u": 43.0,
+     "v": 18.0,
+     "w": 2.0,
+     "d": 2.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "montacarga",
+     "u": 21.5,
+     "v": 20.0,
+     "w": 4.0,
+     "d": 6.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "saida2",
+     "u": 0.0,
+     "v": 18.5,
+     "w": 4.0,
+     "d": 12.5,
+     "grupo": "circulação"
+    },
+    {
+     "id": "galeria",
+     "u": 4.0,
+     "v": 15.0,
+     "w": 39.0,
+     "d": 5.0,
+     "grupo": "circulação"
+    }
+   ]
+  }
+ ]
+}

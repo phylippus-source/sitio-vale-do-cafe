@@ -1,0 +1,10 @@
+2026-11-09 21:56:37 | A1 | #0 | +0s | 0s | início da etapa
+2026-11-09 22:01:24 | A1 | #1 | +4m47s | 4m47s | A1: mapa de nomes (tools/names-a1.json) e renomeador por AST (tools/rename-ast.mjs); lote a em simulação: 837 trocas, 30 nomes
+2026-11-09 22:03:30 | A1 | #2 | +2m06s | 6m53s | A1a (lote a) feito: 30 batches/grupos, 837 trocas; suíte rápida 58 s verde; build idêntico; commit
+2026-11-09 22:04:39 | A1 | #3 | +1m09s | 8m02s | A1b (lote b) feito: 20 funções, 123 trocas; suíte rápida 54 s verde; commit
+2026-11-09 22:06:57 | A1 | #4 | +2m18s | 10m20s | A1c (lote c) feito: 10 nomes de estado/câmera, 209 trocas; hash da cena idêntico; suíte rápida 54 s verde; commit
+2026-11-10 10:41:32 | A1 | -- | pausa de 12h34m (não conta) | 10m20s | retomada
+2026-11-10 16:32:08 | A1 | -- | pausa de 5h50m (não conta) | 10m20s | retomada
+2026-11-10 16:32:29 | A1 | #5 | +21s | 10m41s | suíte completa verde (73 s) no ambiente novo; README da A1; commit Etapa A1
+2026-11-10 16:33:08 | A1 | #6 | +39s | 11m20s | Painel e Registro do Plano Mestre atualizados (A1 marcada, A2 próxima); memória atualizada
+2026-11-10 18:52:56 | A1 | -- | pausa de 2h19m (não conta) | 11m20s | retomada

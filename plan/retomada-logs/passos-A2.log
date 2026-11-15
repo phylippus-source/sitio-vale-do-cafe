@@ -1,0 +1,27 @@
+2026-11-10 18:52:56 | A2 | #0 | +0s | 0s | início da etapa
+2026-11-10 22:19:29 | A2 | -- | pausa de 3h26m (não conta) | 0s | retomada
+2026-11-10 22:27:20 | A2 | #1 | +7m51s | 7m51s | A2a: ferramenta de corte + base, terreno, sisteminha e flora em módulos (suite rápida ok, hash idêntico)
+2026-11-10 22:33:06 | A2 | #2 | +5m46s | 13m37s | A2b: engenho e casa (5 módulos) em módulos; wall dividida; contadores isolados (suite rápida ok, hash idêntico)
+2026-11-11 03:18:53 | A2 | -- | pausa de 4h45m (não conta) | 13m37s | retomada
+2026-11-11 03:19:54 | A2 | #3 | +1m01s | 14m38s | A2c: pátio, roda, moinho, animais, peixes, espuma e animação em módulos; tick dividido (suite rápida ok, hash idêntico)
+2026-11-11 03:24:39 | A2 | -- | pausa de 4m45s (não conta) | 14m38s | retomada
+2026-11-11 03:26:03 | A2 | #4 | +1m24s | 16m02s | A2d-1: bunker, parte comum (shell + fixtures) em módulos; IIFE do bunker desfeito (suite rápida ok, hash idêntico)
+2026-11-11 03:35:59 | A2 | -- | pausa de 9m56s (não conta) | 16m02s | retomada
+2026-11-11 03:38:58 | A2 | #5 | +2m59s | 19m01s | A2d-2: suíte do Mestre em módulo parametrizado pelo retângulo (suite rápida ok, hash idêntico)
+2026-11-11 03:40:30 | A2 | -- | pausa de 1m32s (não conta) | 19m01s | retomada
+2026-11-11 03:42:38 | A2 | #6 | +2m08s | 21m09s | A2d-3: suíte dos pais e quartos da irmã, sobrinha e convidado em módulos por retângulo (suite rápida ok, hash idêntico)
+2026-11-11 04:00:18 | A2 | -- | pausa de 17m40s (não conta) | 21m09s | retomada
+2026-11-11 04:01:52 | A2 | #7 | +1m34s | 22m43s | A2d-4: datacenter, laboratórios, sala limpa e suporte de vida em módulos por retângulo (suite rápida ok, hash idêntico)
+2026-11-11 04:02:25 | A2 | -- | pausa de 33s (não conta) | 22m43s | retomada
+2026-11-11 12:26:18 | A2 | -- | pausa de 8h23m (não conta) | 22m43s | retomada
+2026-11-11 19:59:26 | A2 | -- | pausa de 7h33m (não conta) | 22m43s | retomada
+2026-11-11 20:03:11 | A2 | #8 | +3m45s | 26m28s | A2d-5: estar, despensa, cinema, hidroponia e oficina em módulos por retângulo + buildBunker (suite rápida ok, hash idêntico)
+2026-11-11 21:05:09 | A2 | -- | pausa de 1h01m (não conta) | 26m28s | retomada
+2026-11-12 02:00:49 | A2 | -- | pausa de 4h55m (não conta) | 26m28s | retomada
+2026-11-12 02:02:19 | A2 | #9 | +1m30s | 27m58s | A2e-1 HUD e legendas
+2026-11-12 02:06:17 | A2 | -- | pausa de 3m58s (não conta) | 27m58s | retomada
+2026-11-12 02:07:59 | A2 | #10 | +1m42s | 29m40s | A2e-2 camera, controles, gavetas e 1a pessoa
+2026-11-12 02:11:56 | A2 | -- | pausa de 3m57s (não conta) | 29m40s | retomada
+2026-11-12 02:14:06 | A2 | #11 | +2m10s | 31m50s | A2e-3 laco, listas, main.js enxuto, lint zerado
+2026-11-12 02:17:58 | A2 | -- | pausa de 3m52s (não conta) | 31m50s | retomada
+2026-11-12 02:19:27 | A2 | #12 | +1m29s | 33m19s | A2 fecho: README e registro

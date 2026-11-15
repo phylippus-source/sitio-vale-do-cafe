@@ -1,0 +1,21 @@
+2026-11-09 11:52:02 | T1 | #0 | +0s | 0s | início da etapa
+2026-11-09 11:52:02 | T1 | #1 | +0s | 0s | cronômetro criado (tools/passo.sh) e testado; T1a–T1c anteriores ao cronômetro
+2026-11-09 16:55:54 | T1 | -- | pausa de 5h03m (não conta) | 0s | retomada
+2026-11-09 16:55:54 | T1 | #2 | +0s | 0s | regra de carimbo de tempo gravada no Plano Mestre (seções 3, 9 e 10)
+2026-11-09 16:56:37 | T1 | #3 | +41s | 43s | scenehash.js estável: 2 capturas idênticas (5,5 s cada)
+2026-11-09 16:57:29 | T1 | #4 | +52s | 1m35s | cores quantizadas a 1e-4; baseline regravado (3 capturas idênticas)
+2026-11-09 16:58:27 | T1 | #5 | +58s | 2m33s | sensibilidade provada: animação, cor 1/255 e ordem do gerador aleatório
+2026-11-09 16:59:32 | T1 | #6 | +1m05s | 3m38s | run-all.js reescrito (--fast, tempo por passo, para na 1ª falha); scripts test:fast/test:scenehash
+2026-11-09 17:06:48 | T1 | #7 | +7m16s | 10m54s | medi: render é o gargalo do interact (≈1 s/clique); render é função de instância no three r128, protótipo não serve
+2026-11-09 17:07:53 | T1 | #8 | +1m05s | 11m59s | interact: 69 s → 17 s (desenho WebGL desligado); mutação em focusOn acusada
+2026-11-09 17:08:30 | T1 | #9 | +37s | 12m36s | npm run save (tools/save.mjs): bundle verificado 4,3 MB + zip 3,5 MB; clone do bundle conferido
+2026-11-09 17:08:48 | T1 | #10 | +18s | 12m54s | README atualizado (comandos, T1, problemas conhecidos)
+2026-11-09 17:09:04 | T1 | #11 | +16s | 13m10s | suíte completa iniciada em segundo plano (logs/full1.log)
+2026-11-09 17:13:37 | T1 | #12 | +4m33s | 17m43s | suíte completa: 162,9 s (meta 240); único vermelho = golden engenho 0,572% (T1a deu 0,404%): teste depende do tempo real
+2026-11-09 17:14:55 | T1 | #13 | +1m18s | 19m01s | golden com tempo virtual: 16 s (era 97 s); contra as refs antigas: 0,04–0,20%, tudo dentro da tolerância
+2026-11-09 17:16:04 | T1 | #14 | +1m09s | 20m10s | golden regravado (tempo virtual): 2 comparações = 0,000%; mutação de cor da grama (−16 em R) NÃO acusada pelo golden (pixelmatch 0,12 ignora desvio pequeno; o hash da cena acusa) — CORRIGIDO: carimbo anterior dizia "acusada"
+2026-11-09 17:17:29 | T1 | #15 | +1m25s | 21m35s | golden provado sensível: contorno 2× mais grosso (4,7–5,2%) e grama vermelha (3,8–6,0%) acusados; desvio pequeno de cor só pelo hash da cena
+2026-11-09 17:19:45 | T1 | #16 | +2m16s | 23m51s | suíte completa final: 82,9 s (meta 240), TUDO OK; rápida = 59,9 s (meta 120)
+2026-11-09 17:19:52 | T1 | #17 | +7s | 23m58s | commit Etapa T1 feito
+2026-11-09 21:56:05 | T1 | -- | pausa de 4h36m (não conta) | 23m58s | retomada
+2026-11-09 21:56:05 | T1 | #18 | +0s | 23m58s | retomei após o 'segue' do Mestre (21:54): T1 já commitada (3b1c33e); revertida edição duplicada de passo.sh

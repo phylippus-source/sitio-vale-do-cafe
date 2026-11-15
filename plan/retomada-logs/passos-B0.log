@@ -1,0 +1,65 @@
+2026-11-12 02:33:48 | B0 | #0 | +0s | 0s | início da etapa
+2026-11-12 07:54:46 | B0 | -- | pausa de 5h20m (não conta) | 0s | retomada
+2026-11-12 07:56:24 | B0 | #1 | +1m38s | 1m38s | B0-1 planta do bunker e conferidor
+2026-11-12 08:06:24 | B0 | -- | pausa de 10m00s (não conta) | 1m38s | retomada
+2026-11-12 08:12:07 | B0 | #2 | +5m43s | 7m21s | B0-2 implantacao do lote e conferidor
+2026-11-12 08:38:27 | B0 | -- | pausa de 26m20s (não conta) | 7m21s | retomada
+2026-11-12 08:40:39 | B0 | #3 | +2m12s | 9m33s | B0-3 pranchas publicadas
+2026-11-12 18:36:20 | B0 | -- | pausa de 9h55m (não conta) | 9m33s | retomada
+2026-11-13 01:20:31 | B0 | #4 | +6h44m | 6h53m | B0-4a pesquisa web + plano do solver
+2026-11-13 01:20:31 | B0 | -- | correção: ausência do Mestre (6h37m) não conta | 16m04s | passo #4 durou 6m31s de fato
+2026-11-13 01:30:18 | B0 | -- | pausa de 9m47s (não conta) | 16m04s | retomada
+2026-11-13 11:36:20 | B0 | -- | pausa de 10h06m (não conta) | 16m04s | retomada
+2026-11-13 11:38:01 | B0 | #5 | +1m41s | 17m45s | B0-4b régua: tolerância, afinidades, ruído e opções no conferidor
+2026-11-13 17:38:56 | B0 | -- | pausa de 6h00m (não conta) | 17m45s | retomada
+2026-11-13 17:43:48 | B0 | #6 | +4m52s | 22m37s | B0-4b-rev régua revisada: estrutura, ids, lote do site.json, 44 testes, mutação
+2026-11-13 17:47:54 | B0 | -- | pausa de 4m06s (não conta) | 22m37s | retomada
+2026-11-13 17:51:41 | B0 | #7 | +3m47s | 26m24s | B0-4c núcleo do solver: menor pegada nos 3 cenários
+2026-11-13 23:07:29 | B0 | -- | pausa de 5h15m (não conta) | 26m24s | retomada
+2026-11-13 23:10:36 | B0 | #8 | +3m07s | 29m31s | B0-4d-1 regras novas: escada real sob a casa, saídas livres, passagens abertas
+2026-11-13 23:40:15 | B0 | -- | pausa de 29m39s (não conta) | 29m31s | retomada
+2026-11-13 23:43:25 | B0 | #9 | +3m10s | 32m41s | B0-4d-1b escada de marinheiro e escotilha
+2026-11-13 23:51:47 | B0 | -- | pausa de 8m22s (não conta) | 32m41s | retomada
+2026-11-14 04:23:11 | B0 | -- | pausa de 4h31m (não conta) | 32m41s | retomada
+2026-11-14 04:26:11 | B0 | #10 | +3m00s | 35m41s | B0-4d-2a toques no solver
+2026-11-14 04:30:40 | B0 | #11 | +4m29s | 40m10s | B0-4d-2b acesso no solver
+2026-11-14 04:35:31 | B0 | #12 | +4m51s | 45m01s | B0-4d-2c etapas: desvio de área e conforto
+2026-11-14 04:42:55 | B0 | #13 | +7m24s | 52m25s | B0-4d-2d 3 cenários gerados
+2026-11-14 12:23:25 | B0 | -- | pausa de 7h40m (não conta) | 52m25s | retomada
+2026-11-14 12:35:02 | B0 | #14 | +11m37s | 1h04m | B0-4d-2e refino dos cenários com partida
+2026-11-14 13:10:26 | B0 | -- | pausa de 35m24s (não conta) | 1h04m | retomada
+2026-11-14 13:12:56 | B0 | #15 | +2m30s | 1h06m | B0-4e pranchas com 3 opções do bunker
+2026-11-14 13:19:06 | B0 | -- | pausa de 6m10s (não conta) | 1h06m | retomada
+2026-11-14 13:20:39 | B0 | #16 | +1m33s | 1h08m | B0-4f opção ±2,5 m escolhida pelo Mestre
+2026-11-14 13:30:55 | B0 | #17 | +10m16s | 1h18m | B0-5a plano do lote
+2026-11-14 13:38:11 | B0 | -- | pausa de 7m16s (não conta) | 1h18m | retomada
+2026-11-14 13:40:41 | B0 | #18 | +2m30s | 1h20m | B0-5b-1 sombra do lote (régua)
+2026-11-14 13:44:54 | B0 | #19 | +4m13s | 1h25m | Nota de retomada B0-5b-2 (17:20)
+2026-11-14 17:24:01 | B0 | -- | pausa de 3h39m (não conta) | 1h25m | retomada
+2026-11-14 17:27:11 | B0 | #20 | +3m10s | 1h28m | B0-5b-2 régua do lote na lib, bunker escolhido
+2026-11-14 18:00:57 | B0 | #21 | +33m46s | 2h02m | B0-5c-0 puxadinho da piscina no plano do lote
+2026-11-14 18:02:08 | B0 | #22 | +1m11s | 2h03m | B0-5c-0 puxadinho da piscina no plano do lote
+2026-11-14 18:11:31 | B0 | -- | pausa de 9m23s (não conta) | 2h03m | retomada
+2026-11-14 18:14:03 | B0 | #23 | +2m32s | 2h05m | B0-5c-1 solver do lote: viagens
+2026-11-14 18:55:04 | B0 | -- | pausa de 41m01s (não conta) | 2h05m | retomada
+2026-11-14 22:46:46 | B0 | #24 | +3h51m | 5h57m | B0-5c-2 sombra de inverno como critério do solver do lote
+2026-11-14 22:50:34 | B0 | -- | pausa de 3m48s (não conta) | 5h57m | retomada
+2026-11-14 22:52:06 | B0 | #25 | +1m32s | 5h58m | B0-5c-3 três opções do lote: viagens, equilíbrio, sombra
+2026-11-14 22:54:09 | B0 | -- | pausa de 2m03s (não conta) | 5h58m | retomada
+2026-11-14 22:57:12 | B0 | #26 | +3m03s | 6h02m | B0-5d lote Equilíbrio adotado no plano e prancha 2 republicada
+2026-11-14 23:05:28 | B0 | -- | pausa de 8m16s (não conta) | 6h02m | retomada
+2026-11-14 23:08:20 | B0 | #27 | +2m52s | 6h04m | E1a cargas de energia: 28 elétricas e 5 térmicas, lib e testes
+2026-11-14 23:13:42 | B0 | -- | pausa de 5m22s (não conta) | 6h04m | retomada
+2026-11-14 23:15:31 | B0 | #28 | +1m49s | 6h06m | E1b planilha de cargas de energia (xlsx com fórmulas)
+2026-11-14 23:25:41 | B0 | -- | pausa de 10m10s (não conta) | 6h06m | retomada
+2026-11-14 23:27:09 | B0 | #29 | +1m28s | 6h08m | B0-5e-1 hidroponia 100 m² (40 sustento + 60 renda) na energia
+2026-11-14 23:32:17 | B0 | -- | pausa de 5m08s (não conta) | 6h08m | retomada
+2026-11-14 23:35:20 | B0 | #30 | +3m03s | 6h11m | B0-5e-2 solver do lote com blocos livres nas pontas (limite medido)
+2026-11-14 23:38:38 | B0 | -- | pausa de 3m18s (não conta) | 6h11m | retomada
+2026-11-14 23:40:42 | B0 | #31 | +2m04s | 6h13m | B0-5e-3 três variantes da estrada na divisa (frente, oeste, fundos)
+2026-11-15 12:42:15 | B0 | -- | pausa de 13h01m (não conta) | 6h13m | retomada
+2026-11-15 12:44:33 | B0 | #32 | +2m18s | 6h15m | B0-5e-4a prancha 2 com plano atual e 3 variantes da estrada
+2026-11-15 12:56:01 | B0 | -- | pausa de 11m28s (não conta) | 6h15m | retomada
+2026-11-15 13:00:00 | B0 | -- | pausa de 3m59s (não conta) | 6h15m | retomada
+2026-11-15 18:45:08 | B0 | -- | pausa de 5h45m (não conta) | 6h15m | retomada
+2026-11-15 18:54:30 | B0 | #33 | +9m22s | 6h24m | Pacote de retomada: LEIA-ME, prompt, plano, logs e contador de tokens

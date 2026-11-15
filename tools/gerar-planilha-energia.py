@@ -1,8 +1,11 @@
-import json
+# Gera plan/energia-cargas.xlsx a partir de plan/energia-cargas.json (roda de qualquer pasta).
+# Depois de gerar, recalcular com o recalc.py da skill xlsx; sem isso as fórmulas ficam sem valor guardado.
+import json, os
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-P=json.load(open('refactor/plan/energia-cargas.json'))['cargas']
+RAIZ=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+P=json.load(open(os.path.join(RAIZ,'plan','energia-cargas.json')))['cargas']
 wb=Workbook(); R=wb.active; R.title='Resumo'; C=wb.create_sheet('Cargas')
 A=lambda **k: Font(**{'name':'Arial','size':10,**k})
 azul=A(color='0000FF'); preto=A(); neg=A(bold=True); cab=PatternFill('solid',fgColor='D9E1F2'); amar=PatternFill('solid',fgColor='FFFF00')
@@ -57,4 +60,4 @@ R['B12'].font=preto;R['B13'].font=preto;R['B14'].font=preto;R['B20'].font=preto;
 R.column_dimensions['A'].width=70
 for col in 'BCD': R.column_dimensions[col].width=20
 R.row_dimensions[4].height=30
-wb.save('out/energia-cargas.xlsx')
+wb.save(os.path.join(RAIZ,'plan','energia-cargas.xlsx'))

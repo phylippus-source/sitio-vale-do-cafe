@@ -1,6 +1,7 @@
 // Gera plan/pranchas.html (duas pranchas em SVG) a partir de plan/bunker.json e plan/site.json.
 import fs from 'node:fs';
 import { conferirBase, conferirOpcao } from './layout-lib.mjs';
+import { conferirLote } from './lote-lib.mjs';
 const B = JSON.parse(fs.readFileSync('plan/bunker.json', 'utf8'));
 const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
 const f = (n) => String(n).replace('.', ',');
@@ -100,53 +101,79 @@ const rows1 = ids
 const heads = cols.map((o) => `<th>${esc(o.nome)}</th>`).join('');
 const [mE, m1, m2o] = mt;
 
-/* ---- prancha 2: lote ---- */
-const k2 = 8,
-  p2 = 24;
+/* ---- prancha 2: lote (plano atual e variantes da estrada) ---- */
+const LJ = JSON.parse(fs.readFileSync('plan/lote-opcoes.json', 'utf8'));
 const esc2 = OP.find((o) => o.id === OPJ.escolhida) || { pegada: B.pegada };
 const pg = esc2.pegada;
 const L = S.lote;
+const k2 = 4,
+  p2 = 18;
 const W2 = (L.x2 - L.x1) * k2 + p2 * 2,
   H2 = (L.z2 - L.z1) * k2 + p2 * 2;
-const X = (x) => p2 + (x - L.x1) * k2,
-  Z = (z) => p2 + (z - L.z1) * k2;
-let s2 = `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Implantação do lote">`;
-s2 += `<rect x="${X(L.x1)}" y="${Z(L.z1)}" width="${(L.x2 - L.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="lote"/>`;
-const E = S.estrada,
-  C = S.corrego;
-s2 += `<rect x="${X(E.x1)}" y="${Z(E.z1)}" width="${(E.x2 - E.x1) * k2}" height="${(E.z2 - E.z1) * k2}" class="estrada"/><text x="${X(-30)}" y="${Z(28.6)}" class="tick">estrada (5 m)</text>`;
-s2 += `<rect x="${X(C.x1)}" y="${Z(L.z1)}" width="${(C.x2 - C.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="corrego"/>`;
-s2 += `<rect x="${X(B.mundo.x0)}" y="${Z(B.mundo.z0)}" width="${pg.w * k2}" height="${pg.d * k2}" class="bunk"/><text x="${X(B.mundo.x0) + 6}" y="${Z(B.mundo.z0) + 14}" class="tick">projeção do bunker ${f(pg.w)}×${f(pg.d)} (subterrâneo)</text>`;
-const ci = { casa: 'predio', engenho: 'predio' };
-const rows2 = [];
-let m2 = 0;
-const order2 = [...S.itens].sort((a, b) => a.z - b.z || a.x - b.x);
-for (const it of order2) {
-  m2++;
-  const cls = 't-' + it.tipo;
-  s2 += `<g class="item ${cls}"><rect x="${X(it.x)}" y="${Z(it.z)}" width="${it.w * k2}" height="${it.d * k2}"/>`;
-  if (it.id === 'quadras') {
-    const q = S.quadras_internas;
-    for (let i = 0; i < 2; i++)
-      for (let j = 0; j < 2; j++)
-        s2 += `<rect x="${X(it.x + i * (q.cada[0] + q.vao))}" y="${Z(it.z + j * (q.cada[1] + q.vao))}" width="${q.cada[0] * k2}" height="${q.cada[1] * k2}" class="sub"/>`;
+const NUM = new Map(S.itens.map((i, n) => [i.id, n + 1]));
+const custoViagens = (itens) => {
+  const por = new Map(itens.map((i) => [i.id, i]));
+  return S.viagens.pares.reduce((t, par) => {
+    const a = por.get(par.a),
+      b = por.get(par.b);
+    return (
+      t +
+      par.peso * (Math.abs(a.x + a.w / 2 - b.x - b.w / 2) + Math.abs(a.z + a.d / 2 - b.z - b.d / 2))
+    );
+  }, 0);
+};
+function lotePlanta(o) {
+  const X = (x) => p2 + (x - L.x1) * k2,
+    Z = (z) => p2 + (z - L.z1) * k2;
+  const E = o.estrada || S.estrada,
+    C = S.corrego,
+    dz = o.dz_bunker || 0;
+  let t = `<svg viewBox="0 0 ${W2} ${H2}" role="img" aria-label="Implantação do lote, ${esc(o.nome)}">`;
+  t += `<rect x="${X(L.x1)}" y="${Z(L.z1)}" width="${(L.x2 - L.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="lote"/>`;
+  t += `<rect x="${X(E.x1)}" y="${Z(E.z1)}" width="${Math.max(1, (E.x2 - E.x1) * k2)}" height="${Math.max(1, (E.z2 - E.z1) * k2)}" class="estrada"/>`;
+  t += `<rect x="${X(C.x1)}" y="${Z(L.z1)}" width="${(C.x2 - C.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="corrego"/>`;
+  t += `<rect x="${X(B.mundo.x0)}" y="${Z(B.mundo.z0 + dz)}" width="${pg.w * k2}" height="${pg.d * k2}" class="bunk"/>`;
+  for (const it of o.itens) {
+    t += `<g class="item t-${it.tipo}"><rect x="${X(it.x)}" y="${Z(it.z)}" width="${it.w * k2}" height="${it.d * k2}"/>`;
+    t += `<text x="${X(it.x) + (it.w * k2) / 2}" y="${Z(it.z) + (it.d * k2) / 2}" class="num" text-anchor="middle" dominant-baseline="middle">${NUM.get(it.id)}</text></g>`;
   }
-  const small = it.d * k2 < 40;
-  s2 += `<text x="${X(it.x) + (it.w * k2) / 2}" y="${Z(it.z) + (it.d * k2) / 2 + (small ? 0 : -6)}" class="num" text-anchor="middle" dominant-baseline="middle">${m2}</text>`;
-  if (!small)
-    s2 += `<text x="${X(it.x) + (it.w * k2) / 2}" y="${Z(it.z) + (it.d * k2) / 2 + 14}" class="dim" text-anchor="middle">${f(it.w)}×${f(it.d)}</text>`;
-  s2 += `</g>`;
-  const area = it.id === 'quadras' ? 3000 : it.w * it.d;
-  rows2.push(
-    `<tr><td>${m2}</td><td>${esc(S.nomes[it.id])}</td><td>${f(it.w)}×${f(it.d)}</td><td>${f(area)}</td><td>x ${f(it.x)} a ${f(it.x + it.w)}; z ${f(it.z)} a ${f(it.z + it.d)}</td></tr>`,
-  );
+  return t + `</svg>`;
 }
-for (let x = -50; x <= 50; x += 10)
-  s2 += `<text x="${X(x)}" y="${p2 - 8}" class="tick" text-anchor="middle">${x}</text>`;
-for (let z = -75; z <= 75; z += 25)
-  s2 += `<text x="${p2 - 6}" y="${Z(z) + 4}" class="tick" text-anchor="end">${z}</text>`;
-s2 += `<text x="${X(44.5)}" y="${Z(-60)}" class="tick" transform="rotate(90 ${X(44.5)} ${Z(-60)})">córrego</text>`;
-s2 += `<text x="${X(-48)}" y="${H2 - 6}" class="tick">x → · z ↓ (z cresce rumo à estrada e ao núcleo; norte pela convenção do código)</text></svg>`;
+const refs = ['equilibrio', 'estrada-frente', 'estrada-oeste', 'estrada-fundos'].map((id) =>
+  LJ.opcoes.find((o) => o.id === id),
+);
+const nomes2 = {
+  equilibrio: 'Plano atual (Equilíbrio): estrada no meio',
+  'estrada-frente': 'A · Estrada na frente (z +75)',
+  'estrada-oeste': 'B · Estrada no lado oeste (x −50)',
+  'estrada-fundos': 'C · Estrada nos fundos (z −75)',
+};
+const met2 = refs.map((o) => {
+  const m = conferirLote(
+    { ...S, itens: o.itens, estrada: o.estrada || S.estrada },
+    { u: B.mundo.x0, v: B.mundo.z0 + (o.dz_bunker || 0), w: pg.w, d: pg.d },
+  );
+  const zmin = Math.min(...o.itens.map((i) => i.z)),
+    zmax = Math.max(...o.itens.map((i) => i.z + i.d));
+  return { o, m, viagens: custoViagens(o.itens), fundos: zmin - L.z1, frente: L.z2 - zmax };
+});
+const cards2 = met2
+  .map(({ o }) => `<figure><figcaption>${esc(nomes2[o.id])}</figcaption>${lotePlanta(o)}</figure>`)
+  .join('');
+const linhas2 = [
+  ['Viagens (menor é melhor)', (x) => f(Math.round(x.viagens))],
+  ['Sombra no núcleo, inverno (h)', (x) => f(x.m.metricas.sombra.nucleo.toFixed(1))],
+  ['Sombra nas quadras (h)', (x) => f(x.m.metricas.sombra.quadras.toFixed(1))],
+  ['Animais–casa (m)', (x) => f(Math.round(x.m.metricas.dist.animaisCasa))],
+  ['Folga em z: fundos / frente (m)', (x) => `${f(x.fundos)} / ${f(x.frente)}`],
+  ['Passa na régua', (x) => (x.m.erros.length ? 'NÃO' : 'sim')],
+]
+  .map(([n, g]) => `<tr><td>${n}</td>${met2.map((x) => `<td>${g(x)}</td>`).join('')}</tr>`)
+  .join('');
+const tabela2 = `<table><thead><tr><th>Métrica</th>${met2.map((x) => `<th>${esc(nomes2[x.o.id].split(':')[0])}</th>`).join('')}</tr></thead><tbody>${linhas2}</tbody></table>`;
+const legenda2 = S.itens
+  .map((i) => `<li>${NUM.get(i.id)} ${esc(S.nomes[i.id])} ${f(i.w)}×${f(i.d)}</li>`)
+  .join('');
 
 const html = `<title>Pranchas do Sítio Vale do Café</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -171,7 +198,7 @@ section{background:var(--card);border:1px solid var(--line);border-radius:6px;pa
 .cols{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
 @media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)}}
 svg{width:100%;height:auto;display:block;background:var(--bg);border:1px solid var(--line)}
-svg.defs{width:0;height:0;border:0;position:absolute}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}figcaption{font-size:12.5px;font-weight:600}.grade2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}.leg{display:flex;flex-wrap:wrap;gap:4px 14px;list-style:none;padding:0;margin:0;font-size:12px}svg.defs{width:0;height:0;border:0;position:absolute}
 .tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:12.5px}
 th,td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 td:nth-child(n+3){white-space:nowrap}th{color:var(--mut);font-weight:600}
@@ -204,15 +231,16 @@ ${defs}
 <li><b>Ruído:</b> nas opções com margem, máquinas ficam coladas em quartos. Decisão do Mestre: resolver com isolamento termoacústico (lã de rocha, cancelamento ativo), então a distância não é critério.</li>
 <li><b>Sala de baterias</b> (nº ${num.get('baterias')}): 10×10 provisório até a etapa de energia.</li>
 <li>Pegada hachurada atrás das salas = vazio. A opção exata deixa ${f(mE.vazio)} m² vazios; ±1 m deixa ${f(m1.vazio)} m²; ±2,5 m deixa ${f(m2o.vazio)} m².</li></ul></section>
-<section><h2>Prancha 2 · Implantação do lote 100×150 m</h2>
-<div class="cols"><svg-holder2></svg-holder2><div class="tbl"><table><thead><tr><th>Nº</th><th>Item</th><th>m</th><th>m²</th><th>Posição (m)</th></tr></thead><tbody>${rows2.join('')}</tbody></table></div></div>
-<ul><li>Itens do plano: 7.990 m² (com o puxadinho da piscina). Envelopes ocupam 57% do lote. Margem mínima de 2 m entre itens, estrada e divisas; o engenho encosta no córrego de propósito; o puxadinho encosta na casa.</li>
-<li><b>Layout escolhido pelo Mestre: Equilíbrio</b>, gerado por solver (CP-SAT) que minimiza as viagens entre itens e a sombra de inverno (9–15 h) sobre as lavouras. Viagens 1062 (plano anterior 1136). Sombra média no núcleo 0,4 h e nas quadras 0 h.</li>
-<li>Outras opções, também válidas: Menores viagens (1055, núcleo 1,7 h de sombra) e Sombra mínima (1126, núcleo 0,1 h).</li>
-<li>Quadras com 3.000 m², giradas (cada 30×25). Pomar a 2 m do núcleo, estufa a 5 m, zona de animais a 12 m do núcleo e a 52 m da casa.</li>
-<li>Árvores, bambu e escavação ficam fora da projeção do bunker. Os pesos das viagens e as alturas dos itens são estimativas minhas.</li>
-<li><b>Sem destino nas pranchas:</b> cerca de 6.000 m³ de terra sobram da escavação do bunker (estimativa). O Mestre disse tanto faz (descartar ou morro oco com torre).</li></ul></section>
-<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Aprovar a implantação do lote (Equilíbrio) e a do bunker (±2,5 m) para fechar a B0.</li></ul></section>
-</main>`.replace('<svg-holder2></svg-holder2>', s2);
+<section><h2>Prancha 2 · Lote 100×150 m: plano atual e três variantes da estrada</h2>
+<div class="grade2">${cards2}</div>
+<div class="tbl">${tabela2}</div>
+<ul class="leg">${legenda2}</ul>
+<ul><li>Cinza-azulado = projeção do bunker 48×32 (subterrâneo). Faixa escura = estrada de 5 m. Faixa clara vertical = córrego. x cresce para a direita e z para baixo.</li>
+<li>Variantes A e C têm os mesmos itens; só a estrada muda de ponta (na C ela passa sobre 3 m do teto do bunker). A B aperta a largura e deixa só 2 m de folga na frente.</li>
+<li>Sobra total de espaço: com a estrada no meio, 4,5 m de profundidade; com a estrada na divisa, cerca de 19 m (inclui a faixa da estrada, 5 m). Os pesos das viagens e as alturas dos itens são estimativas minhas.</li>
+<li><b>Ainda não está no plano:</b> a rede de caminhos ramificados e a opção com todo o espaço livre num bloco só entram nas próximas partes. O plano segue com o Equilíbrio e a estrada no meio até o senhor escolher.</li>
+<li>Terra da escavação (~6.000 m³): o Mestre disse tanto faz (descartar ou morro oco com torre).</li></ul></section>
+<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Escolher a variante da estrada (A, B, C) ou manter a estrada no meio. O bunker ±2,5 m e o lote Equilíbrio já estão aprovados.</li></ul></section>
+</main>`;
 fs.writeFileSync('plan/pranchas.html', html);
 console.log('ok', html.length);

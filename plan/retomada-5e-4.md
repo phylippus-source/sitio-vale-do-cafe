@@ -8,3 +8,4 @@ Fazer (partes pequenas, cada uma: prettier, suíte rápida, commit com tools/pas
 Notas: frente e fundos têm os mesmos itens; folga total ~19 m de profundidade; estrada-fundos passa sobre 3 m de teto do bunker.
 Depois: Etapa E: E2 (recursos do sítio, Médio, pesquisa), E3, E4, E5. Hidroponia 100 m² (444 kWh/dia elétricos). Autonomia 3 dias; hidrogênio capturado.
 Janela de tokens: reinicia 03:43 (início 22:43). Rodar `python3 tools/tokens.py --linha` primeiro e `tools/passo.sh --retomar`.
+PEDIDO NOVO (14/11 23:48): incluir uma opção com TODO o espaço vazio reunido num bloco só, grande, sem prejudicar a estrada nem os caminhos ramificados até os lotes. Testar na próxima (maximizar o maior retângulo livre, qualquer lugar; estrada e rede de caminhos preservadas).

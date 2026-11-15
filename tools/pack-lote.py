@@ -54,21 +54,24 @@ def deslocamentos(S, altura):
     return saida
 
 
-def construir(S, B, bunker, peso_sombra=0.0):
+def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False):
     L = S["lote"]
     ox, oz = L["x1"], L["z1"]  # origem do modelo: canto do lote
     W, D = u(L["x2"] - L["x1"]), u(L["z2"] - L["z1"])
     marg = u(S["margem"])
     m = cp_model.CpModel()
     v = {}
+    # com mover=True o conjunto fixo (casa, puxadinho, engenho e a projeção do bunker) pode andar junto em z
+    desl = m.new_int_var(0, D, "desl") if mover else 0
 
-    def fixa(id_, x, y, w, d):
+    def fixa(id_, x, y, w, d, anda=False):
+        y = y + desl if anda else y
         return dict(x=x, y=y, w=w, d=d, ex=x + w, ey=y + d, fixo=True, id=id_)
 
     for it in S["itens"]:
         w0, d0 = u(it["w"]), u(it["d"])
         if it.get("fixo"):
-            v[it["id"]] = fixa(it["id"], u(it["x"] - ox), u(it["z"] - oz), w0, d0)
+            v[it["id"]] = fixa(it["id"], u(it["x"] - ox), u(it["z"] - oz), w0, d0, anda=True)
             continue
         x = m.new_int_var(marg, W - marg, f"x_{it['id']}")
         y = m.new_int_var(marg, D - marg, f"y_{it['id']}")
@@ -110,9 +113,18 @@ def construir(S, B, bunker, peso_sombra=0.0):
         for a in ids:
             if not v[a]["fixo"]:
                 separados(v[a], r, marg, f"obs_{nome}_{a}")
+            elif mover:
+                it = next(i for i in S["itens"] if i["id"] == a)
+                encosta = nome in (it.get("encosta") or [])
+                separados(v[a], r, 0 if encosta else marg, f"obs_{nome}_{a}")
+
+    if mover:  # o conjunto fixo continua dentro do lote, a 2 m da divisa
+        for r in [v[i] for i in ids if v[i]["fixo"]] + [fixa("bunker", u(bunker["u"] - ox), u(bunker["v"] - oz), u(bunker["w"]), u(bunker["d"]), anda=True)]:
+            m.add(r["y"] >= marg)
+            m.add(r["ey"] <= D - marg)
 
     # árvore e escavação fora da projeção do bunker
-    bk = fixa("bunker", u(bunker["u"] - ox), u(bunker["v"] - oz), u(bunker["w"]), u(bunker["d"]))
+    bk = fixa("bunker", u(bunker["u"] - ox), u(bunker["v"] - oz), u(bunker["w"]), u(bunker["d"]), anda=True)
     for it in S["itens"]:
         if it["tipo"] in ("arvore", "escavacao") and not it.get("fixo"):
             separados(v[it["id"]], bk, 0, f"bk_{it['id']}")
@@ -164,8 +176,17 @@ def construir(S, B, bunker, peso_sombra=0.0):
                 m.add_bool_or(lits + [b])
                 sombra.append(b)
     horas_sombra = sum(sombra)
-    m.minimize(custo + int(round(4 * peso_sombra)) * horas_sombra)
-    return m, v, custo, (ox, oz)
+
+    # blocos livres nas duas pontas do lado longo (z): os itens ficam entre zmin e zmax, e o que sobra nas pontas
+    # (zmin do lado dos fundos, D - zmax do lado da frente) é espaço livre de ponta a ponta. Minimizar zmax - zmin
+    # (unidades de 0,5 m) maximiza a soma dos dois blocos; 1 m de bloco vale peso_bloco pesos de viagem.
+    zmin = m.new_int_var(0, D, "zmin")
+    zmax = m.new_int_var(0, D, "zmax")
+    for r in v.values():
+        m.add(zmin <= r["y"])
+        m.add(zmax >= r["ey"])
+    m.minimize(custo + int(round(4 * peso_sombra)) * horas_sombra + int(round(2 * peso_bloco)) * (zmax - zmin))
+    return m, v, custo, (ox, oz), desl
 
 
 def dica(m, v, S, ox, oz):
@@ -193,8 +214,8 @@ def custo_do_layout(S, itens):
     return t
 
 
-def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0):
-    m, v, custo, (ox, oz) = construir(S, B, bunker, peso_sombra)
+def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0, peso_bloco=0.0, mover=False):
+    m, v, custo, (ox, oz), desl = construir(S, B, bunker, peso_sombra, peso_bloco, mover)
     dica(m, v, S, ox, oz)
     s = cp_model.CpSolver()
     s.parameters.max_time_in_seconds = tempo
@@ -206,16 +227,19 @@ def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0):
     nome = s.status_name(st)
     if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return None, dict(status=nome, segundos=round(dt, 1))
+    dz = s.value(desl) / U if mover else 0
     itens = []
     for it in S["itens"]:
         r = v[it["id"]]
         if r["fixo"]:
-            itens.append({k: it[k] for k in it})
+            novo = {k: it[k] for k in it}
+            novo["z"] = it["z"] + dz
+            itens.append(novo)
             continue
         novo = dict(it)
         novo.update(x=s.value(r["x"]) / U + ox, z=s.value(r["y"]) / U + oz, w=s.value(r["w"]) / U, d=s.value(r["d"]) / U)
         itens.append(novo)
-    return itens, dict(status=nome, segundos=round(dt, 1), custo=custo_do_layout(S, itens))
+    return itens, dict(status=nome, segundos=round(dt, 1), custo=custo_do_layout(S, itens), dz=dz)
 
 
 def main():
@@ -223,20 +247,29 @@ def main():
     ap.add_argument("--tempo", type=float, default=60)
     ap.add_argument("--saida", help="arquivo .json das opções do lote")
     ap.add_argument("--log", action="store_true")
+    ap.add_argument("--mover-fixos", action="store_true", help="deixa casa, puxadinho, engenho e a projeção do bunker andarem juntos em z (muda mundo.z0; exige OK do Mestre)")
+    ap.add_argument("--sem-estrada", action="store_true", help="experimento: tira a estrada do meio do lote (para medir quanto ela custa em espaço livre)")
+    ap.add_argument("--peso-bloco", type=float, default=0.0, help="pesos de viagem trocados por metro de bloco livre nas pontas (fundos + frente)")
     ap.add_argument("--peso-sombra", type=float, default=0.0, help="custo de cada par fonte×lavoura×hora com sombra, em peso·metro de viagem")
     a = ap.parse_args()
     S, B = ler("plan/site.json"), ler("plan/bunker.json")
+    if a.sem_estrada:
+        S["estrada"] = dict(S["estrada"], z1=S["lote"]["z1"], z2=S["lote"]["z1"])
     oj = ler("plan/bunker-opcoes.json")
     esc = next(o for o in oj["opcoes"] if o["id"] == oj.get("escolhida"))
     bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["w"], d=esc["pegada"]["d"])
-    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra)
+    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra, a.peso_bloco, a.mover_fixos)
     if itens is None:
         print("sem solução:", info, file=sys.stderr)
         sys.exit(1)
     base = custo_do_layout(S, S["itens"])
-    print(f"lote: {info['status']} | custo de viagens {info['custo']:.0f} (plano atual {base:.0f}) | {info['segundos']} s")
+    zs = [i["z"] for i in itens]
+    ze = [i["z"] + i["d"] for i in itens]
+    L = S["lote"]
+    fundos, frente = min(zs) - L["z1"], L["z2"] - max(ze)
+    print(f"lote: {info['status']} | custo de viagens {info['custo']:.0f} (plano atual {base:.0f}) | blocos livres: fundos {fundos:g} m, frente {frente:g} m | conjunto fixo andou {info['dz']:g} m | {info['segundos']} s")
     if a.saida:
-        op = dict(id="viagens", nome="Menores viagens (sem sombra)", etapa="5c-1: viagens", itens=itens)
+        op = dict(id="viagens", nome="Menores viagens (sem sombra)", etapa="5c-1: viagens", dz_bunker=info["dz"], itens=itens)
         Path(a.saida).write_text(json.dumps({"opcoes": [op]}, ensure_ascii=False, indent=1), encoding="utf8")
 
 

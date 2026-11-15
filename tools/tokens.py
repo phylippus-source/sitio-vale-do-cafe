@@ -30,7 +30,12 @@ def somar(us):
     s["peso"] = sum(s[k] * W[k] for k in W)
     return s
 
+ANCORA = os.path.join(os.path.dirname(__file__), "..", "logs", "janela-inicio.txt")
+
 def janela(ev, agora):
+    if os.path.exists(ANCORA):  # início da janela atual, informado pelo Mestre (hora local -03:00)
+        ini = datetime.fromisoformat(open(ANCORA).read().strip())
+        return ini, [e for e in ev if e[0] >= ini]
     ini = None
     for t, _ in ev:
         if ini is None or t >= ini + timedelta(hours=5): ini = t
@@ -38,9 +43,18 @@ def janela(ev, agora):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--cota", type=float); ap.add_argument("--arquivo", default=ARQ)
-    ap.add_argument("--linha", action="store_true"); ap.add_argument("--calibrar", type=float, help="% real agora (ex. 90)")
+    ap.add_argument("--linha", action="store_true"); ap.add_argument("--inicio", help="HH:MM local: grava início da janela atual"); ap.add_argument("--passada", nargs=2, metavar=("INI", "FIM"), help="HH:MM HH:MM locais de hoje: pesa esse trecho e grava como 100%% (esgotou)"); ap.add_argument("--calibrar", type=float, help="% real agora (ex. 90)")
     a = ap.parse_args()
     ev = ler(a.arquivo)
+    loc0 = timezone(timedelta(hours=-3))
+    hoje = datetime.now(loc0).date()
+    hm = lambda t: datetime.combine(hoje, datetime.strptime(t, "%H:%M").time(), loc0)
+    if a.inicio:
+        open(ANCORA, "w").write(hm(a.inicio).isoformat()); print("início da janela gravado")
+    if a.passada:
+        i0, f0 = hm(a.passada[0]), hm(a.passada[1])
+        sp = somar([e for e in ev if i0 <= e[0] <= f0])
+        open(CALIB, "w").write(str(sp["peso"])); print(f"cota = peso de {a.passada[0]}–{a.passada[1]}: {sp['peso']:,.0f} (saída {sp['o']:,})")
     ini, jan = janela(ev, None); s = somar(jan); tot = somar(ev)
     if a.calibrar:
         open(CALIB, "w").write(str(s["peso"] / (a.calibrar / 100))); print("cota gravada")

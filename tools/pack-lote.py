@@ -9,11 +9,13 @@ Modelo CP-SAT numa grade de 0,5 m:
   - dentro do lote, a 2 m da divisa;
   - árvore e escavação fora da projeção do bunker;
   - regras de distância do plano (animais longe da casa; pomar, estufa e animais perto do núcleo);
-  - objetivo: menor soma peso × distância entre centros (site.viagens). Sombra entra na parte 5c-2.
+  - objetivo: menor soma peso × distância entre centros (site.viagens) + peso-sombra × (fonte alta, lavoura, hora de 9 a 15 h do
+    solstício de inverno) com sombra: a sombra de cada fonte é a caixa envolvente da pegada varrida pelo deslocamento do sol.
 Uso: venv/bin/python tools/pack-lote.py --tempo 60 --saida plan/lote-opcoes.json [--log]
 """
 import argparse
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -32,7 +34,27 @@ def ler(rel):
     return json.loads((ROOT / rel).read_text(encoding="utf8"))
 
 
-def construir(S, B, bunker):
+def sol(lat, decl, hora):
+    """Mesma conta de tools/lote-lib.mjs: direção do sol (x+ oeste, z+ norte) e 'cima'; None se o sol está baixo demais."""
+    f, d, h = math.radians(lat), math.radians(decl), math.radians(15 * (hora - 12))
+    leste = -math.cos(d) * math.sin(h)
+    norte = math.sin(d) * math.cos(f) - math.cos(d) * math.sin(f) * math.cos(h)
+    cima = math.sin(d) * math.sin(f) + math.cos(d) * math.cos(f) * math.cos(h)
+    return None if cima <= 0.05 else (-leste, norte, cima)
+
+
+def deslocamentos(S, altura):
+    """Deslocamento (dx, dz) em unidades da grade da sombra do topo de um objeto de altura (m), uma entrada por hora."""
+    o = S["orientacao"]
+    saida = []
+    for h in range(9, 16):
+        s = sol(o["latitude"], o["decl_inverno"], h)
+        if s:
+            saida.append((h, u(-altura * s[0] / s[2]), u(-altura * s[1] / s[2])))
+    return saida
+
+
+def construir(S, B, bunker, peso_sombra=0.0):
     L = S["lote"]
     ox, oz = L["x1"], L["z1"]  # origem do modelo: canto do lote
     W, D = u(L["x2"] - L["x1"]), u(L["z2"] - L["z1"])
@@ -124,7 +146,25 @@ def construir(S, B, bunker):
         m.add_abs_equality(dz, az)
         termos.append(par["peso"] * (dx + dz))
     custo = sum(termos)
-    m.minimize(custo)
+
+    # sombra de inverno (9–15 h) sobre as lavouras: caixa envolvente da sombra de cada fonte alta, hora a hora.
+    # A caixa envolvente passa um pouco da sombra real (fecho convexo), então é prudente; a régua em JS confere o exato.
+    sombra = []
+    for alvo in (i for i in S["itens"] if i["tipo"] == "lavoura"):
+        t = v[alvo["id"]]
+        for fonte in (i for i in S["itens"] if S["alturas"].get(i["id"]) and i["id"] != alvo["id"]):
+            f = v[fonte["id"]]
+            for h, dx, dz in deslocamentos(S, S["alturas"][fonte["id"]]):
+                b = m.new_bool_var(f"sombra_{alvo['id']}_{fonte['id']}_{h}")
+                lits = [m.new_bool_var("") for _ in range(4)]
+                m.add(f["ex"] + max(0, dx) <= t["x"]).only_enforce_if(lits[0])
+                m.add(t["ex"] <= f["x"] + min(0, dx)).only_enforce_if(lits[1])
+                m.add(f["ey"] + max(0, dz) <= t["y"]).only_enforce_if(lits[2])
+                m.add(t["ey"] <= f["y"] + min(0, dz)).only_enforce_if(lits[3])
+                m.add_bool_or(lits + [b])
+                sombra.append(b)
+    horas_sombra = sum(sombra)
+    m.minimize(custo + int(round(4 * peso_sombra)) * horas_sombra)
     return m, v, custo, (ox, oz)
 
 
@@ -153,8 +193,8 @@ def custo_do_layout(S, itens):
     return t
 
 
-def resolver(S, B, bunker, tempo, log=False):
-    m, v, custo, (ox, oz) = construir(S, B, bunker)
+def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0):
+    m, v, custo, (ox, oz) = construir(S, B, bunker, peso_sombra)
     dica(m, v, S, ox, oz)
     s = cp_model.CpSolver()
     s.parameters.max_time_in_seconds = tempo
@@ -183,12 +223,13 @@ def main():
     ap.add_argument("--tempo", type=float, default=60)
     ap.add_argument("--saida", help="arquivo .json das opções do lote")
     ap.add_argument("--log", action="store_true")
+    ap.add_argument("--peso-sombra", type=float, default=0.0, help="custo de cada par fonte×lavoura×hora com sombra, em peso·metro de viagem")
     a = ap.parse_args()
     S, B = ler("plan/site.json"), ler("plan/bunker.json")
     oj = ler("plan/bunker-opcoes.json")
     esc = next(o for o in oj["opcoes"] if o["id"] == oj.get("escolhida"))
     bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["w"], d=esc["pegada"]["d"])
-    itens, info = resolver(S, B, bunker, a.tempo, a.log)
+    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra)
     if itens is None:
         print("sem solução:", info, file=sys.stderr)
         sys.exit(1)

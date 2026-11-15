@@ -126,7 +126,7 @@ describe('conferirLote (régua do lote)', () => {
     mexe(T, 'galpao', { x: 25, z: -45 });
     expect(tem(erros(T), 'engenho e galpao se sobrepõem')).toBe(true);
     const U = site();
-    mexe(U, 'galpao', { z: -58.5 }); // termina em z −43,5, a 0,5 m do engenho
+    mexe(U, 'galpao', { x: 7.5 }); // termina em x 22,5, a 0,5 m do engenho (x 23)
     expect(tem(erros(U), 'engenho e galpao ficam a 0.5 m')).toBe(true);
   });
 

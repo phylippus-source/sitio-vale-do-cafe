@@ -6,12 +6,12 @@
       "nome": "Hidroponia: LED em 3 níveis",
       "local": "bunker",
       "tipo": "eletrica",
-      "uso_kW": 9.0,
+      "uso_kW": 5.0,
       "horas_dia": 16,
-      "pico_kW": 9.0,
+      "pico_kW": 5.0,
       "simult": 1.0,
       "fracao_ano": 1,
-      "nota": "180 m² de dossel × 50 W/m²; maior carga do sítio. Alavanca principal."
+      "nota": "100 m² de dossel × 50 W/m²: 40 m² de alto sustento + 60 m² de ervas de alto valor para renda (decidido pelo Mestre em 14/11). Alavanca principal."
     },
     {
       "id": "hidroponia-bombas",

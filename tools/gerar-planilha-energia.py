@@ -44,8 +44,8 @@ R['A12']='Armazenamento elétrico mínimo (kWh) = dias × kWh/dia do dia de uso'
 R['A13']='Armazenamento térmico mínimo (kWh térmicos)'; R['B13']='=B11*B8'; R['B13'].number_format='#,##0'
 R['A14']='Média elétrica contínua (kW)'; R['B14']='=C5/24'; R['B14'].number_format='0.0'
 R['A15']='Fator: autonomia mede o dia de uso inteiro (pior caso). A E4 ainda aplica profundidade de descarga e perdas.'; R['A15'].font=A(italic=True)
-R['A17']='Alavanca principal: hidroponia LED'; R['A17'].font=neg
-R['A18']='Dossel iluminado (m²)'; R['B18']=180; R['A19']='Potência do LED (W por m²)'; R['B19']=50
+R['A17']='Alavanca principal: hidroponia LED (40 m² alto sustento + 60 m² ervas de renda)'; R['A17'].font=neg
+R['A18']='Dossel iluminado (m²)'; R["B18"]=100; R['A19']='Potência do LED (W por m²)'; R['B19']=50
 for c in ('B18','B19'): R[c].font=azul; R[c].fill=amar
 R['A20']='kWh/dia da hidroponia LED (16 h)'; R['B20']='=Cargas!J2'; R['B20'].number_format='#,##0'
 R['A21']='Parcela do consumo elétrico total'; R['B21']='=B20/B5'; R['B21'].number_format='0%'

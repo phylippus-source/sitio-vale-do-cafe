@@ -94,7 +94,10 @@ function checkOpcoesLote(S, B, escolhida) {
   const pg = escolhida ? escolhida.pegada : B.pegada;
   const bunker = { u: B.mundo.x0, v: B.mundo.z0, w: pg.w, d: pg.d };
   for (const o of JSON.parse(fs.readFileSync(arq, 'utf8')).opcoes) {
-    const { erros, metricas: m } = conferirLote({ ...S, itens: o.itens }, bunker);
+    const { erros, metricas: m } = conferirLote(
+      { ...S, itens: o.itens, estrada: o.estrada || S.estrada },
+      { ...bunker, v: bunker.v + (o.dz_bunker || 0) },
+    );
     erros.forEach((e) => err(`lote opção ${o.id}: ${e.replace(/^lote: /, '')}`));
     const sombra = m.sombra
       ? Object.entries(m.sombra)

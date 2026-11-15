@@ -248,11 +248,22 @@ def main():
     ap.add_argument("--saida", help="arquivo .json das opções do lote")
     ap.add_argument("--log", action="store_true")
     ap.add_argument("--mover-fixos", action="store_true", help="deixa casa, puxadinho, engenho e a projeção do bunker andarem juntos em z (muda mundo.z0; exige OK do Mestre)")
+    ap.add_argument("--estrada-em", choices=["meio", "frente", "oeste", "fundos"], default="meio", help="onde corre a estrada de 5 m (meio = plano atual; as outras ficam na divisa)")
+    ap.add_argument("--id")
+    ap.add_argument("--nome")
+    ap.add_argument("--etapa")
     ap.add_argument("--sem-estrada", action="store_true", help="experimento: tira a estrada do meio do lote (para medir quanto ela custa em espaço livre)")
     ap.add_argument("--peso-bloco", type=float, default=0.0, help="pesos de viagem trocados por metro de bloco livre nas pontas (fundos + frente)")
     ap.add_argument("--peso-sombra", type=float, default=0.0, help="custo de cada par fonte×lavoura×hora com sombra, em peso·metro de viagem")
     a = ap.parse_args()
     S, B = ler("plan/site.json"), ler("plan/bunker.json")
+    ESTRADAS = dict(
+        frente=dict(x1=-50, x2=43, z1=70, z2=75),
+        oeste=dict(x1=-50, x2=-45, z1=-75, z2=75),
+        fundos=dict(x1=-50, x2=43, z1=-75, z2=-70),
+    )
+    if a.estrada_em != "meio":
+        S["estrada"] = ESTRADAS[a.estrada_em]
     if a.sem_estrada:
         S["estrada"] = dict(S["estrada"], z1=S["lote"]["z1"], z2=S["lote"]["z1"])
     oj = ler("plan/bunker-opcoes.json")
@@ -269,7 +280,7 @@ def main():
     fundos, frente = min(zs) - L["z1"], L["z2"] - max(ze)
     print(f"lote: {info['status']} | custo de viagens {info['custo']:.0f} (plano atual {base:.0f}) | blocos livres: fundos {fundos:g} m, frente {frente:g} m | conjunto fixo andou {info['dz']:g} m | {info['segundos']} s")
     if a.saida:
-        op = dict(id="viagens", nome="Menores viagens (sem sombra)", etapa="5c-1: viagens", dz_bunker=info["dz"], itens=itens)
+        op = dict(id=a.id or "viagens", nome=a.nome or "Menores viagens (sem sombra)", etapa=a.etapa or "5c-1: viagens", estrada=S["estrada"], dz_bunker=info["dz"], itens=itens)
         Path(a.saida).write_text(json.dumps({"opcoes": [op]}, ensure_ascii=False, indent=1), encoding="utf8")
 
 

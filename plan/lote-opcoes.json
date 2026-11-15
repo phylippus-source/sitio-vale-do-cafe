@@ -338,6 +338,351 @@
         "sombra_nucleo_h": 0.1,
         "sombra_quadras_h": 0.0
       }
+    },
+    {
+      "id": "estrada-frente",
+      "nome": "Estrada na frente (ponta z +75)",
+      "etapa": "5e-3",
+      "estrada": {
+        "x1": -50,
+        "x2": 43,
+        "z1": 70,
+        "z2": 75
+      },
+      "dz_bunker": 0,
+      "itens": [
+        {
+          "id": "casa",
+          "x": -11.5,
+          "z": -68,
+          "w": 25,
+          "d": 25,
+          "tipo": "predio",
+          "fixo": true
+        },
+        {
+          "id": "engenho",
+          "x": 23,
+          "z": -43,
+          "w": 20,
+          "d": 10,
+          "tipo": "predio",
+          "fixo": true,
+          "encosta": ["corrego"]
+        },
+        {
+          "id": "quadras",
+          "x": -46.0,
+          "z": -34.0,
+          "w": 65.0,
+          "d": 55.0,
+          "tipo": "lavoura"
+        },
+        {
+          "id": "nucleo",
+          "x": -16.0,
+          "z": 23.0,
+          "w": 30.0,
+          "d": 25.0,
+          "tipo": "lavoura"
+        },
+        {
+          "id": "estufa",
+          "x": -18.0,
+          "z": 52.5,
+          "w": 20.0,
+          "d": 7.5,
+          "tipo": "predio"
+        },
+        {
+          "id": "pomar",
+          "x": -45.0,
+          "z": 23.0,
+          "w": 25.0,
+          "d": 40.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "silvicultura",
+          "x": -48.0,
+          "z": -68.0,
+          "w": 25.0,
+          "d": 25.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "bambuzal",
+          "x": 16.0,
+          "z": 38.0,
+          "w": 25.0,
+          "d": 25.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "animais",
+          "x": 22.0,
+          "z": 21.0,
+          "w": 15.0,
+          "d": 15.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "puxadinho",
+          "x": -11.5,
+          "z": -43,
+          "w": 20,
+          "d": 7,
+          "tipo": "predio",
+          "fixo": true,
+          "colado": ["casa"]
+        },
+        {
+          "id": "galpao",
+          "x": 15.5,
+          "z": -60.0,
+          "w": 10.0,
+          "d": 15.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "jazida",
+          "x": 21.0,
+          "z": -31.0,
+          "w": 20.0,
+          "d": 25.0,
+          "tipo": "escavacao"
+        }
+      ]
+    },
+    {
+      "id": "estrada-oeste",
+      "nome": "Estrada no lado oeste (x −50)",
+      "etapa": "5e-3",
+      "estrada": {
+        "x1": -50,
+        "x2": -45,
+        "z1": -75,
+        "z2": 75
+      },
+      "dz_bunker": 0,
+      "itens": [
+        {
+          "id": "casa",
+          "x": -11.5,
+          "z": -68,
+          "w": 25,
+          "d": 25,
+          "tipo": "predio",
+          "fixo": true
+        },
+        {
+          "id": "engenho",
+          "x": 23,
+          "z": -43,
+          "w": 20,
+          "d": 10,
+          "tipo": "predio",
+          "fixo": true,
+          "encosta": ["corrego"]
+        },
+        {
+          "id": "quadras",
+          "x": -31.5,
+          "z": 18.0,
+          "w": 65.0,
+          "d": 55.0,
+          "tipo": "lavoura"
+        },
+        {
+          "id": "nucleo",
+          "x": -16.0,
+          "z": -12.0,
+          "w": 30.0,
+          "d": 25.0,
+          "tipo": "lavoura"
+        },
+        {
+          "id": "estufa",
+          "x": -16.0,
+          "z": -34.0,
+          "w": 7.5,
+          "d": 20.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "pomar",
+          "x": -43.0,
+          "z": -41.0,
+          "w": 25.0,
+          "d": 40.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "silvicultura",
+          "x": 16.0,
+          "z": -9.0,
+          "w": 25.0,
+          "d": 25.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "bambuzal",
+          "x": -43.0,
+          "z": -68.0,
+          "w": 25.0,
+          "d": 25.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "animais",
+          "x": -34.0,
+          "z": 1.0,
+          "w": 15.0,
+          "d": 15.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "puxadinho",
+          "x": -11.5,
+          "z": -43,
+          "w": 20,
+          "d": 7,
+          "tipo": "predio",
+          "fixo": true,
+          "colado": ["casa"]
+        },
+        {
+          "id": "galpao",
+          "x": -6.5,
+          "z": -34.0,
+          "w": 15.0,
+          "d": 10.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "jazida",
+          "x": 16.0,
+          "z": -31.0,
+          "w": 25.0,
+          "d": 20.0,
+          "tipo": "escavacao"
+        }
+      ]
+    },
+    {
+      "id": "estrada-fundos",
+      "nome": "Estrada nos fundos (ponta z −75)",
+      "etapa": "5e-3",
+      "estrada": {
+        "x1": -50,
+        "x2": 43,
+        "z1": -75,
+        "z2": -70
+      },
+      "dz_bunker": 0,
+      "itens": [
+        {
+          "id": "casa",
+          "x": -11.5,
+          "z": -68,
+          "w": 25,
+          "d": 25,
+          "tipo": "predio",
+          "fixo": true
+        },
+        {
+          "id": "engenho",
+          "x": 23,
+          "z": -43,
+          "w": 20,
+          "d": 10,
+          "tipo": "predio",
+          "fixo": true,
+          "encosta": ["corrego"]
+        },
+        {
+          "id": "quadras",
+          "x": -46.0,
+          "z": -34.0,
+          "w": 65.0,
+          "d": 55.0,
+          "tipo": "lavoura"
+        },
+        {
+          "id": "nucleo",
+          "x": -16.0,
+          "z": 23.0,
+          "w": 30.0,
+          "d": 25.0,
+          "tipo": "lavoura"
+        },
+        {
+          "id": "estufa",
+          "x": -8.0,
+          "z": 52.5,
+          "w": 20.0,
+          "d": 7.5,
+          "tipo": "predio"
+        },
+        {
+          "id": "pomar",
+          "x": -45.0,
+          "z": 23.0,
+          "w": 25.0,
+          "d": 40.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "silvicultura",
+          "x": -48.0,
+          "z": -68.0,
+          "w": 25.0,
+          "d": 25.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "bambuzal",
+          "x": 16.0,
+          "z": 38.0,
+          "w": 25.0,
+          "d": 25.0,
+          "tipo": "arvore"
+        },
+        {
+          "id": "animais",
+          "x": 22.0,
+          "z": 21.0,
+          "w": 15.0,
+          "d": 15.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "puxadinho",
+          "x": -11.5,
+          "z": -43,
+          "w": 20,
+          "d": 7,
+          "tipo": "predio",
+          "fixo": true,
+          "colado": ["casa"]
+        },
+        {
+          "id": "galpao",
+          "x": 15.5,
+          "z": -60.0,
+          "w": 10.0,
+          "d": 15.0,
+          "tipo": "predio"
+        },
+        {
+          "id": "jazida",
+          "x": 21.0,
+          "z": -31.0,
+          "w": 20.0,
+          "d": 25.0,
+          "tipo": "escavacao"
+        }
+      ]
     }
   ],
   "escolhida": "equilibrio"

@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import { conferirBase, conferirOpcao } from './layout-lib.mjs';
 import { conferirLote } from './lote-lib.mjs';
+import { tracarCaminhos } from './caminhos-lib.mjs';
 const B = JSON.parse(fs.readFileSync('plan/bunker.json', 'utf8'));
 const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
 const f = (n) => String(n).replace('.', ',');
@@ -122,7 +123,7 @@ const custoViagens = (itens) => {
     );
   }, 0);
 };
-function lotePlanta(o) {
+function lotePlanta(o, cam) {
   const X = (x) => p2 + (x - L.x1) * k2,
     Z = (z) => p2 + (z - L.z1) * k2;
   const E = o.estrada || S.estrada,
@@ -133,44 +134,83 @@ function lotePlanta(o) {
   t += `<rect x="${X(E.x1)}" y="${Z(E.z1)}" width="${Math.max(1, (E.x2 - E.x1) * k2)}" height="${Math.max(1, (E.z2 - E.z1) * k2)}" class="estrada"/>`;
   t += `<rect x="${X(C.x1)}" y="${Z(L.z1)}" width="${(C.x2 - C.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="corrego"/>`;
   t += `<rect x="${X(B.mundo.x0)}" y="${Z(B.mundo.z0 + dz)}" width="${pg.w * k2}" height="${pg.d * k2}" class="bunk"/>`;
+  if (o.bloco)
+    t += `<rect x="${X(o.bloco.x)}" y="${Z(o.bloco.z)}" width="${o.bloco.w * k2}" height="${o.bloco.d * k2}" class="bloco"/><text x="${X(o.bloco.x) + (o.bloco.w * k2) / 2}" y="${Z(o.bloco.z) + (o.bloco.d * k2) / 2}" class="tick" text-anchor="middle" dominant-baseline="middle">livre ${f(o.bloco.w)}×${f(o.bloco.d)}</text>`;
+  if (cam) {
+    const rede = new Set(cam.celulas),
+      atal = new Set(cam.atalhos.flat()),
+      mid = (c) => [X(cam.cx(c)), Z(cam.cz(c))];
+    for (const c of cam.celulas) {
+      if (cam.estradaCelulas.includes(c)) continue;
+      const [x, y] = mid(c);
+      const cls = atal.has(c) ? 'atalho' : 'cam';
+      t += `<circle cx="${x}" cy="${y}" r="${k2}" class="${cls}"/>`;
+      for (const n of [c + 1, c + cam.nx])
+        if (rede.has(n) && !cam.estradaCelulas.includes(n) && (n !== c + 1 || n % cam.nx !== 0))
+          t += `<line x1="${x}" y1="${y}" x2="${mid(n)[0]}" y2="${mid(n)[1]}" class="${cls}"/>`;
+    }
+  }
   for (const it of o.itens) {
     t += `<g class="item t-${it.tipo}"><rect x="${X(it.x)}" y="${Z(it.z)}" width="${it.w * k2}" height="${it.d * k2}"/>`;
     t += `<text x="${X(it.x) + (it.w * k2) / 2}" y="${Z(it.z) + (it.d * k2) / 2}" class="num" text-anchor="middle" dominant-baseline="middle">${NUM.get(it.id)}</text></g>`;
   }
+  if (cam)
+    for (const p of Object.values(cam.portas))
+      if (p) t += `<circle cx="${X(p[0])}" cy="${Z(p[1])}" r="2.4" class="porta"/>`;
   return t + `</svg>`;
 }
-const refs = ['equilibrio', 'estrada-frente', 'estrada-oeste', 'estrada-fundos'].map((id) =>
-  LJ.opcoes.find((o) => o.id === id),
-);
+const refs = [
+  'equilibrio',
+  'estrada-frente',
+  'estrada-oeste',
+  'estrada-fundos',
+  'bloco-unico-meio',
+  'bloco-unico-frente',
+  'bloco-unico-oeste',
+  'bloco-unico-fundos',
+].map((id) => LJ.opcoes.find((o) => o.id === id));
 const nomes2 = {
   equilibrio: 'Plano atual (Equilíbrio): estrada no meio',
   'estrada-frente': 'A · Estrada na frente (z +75)',
   'estrada-oeste': 'B · Estrada no lado oeste (x −50)',
   'estrada-fundos': 'C · Estrada nos fundos (z −75)',
+  'bloco-unico-meio': 'D · Bloco único, estrada no meio',
+  'bloco-unico-frente': 'E · Bloco único, estrada na frente',
+  'bloco-unico-oeste': 'F · Bloco único, estrada a oeste',
+  'bloco-unico-fundos': 'G · Bloco único, estrada nos fundos',
 };
+const curto = (id) => (nomes2[id].split(' · ')[1] ? nomes2[id].split(' · ')[0] : 'Atual');
 const met2 = refs.map((o) => {
   const m = conferirLote(
-    { ...S, itens: o.itens, estrada: o.estrada || S.estrada },
+    { ...S, itens: o.itens, estrada: o.estrada || S.estrada, bloco: o.bloco },
     { u: B.mundo.x0, v: B.mundo.z0 + (o.dz_bunker || 0), w: pg.w, d: pg.d },
   );
+  const cam = tracarCaminhos(S, o);
   const zmin = Math.min(...o.itens.map((i) => i.z)),
     zmax = Math.max(...o.itens.map((i) => i.z + i.d));
-  return { o, m, viagens: custoViagens(o.itens), fundos: zmin - L.z1, frente: L.z2 - zmax };
+  return { o, m, cam, viagens: custoViagens(o.itens), fundos: zmin - L.z1, frente: L.z2 - zmax };
 });
 const cards2 = met2
-  .map(({ o }) => `<figure><figcaption>${esc(nomes2[o.id])}</figcaption>${lotePlanta(o)}</figure>`)
+  .map(
+    ({ o, cam }) =>
+      `<figure><figcaption>${esc(nomes2[o.id])}</figcaption>${lotePlanta(o, cam)}</figure>`,
+  )
   .join('');
 const linhas2 = [
   ['Viagens (menor é melhor)', (x) => f(Math.round(x.viagens))],
   ['Sombra no núcleo, inverno (h)', (x) => f(x.m.metricas.sombra.nucleo.toFixed(1))],
   ['Sombra nas quadras (h)', (x) => f(x.m.metricas.sombra.quadras.toFixed(1))],
   ['Animais–casa (m)', (x) => f(Math.round(x.m.metricas.dist.animaisCasa))],
+  ['Viagem pela rede de caminhos (menor é melhor)', (x) => f(Math.round(x.cam.viagemRede))],
+  ['Rede de caminhos fora da estrada (m)', (x) => f(x.cam.comprimento)],
+  ['Atalhos', (x) => f(x.cam.atalhos.length)],
+  ['Bloco livre único (m²)', (x) => (x.o.bloco ? f(x.o.bloco.w * x.o.bloco.d) : '—')],
   ['Folga em z: fundos / frente (m)', (x) => `${f(x.fundos)} / ${f(x.frente)}`],
   ['Passa na régua', (x) => (x.m.erros.length ? 'NÃO' : 'sim')],
 ]
   .map(([n, g]) => `<tr><td>${n}</td>${met2.map((x) => `<td>${g(x)}</td>`).join('')}</tr>`)
   .join('');
-const tabela2 = `<table><thead><tr><th>Métrica</th>${met2.map((x) => `<th>${esc(nomes2[x.o.id].split(':')[0])}</th>`).join('')}</tr></thead><tbody>${linhas2}</tbody></table>`;
+const tabela2 = `<table><thead><tr><th>Métrica</th>${met2.map((x) => `<th>${esc(curto(x.o.id))}</th>`).join('')}</tr></thead><tbody>${linhas2}</tbody></table>`;
 const legenda2 = S.itens
   .map((i) => `<li>${NUM.get(i.id)} ${esc(S.nomes[i.id])} ${f(i.w)}×${f(i.d)}</li>`)
   .join('');
@@ -213,6 +253,7 @@ td.dif{font-weight:600;color:var(--acc)}td.nao{color:var(--mut)}.card .num{font-
 .num{font:600 15px var(--font);fill:var(--fg)}.dim{font:500 11px var(--mono);fill:var(--fg)}.tick{font:11px var(--mono);fill:var(--mut)}
 .hl{stroke:var(--line);stroke-width:1.5}.foot{stroke:var(--mut);stroke-dasharray:4 3;stroke-width:1}
 .lote{fill:none;stroke:var(--fg);stroke-width:2}.estrada{fill:var(--road);opacity:.8}.corrego{fill:var(--creek);opacity:.85}
+.bloco{fill:var(--arvore);opacity:.35;stroke:var(--fg);stroke-width:1.2;stroke-dasharray:6 4}.cam{stroke:#2f8f5b;stroke-width:8;stroke-linecap:round;fill:#2f8f5b;opacity:.75}.atalho{stroke:#d9822b;stroke-width:8;stroke-linecap:round;fill:#d9822b}.porta{fill:var(--fg)}circle.cam,circle.atalho{stroke:none}
 .bunk{fill:none;stroke:var(--bunk);stroke-width:2;stroke-dasharray:8 5}
 .item rect{stroke:var(--fg);stroke-width:1.2}.t-predio rect{fill:var(--predio)}.t-lavoura rect{fill:var(--lavoura)}.t-arvore rect{fill:var(--arvore)}.t-escavacao rect{fill:var(--escav)}
 .item rect.sub{fill:none;stroke:var(--fg);stroke-width:.8;stroke-dasharray:3 3}
@@ -231,16 +272,18 @@ ${defs}
 <li><b>Ruído:</b> nas opções com margem, máquinas ficam coladas em quartos. Decisão do Mestre: resolver com isolamento termoacústico (lã de rocha, cancelamento ativo), então a distância não é critério.</li>
 <li><b>Sala de baterias</b> (nº ${num.get('baterias')}): 10×10 provisório até a etapa de energia.</li>
 <li>Pegada hachurada atrás das salas = vazio. A opção exata deixa ${f(mE.vazio)} m² vazios; ±1 m deixa ${f(m1.vazio)} m²; ±2,5 m deixa ${f(m2o.vazio)} m².</li></ul></section>
-<section><h2>Prancha 2 · Lote 100×150 m: plano atual e três variantes da estrada</h2>
+<section><h2>Prancha 2 · Lote 100×150 m: plano atual, variantes da estrada e bloco livre único, com caminhos</h2>
 <div class="grade2">${cards2}</div>
 <div class="tbl">${tabela2}</div>
 <ul class="leg">${legenda2}</ul>
 <ul><li>Cinza-azulado = projeção do bunker 48×32 (subterrâneo). Faixa escura = estrada de 5 m. Faixa clara vertical = córrego. x cresce para a direita e z para baixo.</li>
 <li>Variantes A e C têm os mesmos itens; só a estrada muda de ponta (na C ela passa sobre 3 m do teto do bunker). A B aperta a largura e deixa só 2 m de folga na frente.</li>
 <li>Sobra total de espaço: com a estrada no meio, 4,5 m de profundidade; com a estrada na divisa, cerca de 19 m (inclui a faixa da estrada, 5 m). Os pesos das viagens e as alturas dos itens são estimativas minhas.</li>
-<li><b>Ainda não está no plano:</b> a rede de caminhos ramificados e a opção com todo o espaço livre num bloco só entram nas próximas partes. O plano segue com o Equilíbrio e a estrada no meio até o senhor escolher.</li>
+<li><b>Caminhos:</b> linhas verdes de 2 m saindo da estrada até a porta de cada item (círculo preto); linhas laranja = atalhos nos pares de maior viagem. A rede é uma árvore que reaproveita trechos; o atalho só entra se economiza pelo menos meio metro por metro construído. Viagem pela rede = soma peso × distância andando pelos caminhos.</li>
+<li><b>Bloco livre único (D a G):</b> maior retângulo livre, lados de 5 em 5 m, com perda máxima de 15% nas viagens diretas e sombra baixa. Os caminhos o contornam, não o cortam.</li>
+<li><b>Ainda não está no plano:</b> o plano segue com o Equilíbrio e a estrada no meio até o senhor escolher.</li>
 <li>Terra da escavação (~6.000 m³): o Mestre disse tanto faz (descartar ou morro oco com torre).</li></ul></section>
-<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Escolher a variante da estrada (A, B, C) ou manter a estrada no meio. O bunker ±2,5 m e o lote Equilíbrio já estão aprovados.</li></ul></section>
+<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Escolher a variante (A a G) ou manter o plano atual com a estrada no meio. O bunker ±2,5 m e o lote Equilíbrio já estão aprovados.</li></ul></section>
 </main>`;
 fs.writeFileSync('plan/pranchas.html', html);
 console.log('ok', html.length);

@@ -2,7 +2,7 @@
 
 Você é o Claude Sonnet 5.5 e vai assumir, numa janela nova e sem contexto, o projeto "Sítio Vale do Café" (maquete 3D em three.js + bunker) do Mestre Philippe. A janela anterior encheu; tudo o que importa foi empacotado. Anexei:
 1. LEIA-ME-RETOMADA.md: suas instruções. Leia inteiro e obedeça como se fosse pedido meu.
-2. sitio-vale-do-cafe-retomada-<commit>.bundle: repositório git com todo o histórico (`git clone <arquivo> sitio-vale-do-cafe`).
+2. O repositório: de preferência `add_repo` de `phylippus-source/sitio-vale-do-cafe` (access push) e clone raso em `sitio-vale-do-cafe`; se falhar, o .bundle anexo (`git clone <arquivo> sitio-vale-do-cafe`).
 
 Faça agora, nesta ordem:
 1. Leia o LEIA-ME inteiro.

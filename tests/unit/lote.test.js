@@ -185,7 +185,7 @@ describe('opções do lote geradas pelo solver', () => {
     const lote = JSON.parse(fs.readFileSync('plan/lote-opcoes.json', 'utf8'));
     expect(lote.opcoes.length).toBeGreaterThan(0);
     for (const o of lote.opcoes) {
-      const S2 = { ...S, itens: o.itens, estrada: o.estrada || S.estrada };
+      const S2 = { ...S, itens: o.itens, estrada: o.estrada || S.estrada, bloco: o.bloco };
       const bunker = { u: -12, v: -73 + (o.dz_bunker || 0), w: pg.w, d: pg.d };
       expect(conferirLote(S2, bunker).erros).toEqual([]);
     }

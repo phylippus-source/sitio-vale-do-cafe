@@ -54,7 +54,7 @@ def deslocamentos(S, altura):
     return saida
 
 
-def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False):
+def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=False, teto_custo=None, cap_nucleo=None):
     L = S["lote"]
     ox, oz = L["x1"], L["z1"]  # origem do modelo: canto do lote
     W, D = u(L["x2"] - L["x1"]), u(L["z2"] - L["z1"])
@@ -162,6 +162,7 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False):
     # sombra de inverno (9–15 h) sobre as lavouras: caixa envolvente da sombra de cada fonte alta, hora a hora.
     # A caixa envolvente passa um pouco da sombra real (fecho convexo), então é prudente; a régua em JS confere o exato.
     sombra = []
+    sombra_alvo = {}
     for alvo in (i for i in S["itens"] if i["tipo"] == "lavoura"):
         t = v[alvo["id"]]
         for fonte in (i for i in S["itens"] if S["alturas"].get(i["id"]) and i["id"] != alvo["id"]):
@@ -175,6 +176,7 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False):
                 m.add(t["ey"] <= f["y"] + min(0, dz)).only_enforce_if(lits[3])
                 m.add_bool_or(lits + [b])
                 sombra.append(b)
+                sombra_alvo.setdefault(alvo["id"], []).append(b)
     horas_sombra = sum(sombra)
 
     # blocos livres nas duas pontas do lado longo (z): os itens ficam entre zmin e zmax, e o que sobra nas pontas
@@ -185,8 +187,35 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False):
     for r in v.values():
         m.add(zmin <= r["y"])
         m.add(zmax >= r["ey"])
+    extra = {}
+    if bloco:
+        # UM bloco livre L (retângulo de lados múltiplos de 5 m, posição na grade de 0,5 m): 2 m de afastamento dos itens,
+        # encostado à estrada e ao córrego é permitido (não os corta: fica em canto ou ponta).
+        kw, kd = m.new_int_var(1, W // 10, "kw"), m.new_int_var(1, D // 10, "kd")
+        lx, ly = m.new_int_var(marg, W - marg, "lx"), m.new_int_var(marg, D - marg, "ly")
+        lw, ld = m.new_int_var(10, W, "lw"), m.new_int_var(10, D, "ld")
+        m.add(lw == 10 * kw)
+        m.add(ld == 10 * kd)
+        lex, ley = m.new_int_var(0, W - marg, "lex"), m.new_int_var(0, D - marg, "ley")
+        m.add(lex == lx + lw)
+        m.add(ley == ly + ld)
+        Lr = dict(x=lx, y=ly, w=lw, d=ld, ex=lex, ey=ley, fixo=False, id="bloco")
+        for a_ in ids:
+            separados(v[a_], Lr, marg, f"bl_{a_}")
+        for nome, o in (("estrada", S["estrada"]), ("corrego", dict(x1=S["corrego"]["x1"], x2=S["corrego"]["x2"], z1=L["z1"], z2=L["z2"]))):
+            separados(Lr, fixa(nome, u(o["x1"] - ox), u(o["z1"] - oz), u(o["x2"] - o["x1"]), u(o["z2"] - o["z1"])), 0, f"bl_{nome}")
+        area = m.new_int_var(1, (W // 10) * (D // 10), "area")
+        m.add_multiplication_equality(area, [kw, kd])
+        extra = dict(area=area, lx=lx, ly=ly, lw=lw, ld=ld, custo=custo, sombra=horas_sombra)
+        if teto_custo is not None:
+            m.add(custo <= teto_custo)
+        if cap_nucleo is not None and sombra_alvo.get("nucleo"):
+            m.add(sum(sombra_alvo["nucleo"]) <= cap_nucleo)
+            for al, bs in sombra_alvo.items():
+                if al != "nucleo":
+                    m.add(sum(bs) <= cap_nucleo)
     m.minimize(custo + int(round(4 * peso_sombra)) * horas_sombra + int(round(2 * peso_bloco)) * (zmax - zmin))
-    return m, v, custo, (ox, oz), desl
+    return m, v, custo, (ox, oz), desl, extra
 
 
 def dica(m, v, S, ox, oz):
@@ -214,14 +243,33 @@ def custo_do_layout(S, itens):
     return t
 
 
-def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0, peso_bloco=0.0, mover=False):
-    m, v, custo, (ox, oz), desl = construir(S, B, bunker, peso_sombra, peso_bloco, mover)
+def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=False, teto=0.15, cap_nucleo=2):
+    base = custo_do_layout(S, S["itens"])
+    teto_custo = int(4 * base * (1 + teto)) if bloco else None
+    m, v, custo, (ox, oz), desl, ex = construir(S, B, bunker, peso_sombra, peso_bloco, mover, bloco, teto_custo, cap_nucleo)
     dica(m, v, S, ox, oz)
-    s = cp_model.CpSolver()
-    s.parameters.max_time_in_seconds = tempo
-    s.parameters.num_workers = 2
-    s.parameters.log_search_progress = log
     t0 = time.time()
+    s = cp_model.CpSolver()
+    s.parameters.num_workers = 4
+    s.parameters.log_search_progress = log
+    if bloco:
+        # estágio 1: maior bloco dentro do teto de perda; estágio 2: área fixada, menor viagens + sombra
+        s.parameters.max_time_in_seconds = tempo
+        m.maximize(ex["area"])
+        st = s.solve(m)
+        if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return None, dict(status=s.status_name(st), segundos=round(time.time() - t0, 1))
+        melhor = int(s.value(ex["area"]))
+        m.add(ex["area"] >= melhor)
+        m.minimize(custo + int(round(4 * peso_sombra)) * ex["sombra"])
+        m.clear_hints()
+        for var in (ex["lx"], ex["ly"], ex["lw"], ex["ld"]):
+            m.add_hint(var, s.value(var))
+        s = cp_model.CpSolver()
+        s.parameters.num_workers = 4
+        s.parameters.max_time_in_seconds = tempo
+    else:
+        s.parameters.max_time_in_seconds = tempo
     st = s.solve(m)
     dt = time.time() - t0
     nome = s.status_name(st)
@@ -239,7 +287,10 @@ def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0, peso_bloco=0.0, mo
         novo = dict(it)
         novo.update(x=s.value(r["x"]) / U + ox, z=s.value(r["y"]) / U + oz, w=s.value(r["w"]) / U, d=s.value(r["d"]) / U)
         itens.append(novo)
-    return itens, dict(status=nome, segundos=round(dt, 1), custo=custo_do_layout(S, itens), dz=dz)
+    info = dict(status=nome, segundos=round(dt, 1), custo=custo_do_layout(S, itens), dz=dz)
+    if bloco:
+        info["bloco"] = dict(x=s.value(ex["lx"]) / U + ox, z=s.value(ex["ly"]) / U + oz, w=s.value(ex["lw"]) / U, d=s.value(ex["ld"]) / U)
+    return itens, info
 
 
 def main():
@@ -249,6 +300,9 @@ def main():
     ap.add_argument("--log", action="store_true")
     ap.add_argument("--mover-fixos", action="store_true", help="deixa casa, puxadinho, engenho e a projeção do bunker andarem juntos em z (muda mundo.z0; exige OK do Mestre)")
     ap.add_argument("--estrada-em", choices=["meio", "frente", "oeste", "fundos"], default="meio", help="onde corre a estrada de 5 m (meio = plano atual; as outras ficam na divisa)")
+    ap.add_argument("--bloco-unico", action="store_true", help="acha UM bloco livre (lados de 5 em 5 m) o maior possível, com teto de perda")
+    ap.add_argument("--teto", type=float, default=0.15, help="perda máxima de viagens sobre o plano atual (0,15 = +15%%)")
+    ap.add_argument("--cap-sombra", type=int, default=2, help="máx. de pares fonte×hora com sombra (caixa envolvente) por lavoura")
     ap.add_argument("--id")
     ap.add_argument("--nome")
     ap.add_argument("--etapa")
@@ -269,7 +323,7 @@ def main():
     oj = ler("plan/bunker-opcoes.json")
     esc = next(o for o in oj["opcoes"] if o["id"] == oj.get("escolhida"))
     bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["w"], d=esc["pegada"]["d"])
-    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra, a.peso_bloco, a.mover_fixos)
+    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra, a.peso_bloco, a.mover_fixos, a.bloco_unico, a.teto, a.cap_sombra)
     if itens is None:
         print("sem solução:", info, file=sys.stderr)
         sys.exit(1)
@@ -278,9 +332,13 @@ def main():
     ze = [i["z"] + i["d"] for i in itens]
     L = S["lote"]
     fundos, frente = min(zs) - L["z1"], L["z2"] - max(ze)
+    if "bloco" in info:
+        print("bloco livre:", info["bloco"], f"= {info['bloco']['w'] * info['bloco']['d']:g} m²")
     print(f"lote: {info['status']} | custo de viagens {info['custo']:.0f} (plano atual {base:.0f}) | blocos livres: fundos {fundos:g} m, frente {frente:g} m | conjunto fixo andou {info['dz']:g} m | {info['segundos']} s")
     if a.saida:
         op = dict(id=a.id or "viagens", nome=a.nome or "Menores viagens (sem sombra)", etapa=a.etapa or "5c-1: viagens", estrada=S["estrada"], dz_bunker=info["dz"], itens=itens)
+        if "bloco" in info:
+            op["bloco"] = info["bloco"]
         Path(a.saida).write_text(json.dumps({"opcoes": [op]}, ensure_ascii=False, indent=1), encoding="utf8")
 
 

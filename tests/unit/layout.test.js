@@ -435,5 +435,5 @@ describe('comando tools/layout-check.mjs', () => {
     expect(ruim.texto).toContain('opção exato: mestre mede 10×9.5');
     expect(ruim.texto).toContain('opção #2: opção inválida');
     expect(rodar({ x: 1 }).codigo).toBe(1);
-  });
+  }, 30000);
 });

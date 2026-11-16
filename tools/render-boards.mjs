@@ -154,6 +154,8 @@ function lotePlanta(o, cam) {
     t += `<g class="item t-${it.tipo}"><rect x="${X(it.x)}" y="${Z(it.z)}" width="${it.w * k2}" height="${it.d * k2}"/>`;
     t += `<text x="${X(it.x) + (it.w * k2) / 2}" y="${Z(it.z) + (it.d * k2) / 2}" class="num" text-anchor="middle" dominant-baseline="middle">${NUM.get(it.id)}</text></g>`;
   }
+  if (o.id.startsWith('espinha-'))
+    t += `<circle cx="${X(L.x1)}" cy="${Z(0)}" r="6" class="gate"/><text x="${X(L.x1) + 9}" y="${Z(0) - 8}" class="tick">porteira</text>`;
   if (cam)
     for (const p of Object.values(cam.portas))
       if (p) t += `<circle cx="${X(p[0])}" cy="${Z(p[1])}" r="2.4" class="porta"/>`;
@@ -161,23 +163,19 @@ function lotePlanta(o, cam) {
 }
 const refs = [
   'equilibrio',
-  'estrada-frente',
-  'estrada-oeste',
-  'estrada-fundos',
-  'bloco-unico-meio',
-  'bloco-unico-frente',
-  'bloco-unico-oeste',
-  'bloco-unico-fundos',
+  'espinha-total',
+  'espinha-meio',
+  'espinha-curta',
+  'espinha-meio-bloco',
+  'espinha-curta-bloco',
 ].map((id) => LJ.opcoes.find((o) => o.id === id));
 const nomes2 = {
   equilibrio: 'Plano atual (Equilíbrio): estrada no meio',
-  'estrada-frente': 'A · Estrada na frente (z +75)',
-  'estrada-oeste': 'B · Estrada no lado oeste (x −50)',
-  'estrada-fundos': 'C · Estrada nos fundos (z −75)',
-  'bloco-unico-meio': 'D · Bloco único, estrada no meio',
-  'bloco-unico-frente': 'E · Bloco único, estrada na frente',
-  'bloco-unico-oeste': 'F · Bloco único, estrada a oeste',
-  'bloco-unico-fundos': 'G · Bloco único, estrada nos fundos',
+  'espinha-total': '1 · Espinha até o córrego',
+  'espinha-meio': '2 · Espinha até o meio (x 0)',
+  'espinha-curta': '3 · Espinha curta (até x −20)',
+  'espinha-meio-bloco': '4 · Espinha até o meio + bloco único',
+  'espinha-curta-bloco': '5 · Espinha curta + bloco único (pista)',
 };
 const curto = (id) => (nomes2[id].split(' · ')[1] ? nomes2[id].split(' · ')[0] : 'Atual');
 const met2 = refs.map((o) => {
@@ -253,7 +251,7 @@ td.dif{font-weight:600;color:var(--acc)}td.nao{color:var(--mut)}.card .num{font-
 .num{font:600 15px var(--font);fill:var(--fg)}.dim{font:500 11px var(--mono);fill:var(--fg)}.tick{font:11px var(--mono);fill:var(--mut)}
 .hl{stroke:var(--line);stroke-width:1.5}.foot{stroke:var(--mut);stroke-dasharray:4 3;stroke-width:1}
 .lote{fill:none;stroke:var(--fg);stroke-width:2}.estrada{fill:var(--road);opacity:.8}.corrego{fill:var(--creek);opacity:.85}
-.bloco{fill:var(--arvore);opacity:.35;stroke:var(--fg);stroke-width:1.2;stroke-dasharray:6 4}.cam{stroke:#2f8f5b;stroke-width:8;stroke-linecap:round;fill:#2f8f5b;opacity:.75}.atalho{stroke:#d9822b;stroke-width:8;stroke-linecap:round;fill:#d9822b}.porta{fill:var(--fg)}circle.cam,circle.atalho{stroke:none}
+.bloco{fill:var(--arvore);opacity:.35;stroke:var(--fg);stroke-width:1.2;stroke-dasharray:6 4}.cam{stroke:#2f8f5b;stroke-width:8;stroke-linecap:round;fill:#2f8f5b;opacity:.75}.atalho{stroke:#d9822b;stroke-width:8;stroke-linecap:round;fill:#d9822b}.porta{fill:var(--fg)}.gate{fill:var(--fg);stroke:var(--bg);stroke-width:2}circle.cam,circle.atalho{stroke:none}
 .bunk{fill:none;stroke:var(--bunk);stroke-width:2;stroke-dasharray:8 5}
 .item rect{stroke:var(--fg);stroke-width:1.2}.t-predio rect{fill:var(--predio)}.t-lavoura rect{fill:var(--lavoura)}.t-arvore rect{fill:var(--arvore)}.t-escavacao rect{fill:var(--escav)}
 .item rect.sub{fill:none;stroke:var(--fg);stroke-width:.8;stroke-dasharray:3 3}
@@ -272,18 +270,19 @@ ${defs}
 <li><b>Ruído:</b> nas opções com margem, máquinas ficam coladas em quartos. Decisão do Mestre: resolver com isolamento termoacústico (lã de rocha, cancelamento ativo), então a distância não é critério.</li>
 <li><b>Sala de baterias</b> (nº ${num.get('baterias')}): 10×10 provisório até a etapa de energia.</li>
 <li>Pegada hachurada atrás das salas = vazio. A opção exata deixa ${f(mE.vazio)} m² vazios; ±1 m deixa ${f(m1.vazio)} m²; ±2,5 m deixa ${f(m2o.vazio)} m².</li></ul></section>
-<section><h2>Prancha 2 · Lote 100×150 m: plano atual, variantes da estrada e bloco livre único, com caminhos</h2>
+<section><h2>Prancha 2 · Lote 100×150 m: cinco opções com a espinha de peixe saindo da porteira (leste)</h2>
 <div class="grade2">${cards2}</div>
 <div class="tbl">${tabela2}</div>
 <ul class="leg">${legenda2}</ul>
-<ul><li>Cinza-azulado = projeção do bunker 48×32 (subterrâneo). Faixa escura = estrada de 5 m. Faixa clara vertical = córrego. x cresce para a direita e z para baixo.</li>
-<li>Variantes A e C têm os mesmos itens; só a estrada muda de ponta (na C ela passa sobre 3 m do teto do bunker). A B aperta a largura e deixa só 2 m de folga na frente.</li>
-<li>Sobra total de espaço: com a estrada no meio, 4,5 m de profundidade; com a estrada na divisa, cerca de 19 m (inclui a faixa da estrada, 5 m). Os pesos das viagens e as alturas dos itens são estimativas minhas.</li>
-<li><b>Caminhos:</b> linhas verdes de 2 m saindo da estrada até a porta de cada item (círculo preto); linhas laranja = atalhos nos pares de maior viagem. A rede é uma árvore que reaproveita trechos; o atalho só entra se economiza pelo menos meio metro por metro construído. Viagem pela rede = soma peso × distância andando pelos caminhos.</li>
-<li><b>Bloco livre único (D a G):</b> maior retângulo livre, lados de 5 em 5 m, com perda máxima de 15% nas viagens diretas e sombra baixa. Os caminhos o contornam, não o cortam.</li>
-<li><b>Ainda não está no plano:</b> o plano segue com o Equilíbrio e a estrada no meio até o senhor escolher.</li>
-<li>Terra da escavação (~6.000 m³): o Mestre disse tanto faz (descartar ou morro oco com torre).</li></ul></section>
-<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Escolher a variante (A a G) ou manter o plano atual com a estrada no meio. O bunker ±2,5 m e o lote Equilíbrio já estão aprovados.</li></ul></section>
+<ul><li>Cinza-azulado = projeção do bunker 48×32 (subterrâneo). Faixa escura = estrada de 5 m (a espinha). Faixa azul = córrego, nos fundos (oeste, à direita). O leste fica à esquerda: a porteira (círculo escuro na divisa) está no centro dessa borda, x −50, z 0. x cresce para a direita e z para baixo.</li>
+<li><b>Espinha:</b> sai da porteira e vai para o oeste; os ramos verdes de 2 m saem dela até a porta de cada item (círculo preto). Linhas laranja = atalhos nos pares de maior viagem.</li>
+<li><b>O que aprendi:</b> uma espinha que cruza o lote inteiro (opção 1) parte a gleba em duas metades de 72 m e as viagens pioram uns 23%. Quanto mais curta a espinha, melhor: a opção 3 empata com o plano atual (1067 contra 1062) e, andando pela rede de caminhos, a opção 2 é a melhor de todas (961).</li>
+<li><b>Bloco livre único:</b> opção 4 com 1.000 m² (20×50) e opção 5 com 1.400 m² (20×70, cabe uma oval de pista de uns 180 m, curvas de 10 m de raio). Ambos ficam no lado da porteira, colados na divisa leste, onde dá para crescer.</li>
+<li>Os pesos das viagens e as alturas dos itens são estimativas minhas. Cheiro, fumaça e ruído ainda não entram na régua.</li>
+<li><b>Ainda não está no plano:</b> o plano segue com o Equilíbrio até o senhor escolher.</li>
+<li>Terra da escavação (~6.000 m³): o Mestre disse tanto faz (descartar ou morro oco com torre).</li>
+</ul></section>
+<section class="ask"><h2>O que preciso do Mestre</h2><ul><li>Escolher uma das opções 1 a 5 ou manter o plano atual com a estrada no meio. O bunker ±2,5 m e o lote Equilíbrio já estão aprovados.</li></ul></section>
 </main>`;
 fs.writeFileSync('plan/pranchas.html', html);
 console.log('ok', html.length);

@@ -54,7 +54,7 @@ def deslocamentos(S, altura):
     return saida
 
 
-def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=False, teto_custo=None, cap_nucleo=None):
+def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=False, teto_custo=None, cap_nucleo=None, bloco_tam=None):
     L = S["lote"]
     ox, oz = L["x1"], L["z1"]  # origem do modelo: canto do lote
     W, D = u(L["x2"] - L["x1"]), u(L["z2"] - L["z1"])
@@ -196,6 +196,9 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=
         lw, ld = m.new_int_var(10, W, "lw"), m.new_int_var(10, D, "ld")
         m.add(lw == 10 * kw)
         m.add(ld == 10 * kd)
+        if bloco_tam:  # tamanho pedido (em m, múltiplos de 5), podendo girar 90°
+            a_, b_ = bloco_tam[0] // 5, bloco_tam[1] // 5
+            m.add_allowed_assignments([kw, kd], [(a_, b_), (b_, a_)])
         lex, ley = m.new_int_var(0, W - marg, "lex"), m.new_int_var(0, D - marg, "ley")
         m.add(lex == lx + lw)
         m.add(ley == ly + ld)
@@ -243,10 +246,10 @@ def custo_do_layout(S, itens):
     return t
 
 
-def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=False, teto=0.15, cap_nucleo=2):
+def resolver(S, B, bunker, tempo, log=False, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=False, teto=0.15, cap_nucleo=2, bloco_tam=None):
     base = custo_do_layout(S, S["itens"])
     teto_custo = int(4 * base * (1 + teto)) if bloco else None
-    m, v, custo, (ox, oz), desl, ex = construir(S, B, bunker, peso_sombra, peso_bloco, mover, bloco, teto_custo, cap_nucleo)
+    m, v, custo, (ox, oz), desl, ex = construir(S, B, bunker, peso_sombra, peso_bloco, mover, bloco, teto_custo, cap_nucleo, bloco_tam)
     dica(m, v, S, ox, oz)
     t0 = time.time()
     s = cp_model.CpSolver()
@@ -299,10 +302,12 @@ def main():
     ap.add_argument("--saida", help="arquivo .json das opções do lote")
     ap.add_argument("--log", action="store_true")
     ap.add_argument("--mover-fixos", action="store_true", help="deixa casa, puxadinho, engenho e a projeção do bunker andarem juntos em z (muda mundo.z0; exige OK do Mestre)")
-    ap.add_argument("--estrada-em", choices=["meio", "frente", "oeste", "fundos"], default="meio", help="onde corre a estrada de 5 m (meio = plano atual; as outras ficam na divisa)")
+    ap.add_argument("--estrada-em", choices=["meio", "frente", "oeste", "fundos", "espinha"], default="meio", help="onde corre a estrada de 5 m (meio = plano atual; as outras ficam na divisa)")
     ap.add_argument("--bloco-unico", action="store_true", help="acha UM bloco livre (lados de 5 em 5 m) o maior possível, com teto de perda")
     ap.add_argument("--teto", type=float, default=0.15, help="perda máxima de viagens sobre o plano atual (0,15 = +15%%)")
     ap.add_argument("--cap-sombra", type=int, default=2, help="máx. de pares fonte×hora com sombra (caixa envolvente) por lavoura")
+    ap.add_argument("--bloco-tam", nargs=2, type=int, metavar=("W", "D"), help="com --bloco-unico: força o tamanho do bloco (m, múltiplos de 5; pode girar)")
+    ap.add_argument("--espinha-ate", type=float, help="com --estrada-em espinha: x onde a espinha termina (padrão 43 = até o córrego)")
     ap.add_argument("--id")
     ap.add_argument("--nome")
     ap.add_argument("--etapa")
@@ -315,15 +320,18 @@ def main():
         frente=dict(x1=-50, x2=43, z1=70, z2=75),
         oeste=dict(x1=-50, x2=-45, z1=-75, z2=75),
         fundos=dict(x1=-50, x2=43, z1=-75, z2=-70),
+        espinha=dict(x1=-50, x2=43, z1=-2.5, z2=2.5),  # porteira no leste, centro (x −50, z 0); córrego nos fundos
     )
     if a.estrada_em != "meio":
-        S["estrada"] = ESTRADAS[a.estrada_em]
+        S["estrada"] = dict(ESTRADAS[a.estrada_em])
+    if a.estrada_em == "espinha" and a.espinha_ate is not None:
+        S["estrada"]["x2"] = a.espinha_ate
     if a.sem_estrada:
         S["estrada"] = dict(S["estrada"], z1=S["lote"]["z1"], z2=S["lote"]["z1"])
     oj = ler("plan/bunker-opcoes.json")
     esc = next(o for o in oj["opcoes"] if o["id"] == oj.get("escolhida"))
     bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["w"], d=esc["pegada"]["d"])
-    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra, a.peso_bloco, a.mover_fixos, a.bloco_unico, a.teto, a.cap_sombra)
+    itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra, a.peso_bloco, a.mover_fixos, a.bloco_unico, a.teto, a.cap_sombra, a.bloco_tam)
     if itens is None:
         print("sem solução:", info, file=sys.stderr)
         sys.exit(1)

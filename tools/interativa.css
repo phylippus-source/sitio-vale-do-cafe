@@ -1,0 +1,307 @@
+/* layout: planta grande à esquerda, painel de controle à direita; no celular o painel vem abaixo */
+:root {
+  --bg: #f3f4f1;
+  --fg: #1d2420;
+  --mut: #5b645e;
+  --line: #c9cfc8;
+  --card: #ffffff;
+  --acc: #1f5f4a;
+  --ruim: #b3261e;
+  --predio: #e8cfae;
+  --lavoura: #d6e8b8;
+  --arvore: #a9d3a0;
+  --escav: #d8b9a0;
+  --road: #8d9490;
+  --creek: #9cc8e8;
+  --bunk: #6a4c93;
+  --font: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #171c19;
+    --fg: #e6ebe7;
+    --mut: #9aa6a0;
+    --line: #37403a;
+    --card: #1f2622;
+    --acc: #6fc2a2;
+    --ruim: #ff8a80;
+    --predio: #6b5640;
+    --lavoura: #4d6535;
+    --arvore: #2f5a35;
+    --escav: #6a4a38;
+    --road: #6d7571;
+    --creek: #2f5d7d;
+    --bunk: #a98ad6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #171c19;
+  --fg: #e6ebe7;
+  --mut: #9aa6a0;
+  --line: #37403a;
+  --card: #1f2622;
+  --acc: #6fc2a2;
+  --ruim: #ff8a80;
+  --predio: #6b5640;
+  --lavoura: #4d6535;
+  --arvore: #2f5a35;
+  --escav: #6a4a38;
+  --road: #6d7571;
+  --creek: #2f5d7d;
+  --bunk: #a98ad6;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.5 var(--font);
+  padding-block: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+h1 {
+  font-size: 22px;
+  margin: 0;
+  text-wrap: balance;
+}
+.sub {
+  color: var(--mut);
+  margin: 4px 0 0;
+  max-width: 70ch;
+}
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.planta {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+}
+svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: var(--bg);
+  user-select: none;
+  -webkit-user-select: none;
+}
+aside {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  position: sticky;
+  top: 12px;
+}
+@media (max-width: 860px) {
+  aside {
+    position: static;
+  }
+}
+label {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.chk {
+  font-weight: 400;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+select {
+  width: 100%;
+  padding: 6px;
+  font: inherit;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+button {
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--acc);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button:focus-visible,
+select:focus-visible,
+.item:focus-visible rect {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.info {
+  font: 12px var(--mono);
+  margin: 0;
+  min-height: 1.5em;
+}
+.ok {
+  color: var(--acc);
+  margin: 0;
+  font-weight: 600;
+}
+.ruim {
+  color: var(--ruim);
+  margin: 0;
+  font-weight: 600;
+}
+.lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.liga {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.liga.sel {
+  border-color: var(--acc);
+  color: var(--acc);
+  font-weight: 600;
+}
+details {
+  font-size: 12.5px;
+}
+#problemas {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.dica {
+  color: var(--mut);
+  font-size: 12px;
+  margin: 0;
+}
+.lote {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 0.35;
+}
+.estrada {
+  fill: var(--road);
+  opacity: 0.8;
+}
+.corrego {
+  fill: var(--creek);
+  opacity: 0.85;
+}
+.bunk {
+  fill: none;
+  stroke: var(--bunk);
+  stroke-width: 0.3;
+  stroke-dasharray: 1.6 1;
+}
+.bloco {
+  fill: var(--arvore);
+  opacity: 0.3;
+  stroke: var(--fg);
+  stroke-width: 0.3;
+  stroke-dasharray: 1.6 1;
+}
+.gate {
+  fill: var(--fg);
+}
+.tick {
+  font: 1.8px var(--mono);
+  fill: var(--mut);
+}
+.grade {
+  opacity: 0;
+  stroke: var(--line);
+  stroke-width: 0.12;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.grade.ligada {
+  opacity: 0.9;
+}
+.item {
+  cursor: grab;
+  touch-action: none;
+}
+.item.fixo {
+  cursor: default;
+}
+.item:active:not(.fixo) {
+  cursor: grabbing;
+}
+.item rect {
+  stroke: var(--fg);
+  stroke-width: 0.3;
+}
+.t-predio rect {
+  fill: var(--predio);
+}
+.t-lavoura rect {
+  fill: var(--lavoura);
+}
+.t-arvore rect {
+  fill: var(--arvore);
+}
+.t-escavacao rect {
+  fill: var(--escav);
+}
+.item.fixo rect {
+  stroke-dasharray: 1.2 0.8;
+}
+.item.sel rect {
+  stroke: var(--acc);
+  stroke-width: 0.8;
+}
+.item.ruim rect {
+  stroke: var(--ruim);
+  stroke-width: 0.7;
+}
+.num {
+  font: 600 3px var(--font);
+  fill: var(--fg);
+  pointer-events: none;
+}
+.dim {
+  font: 500 1.9px var(--mono);
+  fill: var(--fg);
+  pointer-events: none;
+}
+.seta {
+  fill: var(--fg);
+  opacity: 0.55;
+  pointer-events: none;
+}

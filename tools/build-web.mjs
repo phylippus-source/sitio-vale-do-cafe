@@ -14,7 +14,7 @@ export function montarBundle() {
       .join('\n')
       .replace(/^export /gm, ''),
   ).join('\n');
-  return `const LoteWeb = (() => {\n${corpo}\nreturn { conferirLote, tracarCaminhos, custoViagens, avaliar };\n})();\n`;
+  return `const LoteWeb = (() => {\n${corpo}\nreturn { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, barreiras, GRADE, CAPTURA };\n})();\n`;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

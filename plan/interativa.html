@@ -1408,11 +1408,19 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
     desenhar();
   }
 
-  const avaliacao = () => LoteWeb.avaliar(S, bunker, { itens, estrada, bloco });
+  // só a régua (a rede de caminhos fica de fora: é cara e esta página ainda não a desenha)
+  const avaliacao = () =>
+    LoteWeb.conferirLote(
+      { ...S, itens, estrada, bloco },
+      { u: bunker.x0, v: bunker.z0, w: bunker.w, d: bunker.d },
+    );
+  let ultima = { erros: [] };
+  const grupos = new Map();
 
   function desenhar() {
     mapa.replaceChildren();
-    const ava = avaliacao();
+    const ava = (ultima = avaliacao());
+    grupos.clear();
     mapa.append(
       el('rect', { x: L.x1, y: L.z1, width: L.x2 - L.x1, height: L.z2 - L.z1, class: 'lote' }),
       el('rect', {
@@ -1483,6 +1491,7 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
           }),
         );
       }
+      grupos.set(it.id, g);
       mapa.append(g);
     });
 
@@ -1493,6 +1502,29 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
       }),
     );
     painel(ava);
+  }
+
+  // move só o grupo do item (durante o arrasto): sem refazer a planta nem rodar a régua
+  function posicionar(g, it) {
+    const [r, n, d, seta] = g.children;
+    const cx = it.x + it.w / 2,
+      cz = it.z + it.d / 2;
+    r.setAttribute('x', it.x);
+    r.setAttribute('y', it.z);
+    n.setAttribute('x', cx);
+    n.setAttribute('y', cz - 0.4);
+    d.setAttribute('x', cx);
+    d.setAttribute('y', cz + 2.6);
+    if (seta) {
+      seta.setAttribute('d', `M${cx} ${cz - 6.4} l1 2 h-2 z`);
+      seta.setAttribute('transform', `rotate(${(it.giro || 0) * 90} ${cx} ${cz})`);
+    }
+  }
+  // seleciona sem destruir a planta (o dedo continua sobre o mesmo elemento)
+  function selecionar(id) {
+    sel = id;
+    for (const [k, g] of grupos) g.classList.toggle('sel', k === id);
+    painel(ultima);
   }
 
   function painel(ava) {
@@ -1534,7 +1566,7 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
   mapa.addEventListener('pointerdown', (e) => {
     const g = achar(e.target);
     if (!g) return;
-    sel = g.dataset.id;
+    selecionar(g.dataset.id);
     const it = get(sel);
     if (!it.fixo) {
       const p = pt(e);
@@ -1542,11 +1574,14 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
       mapa.setPointerCapture(e.pointerId);
       $('grade').classList.add('ligada');
     }
-    desenhar();
   });
-  mapa.addEventListener('pointermove', (e) => {
-    if (!arrasto) return;
-    const it = get(arrasto.id),
+  let quadro = 0,
+    ultimoEv = null;
+  const mexer = () => {
+    quadro = 0;
+    if (!arrasto || !ultimoEv) return;
+    const e = ultimoEv,
+      it = get(arrasto.id),
       p = pt(e);
     const pos = LoteWeb.encaixar(
       it,
@@ -1555,18 +1590,46 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
       S,
       outros(it.id),
       estrada,
-      { ima: $('ima').checked && !e.altKey },
+      {
+        ima: $('ima').checked && !e.altKey,
+      },
     );
-    if (pos.x !== it.x || pos.z !== it.z) {
-      Object.assign(it, pos);
-      arrasto.moveu = true;
-      desenhar();
-    }
+    if (pos.x === it.x && pos.z === it.z) return;
+    Object.assign(it, pos);
+    arrasto.moveu = true;
+    posicionar(grupos.get(it.id), it);
+    $('info').textContent = `${it.id}: x ${f(it.x)} · z ${f(it.z)} · ${f(it.w)}×${f(it.d)} m`;
+  };
+  mapa.addEventListener('pointermove', (e) => {
+    if (!arrasto) return;
+    ultimoEv = e;
+    if (!quadro) quadro = requestAnimationFrame(mexer); // no máximo uma atualização por quadro
   });
+  // celular: sem isto o Chrome rola a página junto com o dedo e cancela o arrasto
+  mapa.addEventListener(
+    'touchstart',
+    (e) => {
+      const g = achar(e.target);
+      if (g && !get(g.dataset.id).fixo) e.preventDefault();
+    },
+    { passive: false },
+  );
+  mapa.addEventListener(
+    'touchmove',
+    (e) => {
+      if (arrasto) e.preventDefault();
+    },
+    { passive: false },
+  );
   const solta = () => {
     if (!arrasto) return;
+    if (quadro) {
+      cancelAnimationFrame(quadro);
+      mexer();
+    }
     if (arrasto.moveu) empilha(arrasto.antes);
     arrasto = null;
+    $('grade').classList.remove('ligada');
     desenhar();
   };
   mapa.addEventListener('pointerup', solta);

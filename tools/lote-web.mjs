@@ -98,6 +98,10 @@ export function encaixar(it, x, z, S, outros, estrada, { ima = true } = {}) {
         const [a, b] = [o[ini], o[ini] + o[fim]];
         tenta(a - M - tam);
         tenta(b + M);
+        if ((it.colado || []).includes(o.id) || (o.colado || []).includes(it.id)) {
+          tenta(a - tam); // item colado: o ímã também aceita encostar de vez
+          tenta(b);
+        }
         tenta(a);
         tenta(b - tam);
       }

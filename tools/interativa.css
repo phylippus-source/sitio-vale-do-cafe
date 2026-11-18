@@ -279,6 +279,12 @@ details {
 .t-escavacao rect {
   fill: var(--escav);
 }
+.t-bunker rect {
+  fill: var(--bunk);
+  fill-opacity: 0.1;
+  stroke: var(--bunk);
+  stroke-dasharray: 1.6 1;
+}
 .item.fixo rect {
   stroke-dasharray: 1.2 0.8;
 }

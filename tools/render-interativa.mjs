@@ -43,7 +43,7 @@ const html = `<title>Arranjo do Lote</title>
 <style>${css}</style>
 <main>
 <header><h1>Arranjo do lote</h1>
-<p class="sub">Arraste os itens pelo lote de 100×150 m. Grade invisível de 5 m, ímã nas bordas (folga de 2 m), girar 90° no sentido horário. Casa Grande, puxadinho e engenho ficam travados. O leste está à esquerda, o córrego (azul) à direita, a porteira no centro da divisa leste.</p></header>
+<p class="sub">Arraste os itens pelo lote de 100×150 m. Grade invisível de 5 m, ímã nas bordas (folga de 2 m), girar 90° no sentido horário. Tudo é livre, inclusive o bunker (roxo, tracejado, botão B), solto da casa: se a casa sair de cima dele, a régua só avisa. O leste está à esquerda, o córrego (azul) à direita, a porteira no centro da divisa leste.</p></header>
 <div class="cols">
 <div class="planta"><svg id="mapa" viewBox="-52 -77 104 154" role="group" aria-label="Planta do lote"></svg></div>
 <aside>

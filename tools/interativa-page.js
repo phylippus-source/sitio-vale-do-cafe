@@ -36,7 +36,17 @@
 
   function carregar(id) {
     const o = opcoes.find((x) => x.id === id);
-    itens = JSON.parse(JSON.stringify(o.itens)).map((i) => ({ giro: 0, ...i }));
+    itens = JSON.parse(JSON.stringify(o.itens)).map((i) => ({ giro: 0, ...i, fixo: false }));
+    // o bunker anda sozinho: é um item como os outros (sem régua de vizinhança), solto da casa
+    itens.push({
+      id: 'bunker',
+      tipo: 'bunker',
+      x: bunker.x0,
+      z: bunker.z0,
+      w: bunker.w,
+      d: bunker.d,
+      giro: 0,
+    });
     estrada = o.estrada || S.estrada;
     bloco = o.bloco || null;
     sel = null;
@@ -46,12 +56,20 @@
   }
 
   // só a régua (a rede de caminhos fica de fora: é cara e esta página ainda não a desenha)
-  const avaliacao = () =>
-    LoteWeb.conferirLote(
-      { ...S, itens, estrada, bloco },
-      { u: bunker.x0, v: bunker.z0, w: bunker.w, d: bunker.d },
+  const AVISO_CASA = /Casa Grande não está sobre o bunker/;
+  const avaliacao = () => {
+    const bk = itens.find((i) => i.id === 'bunker');
+    const r = LoteWeb.conferirLote(
+      { ...S, itens: itens.filter((i) => i !== bk), estrada, bloco },
+      { u: bk.x, v: bk.z, w: bk.w, d: bk.d },
     );
-  let ultima = { erros: [] };
+    // casa fora do bunker agora é escolha do Mestre: vira aviso, não erro
+    return {
+      erros: r.erros.filter((e) => !AVISO_CASA.test(e)),
+      avisos: r.erros.filter((e) => AVISO_CASA.test(e)),
+    };
+  };
+  let ultima = { erros: [], avisos: [] };
   const grupos = new Map();
 
   function desenhar() {
@@ -74,7 +92,6 @@
         height: estrada.z2 - estrada.z1,
         class: 'estrada',
       }),
-      el('rect', { x: bunker.x0, y: bunker.z0, width: bunker.w, height: bunker.d, class: 'bunk' }),
     );
     const grade = el('g', { id: 'grade', class: 'grade' });
     for (let x = L.x1; x <= L.x2; x += 5)
@@ -86,7 +103,11 @@
       mapa.append(
         el('rect', { x: bloco.x, y: bloco.z, width: bloco.w, height: bloco.d, class: 'bloco' }),
       );
-    itens.forEach((it, n) => {
+    // o bunker vai por baixo, para os itens ficarem clicáveis por cima dele
+    const ordem = itens
+      .map((it, n) => [it, n])
+      .sort((a, b) => (b[0].tipo === 'bunker') - (a[0].tipo === 'bunker'));
+    ordem.forEach(([it, n]) => {
       const ruim = ava.erros.some((e) => new RegExp(`\\b${it.id}\\b`).test(e));
       const g = el('g', {
         class: `item t-${it.tipo}${it.fixo ? ' fixo' : ''}${sel === it.id ? ' sel' : ''}${ruim ? ' ruim' : ''}`,
@@ -105,7 +126,7 @@
             'text-anchor': 'middle',
             'dominant-baseline': 'middle',
           }),
-          { textContent: n + 1 },
+          { textContent: it.tipo === 'bunker' ? 'B' : n + 1 },
         ),
         Object.assign(
           el('text', {
@@ -171,7 +192,7 @@
         const b = html(
           'button',
           { type: 'button', class: `liga${sel === it.id ? ' sel' : ''}`, 'data-id': it.id },
-          `${n + 1} ${it.id}${it.fixo ? ' (fixo)' : ''}`,
+          `${it.tipo === 'bunker' ? 'B' : n + 1} ${it.id}`,
         );
         return html('li', {}, b);
       }),
@@ -183,9 +204,10 @@
     $('girar').disabled = !it || !!it.fixo;
     $('desf').disabled = !hist.length;
     $('ref').disabled = !fut.length;
-    $('status').textContent = ava.erros.length
-      ? `${ava.erros.length} problema(s) na régua`
-      : 'Régua sem problemas';
+    const aviso = ava.avisos && ava.avisos.length ? ' · aviso: casa fora do bunker' : '';
+    $('status').textContent =
+      (ava.erros.length ? `${ava.erros.length} problema(s) na régua` : 'Régua sem problemas') +
+      aviso;
     $('status').className = ava.erros.length ? 'ruim' : 'ok';
     $('problemas').replaceChildren(...ava.erros.map((e) => html('li', {}, e)));
   }
@@ -198,7 +220,9 @@
   };
   const achar = (alvo) => alvo.closest && alvo.closest('.item');
   const get = (id) => itens.find((i) => i.id === id);
-  const outros = (id) => itens.filter((i) => i.id !== id);
+  // o ímã só vê os itens do lote; o bunker não gruda em ninguém nem ninguém nele
+  const outros = (id) =>
+    id === 'bunker' ? [] : itens.filter((i) => i.id !== id && i.id !== 'bunker');
 
   mapa.addEventListener('pointerdown', (e) => {
     const g = achar(e.target);

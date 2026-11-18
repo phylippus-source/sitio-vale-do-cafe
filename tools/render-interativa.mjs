@@ -15,7 +15,32 @@ const nomes = {
   'espinha-meio-bloco': '4 · Espinha até o meio + bloco único',
   'espinha-curta-bloco': '5 · Espinha curta + bloco único (pista)',
 };
+// arranjos do Mestre (plan/arranjos): o esboço dele e as correções da régua, com bunker próprio
+const arr = (id, nome, f) => {
+  const a = lerJson(`plan/arranjos/${f}`);
+  return {
+    id,
+    nome,
+    itens: a.itens.map((i) => ({
+      ...i,
+      giro: i.w !== S.itens.find((x) => x.id === i.id).w ? 1 : 0,
+    })),
+    estrada: a.estrada,
+    bunker: { x0: a.bunker.x, z0: a.bunker.z, w: a.bunker.w, d: a.bunker.d, giro: 1 },
+  };
+};
 const opcoes = [
+  arr(
+    'corrigido-a',
+    'A · Seu esboço corrigido (mínimo de mudanças)',
+    'mestre-18-11-corrigido.json',
+  ),
+  arr(
+    'corrigido-b',
+    'B · Corrigido + engenho ao sul (mais vazio)',
+    'mestre-18-11-corrigido-vazio.json',
+  ),
+  arr('esboco', 'Seu esboço original (com erros)', 'mestre-18-11.json'),
   {
     id: 'plano',
     nome: 'Plano atual (Equilíbrio, estrada no meio)',

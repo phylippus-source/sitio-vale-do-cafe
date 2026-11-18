@@ -38,14 +38,15 @@
     const o = opcoes.find((x) => x.id === id);
     itens = JSON.parse(JSON.stringify(o.itens)).map((i) => ({ giro: 0, ...i, fixo: false }));
     // o bunker anda sozinho: é um item como os outros (sem régua de vizinhança), solto da casa
+    const bk = o.bunker || bunker;
     itens.push({
       id: 'bunker',
       tipo: 'bunker',
-      x: bunker.x0,
-      z: bunker.z0,
-      w: bunker.w,
-      d: bunker.d,
-      giro: 0,
+      x: bk.x0,
+      z: bk.z0,
+      w: bk.w,
+      d: bk.d,
+      giro: bk.giro || 0,
     });
     estrada = o.estrada || S.estrada;
     bloco = o.bloco || null;

@@ -53,10 +53,11 @@
   ],
   "quadras_internas": { "cada": [30, 25], "vao": 5 },
   "regras": {
-    "animais_longe_da_casa": 25,
-    "pomar_perto_do_nucleo": 5,
-    "estufa_perto_do_nucleo": 5,
-    "animais_perto_do_nucleo": 20
+    "animais_longe_da_casa": 20,
+    "pomar_perto_do_nucleo": null,
+    "estufa_perto_do_nucleo": null,
+    "animais_perto_do_nucleo": null,
+    "nota": "18/11: o Mestre liberou as regras de proximidade (eram chutes do Claude, null = desligada). animais_longe_da_casa = 20 m, referência IN 11/2025 IMA-SC (depósito de dejetos a 20 m de habitação rural; norma de SC, confirmar a local)."
   },
   "orientacao": { "x_mais": "oeste", "z_mais": "norte", "latitude": -22.404, "decl_inverno": 23.44, "nota": "Convenção do modelo (an/ACHADOS_FASE1-2.md); solstício de junho." },
   "viagens": { "nota": "[E] pesos propostos pelo Claude (viagens do dia a dia entre itens), a confirmar. O solver do lote minimiza a soma peso × distância entre centros.", "pares": [

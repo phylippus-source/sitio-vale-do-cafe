@@ -170,19 +170,19 @@ export function conferirLote(S, bunker) {
     estufaNucleo: g2('estufa', 'nucleo'),
     animaisNucleo: g2('animais', 'nucleo'),
   };
-  if (dist.animaisCasa < rule.animais_longe_da_casa)
+  if (rule.animais_longe_da_casa != null && dist.animaisCasa < rule.animais_longe_da_casa)
     err(
       `lote: animais a ${dist.animaisCasa.toFixed(1)} m da casa (mínimo ${rule.animais_longe_da_casa} m)`,
     );
-  if (dist.pomarNucleo > rule.pomar_perto_do_nucleo)
+  if (rule.pomar_perto_do_nucleo != null && dist.pomarNucleo > rule.pomar_perto_do_nucleo)
     err(
       `lote: pomar a ${dist.pomarNucleo.toFixed(1)} m do núcleo (máximo ${rule.pomar_perto_do_nucleo} m)`,
     );
-  if (dist.estufaNucleo > rule.estufa_perto_do_nucleo)
+  if (rule.estufa_perto_do_nucleo != null && dist.estufaNucleo > rule.estufa_perto_do_nucleo)
     err(
       `lote: estufa a ${dist.estufaNucleo.toFixed(1)} m do núcleo (máximo ${rule.estufa_perto_do_nucleo} m)`,
     );
-  if (dist.animaisNucleo > rule.animais_perto_do_nucleo)
+  if (rule.animais_perto_do_nucleo != null && dist.animaisNucleo > rule.animais_perto_do_nucleo)
     err(
       `lote: animais a ${dist.animaisNucleo.toFixed(1)} m do núcleo (máximo ${rule.animais_perto_do_nucleo} m)`,
     );

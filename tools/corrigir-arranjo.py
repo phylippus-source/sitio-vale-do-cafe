@@ -117,10 +117,11 @@ def main():
         return sx + sz
 
     r_ = S["regras"]
-    m.add(gap2("animais", "casa", "ac") >= u(r_["animais_longe_da_casa"]) ** 2)
-    m.add(gap2("pomar", "nucleo", "pn") <= u(r_["pomar_perto_do_nucleo"]) ** 2)
-    m.add(gap2("estufa", "nucleo", "en") <= u(r_["estufa_perto_do_nucleo"]) ** 2)
-    m.add(gap2("animais", "nucleo", "an") <= u(r_["animais_perto_do_nucleo"]) ** 2)
+    if r_.get("animais_longe_da_casa") is not None:
+        m.add(gap2("animais", "casa", "ac") >= u(r_["animais_longe_da_casa"]) ** 2)
+    for a, b, k, tag in (("pomar", "nucleo", "pomar_perto_do_nucleo", "pn"), ("estufa", "nucleo", "estufa_perto_do_nucleo", "en"), ("animais", "nucleo", "animais_perto_do_nucleo", "an")):
+        if r_.get(k) is not None:
+            m.add(gap2(a, b, tag) <= u(r_[k]) ** 2)
 
     # vazio: um retângulo livre (variável) o maior possível; K m² de vazio valem 1 m de deslocamento ponderado
     K = float(sys.argv[sys.argv.index("--vazio") + 1]) if "--vazio" in sys.argv else 0

@@ -161,12 +161,14 @@ describe('conferirLote (régua do lote)', () => {
     ).toBe(true);
   });
 
-  it('regras de distância: animais longe da casa, perto do núcleo; pomar e estufa perto do núcleo', () => {
+  it('regra de distância: animais a 20 m da casa (as de proximidade com o núcleo estão desligadas)', () => {
     const S = site();
     mexe(S, 'animais', { x: -5, z: -35 });
-    expect(tem(erros(S), 'm da casa (mínimo 25 m)')).toBe(true);
+    expect(tem(erros(S), 'm da casa (mínimo 20 m)')).toBe(true);
     const T = site();
     mexe(T, 'pomar', { z: 20 });
+    expect(tem(erros(T), 'm do núcleo')).toBe(false);
+    T.regras.pomar_perto_do_nucleo = 5; // ligada de novo pelo Mestre
     expect(tem(erros(T), 'pomar')).toBe(true);
   });
 

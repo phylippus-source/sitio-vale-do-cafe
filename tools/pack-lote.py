@@ -140,9 +140,11 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=
         return gx + gz
 
     R = S["regras"]
-    separados(v["animais"], v["casa"], u(R["animais_longe_da_casa"]), "animais_casa")
+    if R.get("animais_longe_da_casa") is not None:
+        separados(v["animais"], v["casa"], u(R["animais_longe_da_casa"]), "animais_casa")
     for a, b, k in (("pomar", "nucleo", "pomar_perto_do_nucleo"), ("estufa", "nucleo", "estufa_perto_do_nucleo"), ("animais", "nucleo", "animais_perto_do_nucleo")):
-        m.add(folga(a, b, f"{a}_{b}") <= u(R[k]))
+        if R.get(k) is not None:  # null = regra desligada pelo Mestre
+            m.add(folga(a, b, f"{a}_{b}") <= u(R[k]))
 
     # objetivo: soma peso × distância (L1) entre centros; centros em unidades de 1/4 m (2x + w)
     termos = []

@@ -1,6 +1,6 @@
 # Sítio Vale do Café — refatoração
 
-> **Retomando em janela nova do Claude?** Leia primeiro o [`LEIA-ME-RETOMADA.md`](LEIA-ME-RETOMADA.md) (estado, regras, ritual, próximas partes) e rode `bash tools/verificar-retomada.sh --instalar`.
+> **Retomando em janela nova do Claude?** Leia só o [`LEIA-ME-RETOMADA.md`](LEIA-ME-RETOMADA.md) (curto: estado, regras, próximos passos; histórico longo em `plan/HISTORICO.md`) e rode `bash tools/verificar-retomada.sh --instalar`.
 
 Fase 0 (rede de segurança) e Fase 1 (dependências e estrutura) concluídas. `legacy/sitio-vale-do-cafe.raw.html` é a cópia do v13 publicado.
 

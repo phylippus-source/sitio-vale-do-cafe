@@ -34,8 +34,10 @@
     fut = [];
   };
 
+  let Sx = S; // medidas do plano, ou as encolhidas pelo Mestre naquela opção
   function carregar(id) {
     const o = opcoes.find((x) => x.id === id);
+    Sx = { ...S, ...(o.sobre || {}) };
     itens = JSON.parse(JSON.stringify(o.itens)).map((i) => ({ giro: 0, ...i, fixo: false }));
     // o bunker anda sozinho: é um item como os outros (sem régua de vizinhança), solto da casa
     const bk = o.bunker || bunker;
@@ -61,7 +63,7 @@
   const avaliacao = () => {
     const bk = itens.find((i) => i.id === 'bunker');
     const r = LoteWeb.conferirLote(
-      { ...S, itens: itens.filter((i) => i !== bk), estrada, bloco },
+      { ...Sx, itens: itens.filter((i) => i !== bk), estrada, bloco },
       { u: bk.x, v: bk.z, w: bk.w, d: bk.d },
     );
     // casa fora do bunker agora é escolha do Mestre: vira aviso, não erro

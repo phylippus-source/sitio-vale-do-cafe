@@ -1,6 +1,7 @@
 // Gera plan/interativa.html: a página do arranjo manual do lote (dados + régua embutidos).
 import fs from 'node:fs';
 import { montarBundle } from './build-web.mjs';
+import { sobreMedidas } from './avaliar-arranjo.mjs';
 
 const lerJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 const S = lerJson('plan/site.json');
@@ -23,13 +24,19 @@ const arr = (id, nome, f) => {
     nome,
     itens: a.itens.map((i) => ({
       ...i,
-      giro: i.w !== S.itens.find((x) => x.id === i.id).w ? 1 : 0,
+      giro: i.w !== (a.medidas_alteradas?.[i.id]?.[0] ?? S.itens.find((x) => x.id === i.id).w) ? 1 : 0,
     })),
     estrada: a.estrada,
+    sobre: sobreMedidas(S, a),
     bunker: { x0: a.bunker.x, z0: a.bunker.z, w: a.bunker.w, d: a.bunker.d, giro: 1 },
   };
 };
 const opcoes = [
+  arr(
+    'mestre-22-11',
+    'M · Seu arranjo 22/11, encaixado (silvicultura e jazida encolhidas)',
+    'mestre-22-11-ajustado.json',
+  ),
   arr(
     'corrigido-a',
     'A · Seu esboço corrigido (mínimo de mudanças)',

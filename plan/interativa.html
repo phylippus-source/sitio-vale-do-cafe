@@ -1407,6 +1407,15 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
     fut = [];
   };
 
+  // fachada e entrada de serviço sempre voltadas para a Casa Grande (pedido do Mestre, 22/11):
+  // 0° = para cima na tela, 90° = direita, 180° = baixo, 270° = esquerda
+  const fachada = (it) => {
+    const c = itens.find((i) => i.id === 'casa');
+    if (!c || it === c) return 0;
+    const dx = c.x + c.w / 2 - (it.x + it.w / 2);
+    const dz = c.z + c.d / 2 - (it.z + it.d / 2);
+    return Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 90 : 270) : dz > 0 ? 180 : 0;
+  };
   let Sx = S; // medidas do plano, ou as encolhidas pelo Mestre naquela opção
   function carregar(id) {
     const o = opcoes.find((x) => x.id === id);
@@ -1521,7 +1530,7 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
           el('path', {
             d: `M${cx} ${cz - 1.2} l1 2 h-2 z`,
             class: 'seta',
-            transform: `rotate(${(it.giro || 0) * 90} ${cx} ${it.z + it.d / 2})`,
+            transform: `rotate(${fachada(it)} ${cx} ${it.z + it.d / 2})`,
           }),
         );
       }
@@ -1551,7 +1560,7 @@ return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, b
     d.setAttribute('y', cz + 2.6);
     if (seta) {
       seta.setAttribute('d', `M${cx} ${cz - 6.4} l1 2 h-2 z`);
-      seta.setAttribute('transform', `rotate(${(it.giro || 0) * 90} ${cx} ${cz})`);
+      seta.setAttribute('transform', `rotate(${fachada(it)} ${cx} ${cz})`);
     }
   }
   // seleciona sem destruir a planta (o dedo continua sobre o mesmo elemento)

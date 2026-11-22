@@ -8,9 +8,24 @@ import { custoViagens } from './lote-web.mjs';
 const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
 const B = JSON.parse(fs.readFileSync('plan/bunker.json', 'utf8'));
 
+// medidas alteradas só neste arranjo (o Mestre liberou encolher lotes): não mexe em plan/site.json
+export function sobreMedidas(S, a) {
+  const alt = a.medidas_alteradas || {};
+  if (!Object.keys(alt).length) return {};
+  const medidas = { ...S.medidas, ...alt };
+  const areas_plano = { ...S.areas_plano };
+  let total = 0;
+  for (const [id, [w, d]] of Object.entries(medidas)) {
+    if (id === 'quadras') total += 4 * S.quadras_internas.cada[0] * S.quadras_internas.cada[1];
+    else total += w * d;
+    if (alt[id] && areas_plano[id] !== undefined) areas_plano[id] = w * d;
+  }
+  return { medidas, areas_plano, total_itens: total };
+}
+
 export function avaliarArranjo(a) {
   const bk = a.bunker;
-  const S2 = { ...S, itens: a.itens, estrada: a.estrada };
+  const S2 = { ...S, itens: a.itens, estrada: a.estrada, ...sobreMedidas(S, a) };
   const r = conferirLote(S2, { u: bk.x, v: bk.z, w: bk.w, d: bk.d });
   const erros = r.erros.filter((e) => !/Casa Grande não está sobre o bunker/.test(e));
   const avisos = r.erros.filter((e) => /Casa Grande não está sobre o bunker/.test(e));

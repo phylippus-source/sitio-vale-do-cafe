@@ -16,6 +16,7 @@ def main():
     B = json.load(open("plan/bunker.json"))
     A = json.load(open(entrada))
     L, M = S["lote"], u(S["margem"])
+    CORR = u(float(sys.argv[sys.argv.index("--corrego") + 1])) if "--corrego" in sys.argv else M  # recuo do córrego (Mestre: 4 m)
     X1, X2, Z1, Z2 = u(L["x1"]), u(L["x2"]), u(L["z1"]), u(L["z2"])
     C1 = u(S["corrego"]["x1"])
     E = A["estrada"]
@@ -40,7 +41,7 @@ def main():
     for it in A["itens"]:
         w, d = u(it["w"]), u(it["d"])
         enc = "corrego" in it.get("encosta", [])
-        mover(it["id"], u(it["x"]), u(it["z"]), w, d, X1 + M, min(X2, C1 + (0 if enc else -M)) - w, Z1 + M, Z2 - M - d)
+        mover(it["id"], u(it["x"]), u(it["z"]), w, d, X1 + M, min(X2, C1 + (0 if enc else -CORR)) - w, Z1 + M, Z2 - M - d)
     bk = A["bunker"]
     dc = u(B["mundo"]["distancia_corrego"])
     mover("bunker", u(bk["x"]), u(bk["z"]), u(bk["w"]), u(bk["d"]), X1 + M, C1 - dc - u(bk["w"]), Z1 + M, Z2 - M - u(bk["d"]))

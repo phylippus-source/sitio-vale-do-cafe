@@ -16,7 +16,8 @@ def main():
     B = json.load(open("plan/bunker.json"))
     A = json.load(open(entrada))
     L, M = S["lote"], u(S["margem"])
-    CORR = u(float(sys.argv[sys.argv.index("--corrego") + 1])) if "--corrego" in sys.argv else M  # recuo do córrego (Mestre: 4 m)
+    MI = u(S.get("folga_itens", S["margem"]))  # folga entre itens (Mestre 18/11: 0 m)
+    CORR = u(float(sys.argv[sys.argv.index("--corrego") + 1])) if "--corrego" in sys.argv else u(S.get("corrego_dist", S["margem"]))  # recuo do córrego (Mestre: 4 m)
     X1, X2, Z1, Z2 = u(L["x1"]), u(L["x2"]), u(L["z1"]), u(L["z2"])
     C1 = u(S["corrego"]["x1"])
     E = A["estrada"]
@@ -76,10 +77,10 @@ def main():
                     m.add(p["x"] + U <= q["ex"]).only_enforce_if(lados[k])
                     m.add(q["x"] + U <= p["ex"]).only_enforce_if(lados[k])
             else:
-                m.add(p["ex"] + M <= q["x"]).only_enforce_if(lados[0])
-                m.add(q["ex"] + M <= p["x"]).only_enforce_if(lados[1])
-                m.add(p["ez"] + M <= q["z"]).only_enforce_if(lados[2])
-                m.add(q["ez"] + M <= p["z"]).only_enforce_if(lados[3])
+                m.add(p["ex"] + MI <= q["x"]).only_enforce_if(lados[0])
+                m.add(q["ex"] + MI <= p["x"]).only_enforce_if(lados[1])
+                m.add(p["ez"] + MI <= q["z"]).only_enforce_if(lados[2])
+                m.add(q["ez"] + MI <= p["z"]).only_enforce_if(lados[3])
             m.add_bool_or(lados)
 
     # reserva: retângulo que o Mestre deixou livre de propósito (espaço sobrando); nenhum item entra

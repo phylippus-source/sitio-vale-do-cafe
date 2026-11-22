@@ -129,8 +129,8 @@ export function conferirLote(S, bunker) {
       const g = gap(R(it), o);
       const enc = (it.encosta || []).includes(nome.replace('ó', 'o'));
       if (overlap(R(it), o)) err(`lote: ${it.id} invade a ${nome}`);
-      else if (g < S.margem - EPS && !enc)
-        err(`lote: ${it.id} fica a ${g.toFixed(1)} m da ${nome} (mínimo ${S.margem} m)`);
+      else if (g < (nome === 'córrego' ? (S.corrego_dist ?? S.margem) : S.margem) - EPS && !enc)
+        err(`lote: ${it.id} fica a ${g.toFixed(1)} m da ${nome} (mínimo ${nome === 'córrego' ? (S.corrego_dist ?? S.margem) : S.margem} m)`);
     }
     if (['arvore', 'escavacao'].includes(it.tipo) && overlap(R(it), bunker))
       err(`lote: ${it.id} (${it.tipo}) está sobre a projeção do bunker`);
@@ -146,9 +146,9 @@ export function conferirLote(S, bunker) {
           err(
             `lote: ${a.id} devia estar colado em ${b.id}, mas fica a ${gap(R(a), R(b)).toFixed(1)} m`,
           );
-      } else if (gap(R(a), R(b)) < S.margem - EPS)
+      } else if (gap(R(a), R(b)) < (S.folga_itens ?? S.margem) - EPS)
         err(
-          `lote: ${a.id} e ${b.id} ficam a ${gap(R(a), R(b)).toFixed(1)} m (mínimo ${S.margem} m)`,
+          `lote: ${a.id} e ${b.id} ficam a ${gap(R(a), R(b)).toFixed(1)} m (mínimo ${S.folga_itens ?? S.margem} m)`,
         );
     }
   const casa = byId.get('casa');

@@ -59,6 +59,8 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=
     ox, oz = L["x1"], L["z1"]  # origem do modelo: canto do lote
     W, D = u(L["x2"] - L["x1"]), u(L["z2"] - L["z1"])
     marg = u(S["margem"])
+    folga = u(S.get("folga_itens", S["margem"]))  # entre itens
+    dcorr = u(S.get("corrego_dist", S["margem"]))  # do córrego
     m = cp_model.CpModel()
     v = {}
     # com mover=True o conjunto fixo (casa, puxadinho, engenho e a projeção do bunker) pode andar junto em z
@@ -107,16 +109,16 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=
         for b in ids[i + 1:]:
             if v[a]["fixo"] and v[b]["fixo"]:
                 continue  # fixos já estão onde estão; a régua os confere
-            separados(v[a], v[b], marg, f"sep_{a}_{b}")
+            separados(v[a], v[b], folga, f"sep_{a}_{b}")
     for nome, o in (("estrada", S["estrada"]), ("corrego", dict(x1=S["corrego"]["x1"], x2=S["corrego"]["x2"], z1=L["z1"], z2=L["z2"]))):
         r = fixa(nome, u(o["x1"] - ox), u(o["z1"] - oz), u(o["x2"] - o["x1"]), u(o["z2"] - o["z1"]))
         for a in ids:
             if not v[a]["fixo"]:
-                separados(v[a], r, marg, f"obs_{nome}_{a}")
+                separados(v[a], r, dcorr if nome == "corrego" else marg, f"obs_{nome}_{a}")
             elif mover:
                 it = next(i for i in S["itens"] if i["id"] == a)
                 encosta = nome in (it.get("encosta") or [])
-                separados(v[a], r, 0 if encosta else marg, f"obs_{nome}_{a}")
+                separados(v[a], r, 0 if encosta else (dcorr if nome == "corrego" else marg), f"obs_{nome}_{a}")
 
     if mover:  # o conjunto fixo continua dentro do lote, a 2 m da divisa
         for r in [v[i] for i in ids if v[i]["fixo"]] + [fixa("bunker", u(bunker["u"] - ox), u(bunker["v"] - oz), u(bunker["w"]), u(bunker["d"]), anda=True)]:

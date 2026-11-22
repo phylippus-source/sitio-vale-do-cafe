@@ -68,13 +68,13 @@ export function barreiras(S, estrada) {
   const L = S.lote,
     E = estrada || S.estrada;
   return [
-    { x: S.corrego.x1, z: L.z1, w: S.corrego.x2 - S.corrego.x1, d: L.z2 - L.z1 },
-    { x: E.x1, z: E.z1, w: E.x2 - E.x1, d: E.z2 - E.z1 },
+    { x: S.corrego.x1, z: L.z1, w: S.corrego.x2 - S.corrego.x1, d: L.z2 - L.z1, m: S.corrego_dist ?? S.margem },
+    { x: E.x1, z: E.z1, w: E.x2 - E.x1, d: E.z2 - E.z1, m: S.margem },
   ];
 }
 
 // Posição final do item `it` quando o Mestre o solta perto de (x, z): ímã nas bordas vizinhas
-// (folga S.margem, ou alinhado) e na divisa; sem ímã por perto, vai para a grade de 5 m.
+// (folga por tipo: itens, córrego, estrada; ou alinhado) e na divisa; sem ímã por perto, vai para a grade de 5 m.
 export function encaixar(it, x, z, S, outros, estrada, { ima = true } = {}) {
   const L = S.lote,
     M = S.margem;
@@ -96,8 +96,9 @@ export function encaixar(it, x, z, S, outros, estrada, { ima = true } = {}) {
       for (const o of alvos) {
         if (!perto(o)) continue;
         const [a, b] = [o[ini], o[ini] + o[fim]];
-        tenta(a - M - tam);
-        tenta(b + M);
+        const mo = o.m ?? S.folga_itens ?? M; // folga própria: córrego 4, estrada 2, entre itens 0
+        tenta(a - mo - tam);
+        tenta(b + mo);
         if ((it.colado || []).includes(o.id) || (o.colado || []).includes(it.id)) {
           tenta(a - tam); // item colado: o ímã também aceita encostar de vez
           tenta(b);
@@ -109,9 +110,10 @@ export function encaixar(it, x, z, S, outros, estrada, { ima = true } = {}) {
     const c = melhor ?? lo + Math.round((pos - lo) / GRADE) * GRADE;
     return arred(Math.min(Math.max(c, minimo), maximo));
   };
-  const vizinhoZ = (zz) => (o) => zz < o.z + o.d + M + CAPTURA && zz + it.d > o.z - M - CAPTURA;
+  const fo = (o) => o.m ?? S.folga_itens ?? M;
+  const vizinhoZ = (zz) => (o) => zz < o.z + o.d + fo(o) + CAPTURA && zz + it.d > o.z - fo(o) - CAPTURA;
   const nx = eixo(x, it.w, L.x1, L.x2, 'x', 'w', vizinhoZ(z));
-  const vizinhoX = (o) => nx < o.x + o.w + M + CAPTURA && nx + it.w > o.x - M - CAPTURA;
+  const vizinhoX = (o) => nx < o.x + o.w + fo(o) + CAPTURA && nx + it.w > o.x - fo(o) - CAPTURA;
   const nz = eixo(z, it.d, L.z1, L.z2, 'z', 'd', vizinhoX);
   return { x: nx, z: nz };
 }

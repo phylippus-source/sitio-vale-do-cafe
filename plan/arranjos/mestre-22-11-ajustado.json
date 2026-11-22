@@ -1,5 +1,5 @@
 {
- "nome": "Arranjo do Mestre 22/11, ajustado (silvicultura 20×27,5; jazida 20×25; córrego a 4 m)",
+ "nome": "Arranjo do Mestre 22/11, ajustado (silvicultura 20×27,5; jazida 20×25; córrego a 4 m) — corrigido (deslocamento mínimo)",
  "estrada": {
   "x1": -50,
   "x2": 43,
@@ -7,15 +7,15 @@
   "z2": 2.5
  },
  "bunker": {
-  "x": -5,
-  "z": -35,
+  "x": -5.0,
+  "z": -35.0,
   "w": 32,
   "d": 48
  },
  "itens": [
   {
    "id": "casa",
-   "x": 9,
+   "x": 7.0,
    "z": -29.5,
    "w": 25,
    "d": 25,
@@ -23,7 +23,7 @@
   },
   {
    "id": "engenho",
-   "x": 23,
+   "x": 23.0,
    "z": 4.5,
    "w": 20,
    "d": 10,
@@ -34,39 +34,39 @@
   },
   {
    "id": "quadras",
-   "x": -48,
-   "z": 18,
+   "x": -48.0,
+   "z": 18.0,
    "w": 65,
    "d": 55,
    "tipo": "lavoura"
   },
   {
    "id": "nucleo",
-   "x": -11,
-   "z": -73,
+   "x": -11.0,
+   "z": -73.0,
    "w": 25,
    "d": 30,
    "tipo": "lavoura"
   },
   {
    "id": "estufa",
-   "x": -11,
-   "z": -41,
+   "x": -11.0,
+   "z": -41.0,
    "w": 7.5,
    "d": 20,
    "tipo": "predio"
   },
   {
    "id": "pomar",
-   "x": -38,
-   "z": -73,
+   "x": -38.0,
+   "z": -73.0,
    "w": 25,
    "d": 40,
    "tipo": "arvore"
   },
   {
    "id": "silvicultura",
-   "x": 19,
+   "x": 19.0,
    "z": 16.5,
    "w": 20,
    "d": 27.5,
@@ -74,23 +74,23 @@
   },
   {
    "id": "bambuzal",
-   "x": 16,
-   "z": -73,
+   "x": 14.0,
+   "z": -73.0,
    "w": 25,
    "d": 25,
    "tipo": "arvore"
   },
   {
    "id": "animais",
-   "x": -28,
-   "z": -31,
+   "x": -28.0,
+   "z": -31.0,
    "w": 15,
    "d": 15,
    "tipo": "predio"
   },
   {
    "id": "puxadinho",
-   "x": 34,
+   "x": 32.0,
    "z": -29.5,
    "w": 7,
    "d": 20,
@@ -101,7 +101,7 @@
   },
   {
    "id": "galpao",
-   "x": 6,
+   "x": 6.0,
    "z": 4.5,
    "w": 15,
    "d": 10,
@@ -109,8 +109,8 @@
   },
   {
    "id": "jazida",
-   "x": 19,
-   "z": 46,
+   "x": 19.0,
+   "z": 46.0,
    "w": 20,
    "d": 25,
    "tipo": "escavacao"

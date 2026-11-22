@@ -3,6 +3,8 @@
   "mundo": { "nota": "x e z em metros, mesmas coordenadas do modelo; z cresce em direção à estrada e ao núcleo Sisteminha (norte, pela convenção do código)." },
   "lote": { "x1": -50, "x2": 50, "z1": -75, "z2": 75 },
   "margem": 2,
+  "folga_itens": 0,
+  "corrego_dist": 4,
   "estrada": { "x1": -50, "x2": 43, "z1": 25.5, "z2": 30.5 },
   "corrego": { "x1": 43, "x2": 48 },
   "total_itens": 7990,

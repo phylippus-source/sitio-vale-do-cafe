@@ -1,0 +1,50 @@
+{
+  "nota": "E2 — recursos de energia do sítio. Cada número: fonte ou 'chute'. null = não achado, precisa medir/buscar.",
+  "local": {
+    "latitude": -22.404,
+    "longitude": "chute ≈ -43.66 (Vassouras RJ; latitude do plano bate com Vassouras; CONFIRMAR com o Mestre)"
+  },
+  "solar": {
+    "irradiacao_pior_mes_kWh_m2_dia": null,
+    "irradiacao_media_kWh_m2_dia": null,
+    "status": "NASA POWER e PVGIS bloqueados (robots). CRESESB SunData é formulário, sem API. Pendente: Mestre consulta cresesb.cepel.br/sundata (lat -22.404, lon ≈ -43.66) e informa plano inclinado, pior mês.",
+    "fonte_a_usar": "https://cresesb.cepel.br/sundata/"
+  },
+  "vento": {
+    "velocidade_media_m_s": null,
+    "status": "não achado (Atlas Eólico RJ PDF falhou). Pendente: Atlas Eólico RJ/INMET. Medir no local (anemômetro) antes de projetar eólica."
+  },
+  "corrego": {
+    "vazao_L_s": null,
+    "queda_m": null,
+    "status": "precisa medir no local (balde+cronômetro, nível). Sem isso, micro-hídrica = 0 no projeto."
+  },
+  "biogas": {
+    "teor_metano_pct": {"v": 60, "fonte": "Embrapa SDoc1961 p.19/22 (premissa)"},
+    "metano_m3_por_kgSV": {
+      "suino": {"v": [0.29, 0.50], "fonte": "Embrapa SDoc1961 Tab.1/3 (IPCC/Chen); adotado BiogásFert 0.32 (Tab.28)"},
+      "bovino_leite": {"v": [0.13, 0.21], "fonte": "Embrapa SDoc1961 Tab.1/3/27"},
+      "bovino_corte": {"v": [0.10, 0.25], "fonte": "Embrapa SDoc1961 Tab.1/3/27"}
+    },
+    "medido_granja_suino": {"v": "≈0.14 m³ biogás/animal/dia", "fonte": "Embrapa SDoc1961 p.43 (701 m³/dia ÷ 5000 animais; cálculo derivado)"},
+    "caprino": {"v": "0.04–0.06 m³ biogás/kg esterco", "fonte": "CETESB 4_biodigestao_caprinos (resumo cita 0.2, conflito, conferir)"},
+    "poder_calorifico_biogas": null,
+    "pendente": "PC do biogás; esterco/dia por espécie do plano (animais do sítio ainda não fechados em número)"
+  },
+  "biomassa": {
+    "eucalipto": {
+      "produtividade_m3_ha_ano": {"v": 35, "fonte": "Embrapa Florestas 2021 cap.26 p.954 (>35 com chuva ≥1000 mm); clone 46 p.955"},
+      "densidade_basica_g_cm3": {"v": 0.40, "fonte": "idem p.955 (clone baixa densidade, 7 anos)"},
+      "umidade_lenha_seca_ar_pct": {"v": "15–25", "fonte": "idem p.956 (6–12 meses)"},
+      "pcs_MJ_kg": null
+    },
+    "bambu": {
+      "pcs_MJ_kg": {"v": "17–18.7", "fonte": "UnB (E2 rodada anterior)"},
+      "densidade_kg_m3": {"v": "505–716", "fonte": "UnB"}
+    },
+    "area_silvicultura_m2": 550,
+    "obs": "550 m² de silvicultura é ~0,055 ha: com 35 m³/ha/ano ≈ 1,9 m³/ano de madeira (conta direta; ordem de grandeza pequena vs térmico 141 kWh/dia)."
+  },
+  "calor_do_solo": {"temperatura_c": null, "status": "não pesquisado; bunker a −10 m tende à média anual do local (chute físico, medir)."},
+  "demanda_ref": {"eletrico_kWh_dia": 444, "armazenamento_3d_kWh": 1333, "termico_kWh_dia": 141, "fonte": "plan/energia-cargas.json (E1)"}
+}

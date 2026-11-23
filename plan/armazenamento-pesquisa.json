@@ -130,5 +130,48 @@
     "fabricante nacional de NiFe (nenhum achado)",
     "vento, vazão/queda do córrego, temperatura do solo",
     "vida real de NiFe e OPzS em Vassouras (calor)"
-  ]
+  ],
+  "novas_tecnologias_inovacao_tecnologica": {
+    "nota": "Leitura parcial em 23/11 (limite de tokens estourou). Tudo abaixo é laboratório, não produto. 'lido' = artigo lido; 'a_ler' = só o título visto na busca.",
+    "lido": [
+      {
+        "tec": "fluxo redox de ferro, eletrólito água+fosfonato (NTMPA), pH neutro",
+        "quem": "PNNL (EUA), 2024",
+        "numeros": "98,7% da capacidade após 1000 ciclos; ~87% eficiência energética; densidade e custo: sem número",
+        "estagio": "laboratório",
+        "ref": "Nature Communications 15, 2566, DOI 10.1038/s41467-024-45862-3",
+        "url": "https://www.inovacaotecnologica.com.br/noticias/noticia.php?artigo=bateria-fluxo-ferro-totalmente-liquida-armazena-energias-renovaveis&id=010115240409"
+      },
+      {
+        "tec": "sódio-íon com cátodo de vanadato de sódio hidratado, também dessaliniza água do mar",
+        "quem": "Univ. de Surrey (RU), 03/2026",
+        "numeros": ">400 ciclos; sem eficiência, Wh/kg nem custo",
+        "estagio": "laboratório",
+        "ref": "J. Mater. Chem. A, DOI 10.1039/d5ta05128b",
+        "url": "https://www.inovacaotecnologica.com.br/noticias/noticia.php?artigo=bateria-sodio-dessalinizacao&id=010115260306"
+      },
+      {
+        "tec": "gravidade em montanha (areia, cascalho ou água levados ao topo)",
+        "quem": "Hunt et al., 2019",
+        "numeros": "sem eficiência, custo, capacidade",
+        "estagio": "conceito/simulação",
+        "ref": "Energy (Elsevier); a notícia cita Nature Energy, conferir",
+        "url": "https://www.inovacaotecnologica.com.br/noticias/noticia.php?artigo=energia-armazenada-montanhas-usando-areia"
+      }
+    ],
+    "a_ler": [
+      "baterias-base-agua-tem-capacidade-muito-maior-se-calculava&id=010115230405",
+      "bateria-zinco-agua-bambu&id=010115260114 (>1000 ciclos, 2026)",
+      "bateria-ferrugem&id=010115260213 (melhora com o tempo, 2026)",
+      "baterias-zinco-superam-casa-100-mil-ciclos&id=010115241104",
+      "baterias-agua-prometem-eliminar-riscos-incendio&id=010115240223",
+      "baterias-base-agua-usam-zinco-hidrogenio&id=010115260831",
+      "bateria-zinco-madeira-dura-muito-custa-pouco&id=010115240517",
+      "bateria-sodio-enxofre&id=020115221213",
+      "bateria-termal-armazena-calor-sem-esquentar&id=010170120608",
+      "ar-comprimido-guarda-energia-solar-eolica-rochas-subterraneas&id=010115130606",
+      "baterias-captura-carbono-armazenam-energia-renovavel-ajudam-clima&id=010115240524"
+    ],
+    "base_url": "https://www.inovacaotecnologica.com.br/noticias/noticia.php?artigo="
+  }
 }

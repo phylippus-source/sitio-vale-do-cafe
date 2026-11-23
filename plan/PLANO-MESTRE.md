@@ -24,13 +24,13 @@ Cada etapa termina com testes, commit, relatório curto e parada até o seu "seg
 
 ## 2. Painel de progresso
 
-Em 15/11/2026 as etapas T1, A1 e A2 estão concluídas e a B0 está quase fechada: bunker ±2,5 m (48×32) e lote Equilíbrio aprovados; falta a parte B0-5e (estrada na divisa, bloco livre único e caminhos ramificados). O Bloco E (energia) começou: E1 feita. Marque cada etapa ao terminá-la.
+Em 23/11/2026 as etapas T1, A1, A2 e B0 estão concluídas: o Mestre escolheu o arranjo M do lote (captura de 22/11) e o bunker ±2,5 m (48×32) girado 90°. O Bloco E (energia) começou: E1 feita; a próxima é a E2. As Pranchas e este documento no Claude Docs ainda mostram as opções antigas. Marque cada etapa ao terminá-la.
 
 - M0 — Fases 0 a 4: rede de segurança, estrutura, modernização, dados e núcleo (último commit: 9dd563f)
 - T1 — Rede de testes reforçada (último commit: 3b1c33e)
 - A1 — Renomeação em inglês (último commit: 5c7f8b5)
 - A2 — Divisão do mundo em módulos (Marco 1) (último commit: d70644f)
-- B0 — Pranchas de projeto, com aprovação do Mestre (bunker e lote aprovados em 14/11, em aberto a B0-5e (estrada na divisa, bloco livre único, caminhos); último commit: 0c42245)
+- B0 — Pranchas de projeto, com aprovação do Mestre (concluída em 23/11: lote = arranjo M, bunker ±2,5 m girado 90° em x −5, z −35)
 - B1 — Bunker: casca, cotas e circulação
 - B2 — Bunker: ala privada
 - B3 — Bunker: convivência e armazenagem
@@ -271,6 +271,7 @@ Notas de operação:
 
 Mais recente primeiro. Cada etapa concluída ganha uma linha com data, commit, resultado dos testes, número de passos e tempo gasto.
 
+- 23/11/2026 — B0 fechada (B0-6): o Mestre escolheu o arranjo M (captura de 22/11, silvicultura encolhida para 20×27,5) e confirmou folga de 0 m entre itens, com 0 a 2,5 m para reajustar quando preciso (`folga_reajuste`, ainda sem uso no código). `plan/site.json` agora tem os itens e a estrada de M; `plan/bunker.json` ganhou `mundo.giro = 1` (planta girada 90° no sentido horário, x0 −5, z0 −35) e a régua do bunker (`tools/layout-lib.mjs`) aplica o giro; a Casa Grande não prende mais o bunker (só aviso). Só a opção de bunker escolhida é cobrada no mundo (escotilha ≥10 m da casa e ≥2 m dos itens, córrego a 5 m); o plano nominal de 50×40 e as opções exato e ±1 m não cabem na escotilha neste lote. `plan/lote-opcoes.json` ficou só com M; as outras opções e arranjos do solver (S1, S2) estão no git e em `plan/arranjos/`. Regras testadas contra o plano congelado em `tests/fixtures/`; o plano adotado, em `tests/unit/plano.test.js`. Testes unitários 198 ok; `layout-check` ok; `npm test` só falha o golden (3 imagens com diferença de 0,6–0,8%, as mesmas sem as mudanças de hoje). `tools/pack-bunker.py` ainda não conhece o giro.
 - 15/11/2026 — B0-5e-4a feita (commit 0c42245): Prancha 2 republicada (v5) com o plano atual e três variantes da estrada na divisa do lote (A frente, B oeste, C fundos) e métricas; viagens 1005, 1055 e 1005 contra 1062 do plano atual. Pendentes: opção com todo o espaço livre num bloco só, rede de caminhos ramificados com atalhos e a escolha do Mestre.
 - 14/11/2026 — Bloco E iniciado: E1a e E1b feitas (commits 565bf2b e 9d9123e) e hidroponia ajustada para 100 m² (bc3eda2). 28 cargas elétricas e 5 térmicas: 444 kWh/dia elétricos e 141 kWh/dia térmicos [estimativa]; armazenamento mínimo de 3 dias: 1.333 kWh elétricos e 423 kWh térmicos. Planilha plan/energia-cargas.xlsx com 118 fórmulas.
 - 14/11/2026 — B0-4 e B0-5 por solver CP-SAT: bunker ±2,5 m (48×32, 1.536 m², commit 1d46188) e lote Equilíbrio (viagens 1062 contra 1136; sombra no núcleo 0,4 h; commit 8f37ec6), aprovados pelo Mestre; puxadinho da piscina 7×20 no lote (a60185d). Ferramentas: tools/pack-bunker.py, pack-lote.py, layout-lib.mjs e lote-lib.mjs. Limite medido na B0-5e-2: com a estrada no meio só sobram 4,5 m de profundidade livre (12 m se a casa e o bunker andarem 2,5 m); com a estrada na divisa, cerca de 19 m.

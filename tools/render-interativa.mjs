@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import { montarBundle } from './build-web.mjs';
 import { sobreMedidas } from './avaliar-arranjo.mjs';
+import { bunkerDoLote } from './lote-lib.mjs';
 
 const lerJson = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
 const S = lerJson('plan/site.json');
@@ -9,6 +10,7 @@ const B = lerJson('plan/bunker.json');
 const esc = lerJson('plan/bunker-opcoes.json');
 const lote = lerJson('plan/lote-opcoes.json');
 const pg = esc.opcoes.find((o) => o.id === esc.escolhida).pegada;
+const bu = bunkerDoLote(B, pg); // projeção do bunker no lote (com giro)
 const nomes = {
   'espinha-total': '1 · Espinha até o córrego',
   'espinha-meio': '2 · Espinha até o meio',
@@ -68,7 +70,7 @@ const opcoes = [
 ];
 const dados = {
   S,
-  bunker: { x0: B.mundo.x0, z0: B.mundo.z0, w: pg.w, d: pg.d, dc: B.mundo.distancia_corrego },
+  bunker: { x0: bu.u, z0: bu.v, w: bu.w, d: bu.d, dc: B.mundo.distancia_corrego },
   opcoes,
 };
 const json = JSON.stringify(dados).replace(/</g, '\\u003c');

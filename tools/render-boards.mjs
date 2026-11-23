@@ -1,7 +1,7 @@
 // Gera plan/pranchas.html (duas pranchas em SVG) a partir de plan/bunker.json e plan/site.json.
 import fs from 'node:fs';
-import { conferirBase, conferirOpcao } from './layout-lib.mjs';
-import { conferirLote } from './lote-lib.mjs';
+import { conferirBase, conferirOpcao, paraMundo } from './layout-lib.mjs';
+import { conferirLote, bunkerDoLote } from './lote-lib.mjs';
 import { tracarCaminhos } from './caminhos-lib.mjs';
 const B = JSON.parse(fs.readFileSync('plan/bunker.json', 'utf8'));
 const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
@@ -54,7 +54,11 @@ function planta(o) {
 const defs = `<svg class="defs" aria-hidden="true"><defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" class="hl"/></pattern></defs></svg>`;
 const base = { id: 'atual', nome: 'Plano atual (referência)', pegada: B.pegada, salas: B.salas };
 const cols = [...OP, base];
-const met = cols.map((o) => (o === base ? conferirBase(B, S) : conferirOpcao(B, o, S)));
+const met = cols.map((o) =>
+  o === base
+    ? conferirBase(B, S, { semMundo: true })
+    : conferirOpcao(B, o, S, { semMundo: o.id !== OPJ.escolhida }),
+);
 const bad = met.filter((r) => r.erros.length);
 if (bad.length) throw new Error('opção com erro na régua: ' + bad[0].erros[0]);
 const mt = met.map((r) => r.metricas);
@@ -77,7 +81,8 @@ const medRows = [
     'Escotilha (x; z em m)',
     (m, o) => {
       const e = hatch(o);
-      return `${f(B.mundo.x0 + e.u)}; ${f(B.mundo.z0 + e.v)}`;
+      const w = paraMundo(B, o.pegada || B.pegada, e);
+      return `${f(w.x)}; ${f(w.z)}`;
     },
   ],
 ]
@@ -106,6 +111,7 @@ const [mE, m1, m2o] = mt;
 const LJ = JSON.parse(fs.readFileSync('plan/lote-opcoes.json', 'utf8'));
 const esc2 = OP.find((o) => o.id === OPJ.escolhida) || { pegada: B.pegada };
 const pg = esc2.pegada;
+const bk = bunkerDoLote(B, pg); // projeção do bunker no lote (com giro)
 const L = S.lote;
 const k2 = 4,
   p2 = 18;
@@ -133,7 +139,7 @@ function lotePlanta(o, cam) {
   t += `<rect x="${X(L.x1)}" y="${Z(L.z1)}" width="${(L.x2 - L.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="lote"/>`;
   t += `<rect x="${X(E.x1)}" y="${Z(E.z1)}" width="${Math.max(1, (E.x2 - E.x1) * k2)}" height="${Math.max(1, (E.z2 - E.z1) * k2)}" class="estrada"/>`;
   t += `<rect x="${X(C.x1)}" y="${Z(L.z1)}" width="${(C.x2 - C.x1) * k2}" height="${(L.z2 - L.z1) * k2}" class="corrego"/>`;
-  t += `<rect x="${X(B.mundo.x0)}" y="${Z(B.mundo.z0 + dz)}" width="${pg.w * k2}" height="${pg.d * k2}" class="bunk"/>`;
+  t += `<rect x="${X(bk.u)}" y="${Z(bk.v + dz)}" width="${bk.w * k2}" height="${bk.d * k2}" class="bunk"/>`;
   if (o.bloco)
     t += `<rect x="${X(o.bloco.x)}" y="${Z(o.bloco.z)}" width="${o.bloco.w * k2}" height="${o.bloco.d * k2}" class="bloco"/><text x="${X(o.bloco.x) + (o.bloco.w * k2) / 2}" y="${Z(o.bloco.z) + (o.bloco.d * k2) / 2}" class="tick" text-anchor="middle" dominant-baseline="middle">livre ${f(o.bloco.w)}×${f(o.bloco.d)}</text>`;
   if (cam) {
@@ -181,7 +187,7 @@ const curto = (id) => (nomes2[id].split(' · ')[1] ? nomes2[id].split(' · ')[0]
 const met2 = refs.map((o) => {
   const m = conferirLote(
     { ...S, itens: o.itens, estrada: o.estrada || S.estrada, bloco: o.bloco },
-    { u: B.mundo.x0, v: B.mundo.z0 + (o.dz_bunker || 0), w: pg.w, d: pg.d },
+    { ...bk, v: bk.v + (o.dz_bunker || 0) },
   );
   const cam = tracarCaminhos(S, o);
   const zmin = Math.min(...o.itens.map((i) => i.z)),

@@ -1,119 +1,115 @@
 {
- "nome": "Arranjo do Mestre 22/11 (captura de tela, ±0,5 m)",
- "estrada": {
-  "x1": -50,
-  "x2": 43,
-  "z1": -2.5,
-  "z2": 2.5
- },
- "bunker": {
-  "x": -5,
-  "z": -35,
-  "w": 32,
-  "d": 48
- },
- "itens": [
-  {
-   "id": "casa",
-   "x": 9,
-   "z": -29.5,
-   "w": 25,
-   "d": 25,
-   "tipo": "predio"
+  "nome": "Arranjo do Mestre 22/11 (captura de tela, ±0,5 m)",
+  "estrada": {
+    "x1": -50,
+    "x2": 43,
+    "z1": -2.5,
+    "z2": 2.5
   },
-  {
-   "id": "engenho",
-   "x": 23,
-   "z": 4.5,
-   "w": 20,
-   "d": 10,
-   "tipo": "predio",
-   "encosta": [
-    "corrego"
-   ]
+  "bunker": {
+    "x": -5,
+    "z": -35,
+    "w": 32,
+    "d": 48
   },
-  {
-   "id": "quadras",
-   "x": -48,
-   "z": 18,
-   "w": 65,
-   "d": 55,
-   "tipo": "lavoura"
-  },
-  {
-   "id": "nucleo",
-   "x": -11,
-   "z": -73,
-   "w": 25,
-   "d": 30,
-   "tipo": "lavoura"
-  },
-  {
-   "id": "estufa",
-   "x": -11,
-   "z": -41,
-   "w": 7.5,
-   "d": 20,
-   "tipo": "predio"
-  },
-  {
-   "id": "pomar",
-   "x": -38,
-   "z": -73,
-   "w": 25,
-   "d": 40,
-   "tipo": "arvore"
-  },
-  {
-   "id": "silvicultura",
-   "x": 20,
-   "z": 26,
-   "w": 25,
-   "d": 25,
-   "tipo": "arvore"
-  },
-  {
-   "id": "bambuzal",
-   "x": 16,
-   "z": -73,
-   "w": 25,
-   "d": 25,
-   "tipo": "arvore"
-  },
-  {
-   "id": "animais",
-   "x": -28,
-   "z": -31,
-   "w": 15,
-   "d": 15,
-   "tipo": "predio"
-  },
-  {
-   "id": "puxadinho",
-   "x": 34,
-   "z": -29.5,
-   "w": 7,
-   "d": 20,
-   "tipo": "predio",
-   "colado": [
-    "casa"
-   ]
-  },
-  {
-   "id": "galpao",
-   "x": 6,
-   "z": 6,
-   "w": 15,
-   "d": 10,
-   "tipo": "predio"
-  },
-  {
-   "id": "jazida",
-   "x": 20,
-   "z": 53,
-   "w": 25,
-   "d": 20,
-   "tipo": "escavacao"
-  }
- ]
+  "itens": [
+    {
+      "id": "casa",
+      "x": 9,
+      "z": -29.5,
+      "w": 25,
+      "d": 25,
+      "tipo": "predio"
+    },
+    {
+      "id": "engenho",
+      "x": 23,
+      "z": 4.5,
+      "w": 20,
+      "d": 10,
+      "tipo": "predio",
+      "encosta": ["corrego"]
+    },
+    {
+      "id": "quadras",
+      "x": -48,
+      "z": 18,
+      "w": 65,
+      "d": 55,
+      "tipo": "lavoura"
+    },
+    {
+      "id": "nucleo",
+      "x": -11,
+      "z": -73,
+      "w": 25,
+      "d": 30,
+      "tipo": "lavoura"
+    },
+    {
+      "id": "estufa",
+      "x": -11,
+      "z": -41,
+      "w": 7.5,
+      "d": 20,
+      "tipo": "predio"
+    },
+    {
+      "id": "pomar",
+      "x": -38,
+      "z": -73,
+      "w": 25,
+      "d": 40,
+      "tipo": "arvore"
+    },
+    {
+      "id": "silvicultura",
+      "x": 20,
+      "z": 26,
+      "w": 25,
+      "d": 25,
+      "tipo": "arvore"
+    },
+    {
+      "id": "bambuzal",
+      "x": 16,
+      "z": -73,
+      "w": 25,
+      "d": 25,
+      "tipo": "arvore"
+    },
+    {
+      "id": "animais",
+      "x": -28,
+      "z": -31,
+      "w": 15,
+      "d": 15,
+      "tipo": "predio"
+    },
+    {
+      "id": "puxadinho",
+      "x": 34,
+      "z": -29.5,
+      "w": 7,
+      "d": 20,
+      "tipo": "predio",
+      "colado": ["casa"]
+    },
+    {
+      "id": "galpao",
+      "x": 6,
+      "z": 6,
+      "w": 15,
+      "d": 10,
+      "tipo": "predio"
+    },
+    {
+      "id": "jazida",
+      "x": 20,
+      "z": 53,
+      "w": 25,
+      "d": 20,
+      "tipo": "escavacao"
+    }
+  ]
 }

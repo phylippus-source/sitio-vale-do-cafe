@@ -28,15 +28,24 @@ export const gap = (a, b) =>
 const porId = (salas) => new Map(salas.map((s) => [s.id, s]));
 const num = (x) => typeof x === 'number' && Number.isFinite(x);
 
-/* o que o bunker herda do lote (plan/site.json): limites, córrego e a Casa Grande na grade do bunker */
-export function contextoLote(P, S) {
-  const c = S.itens.find((i) => i.id === 'casa');
-  return {
-    lote: S.lote,
-    corregoX: S.corrego.x1,
-    itens: S.itens,
-    casa: c ? { u: c.x - P.mundo.x0, v: c.z - P.mundo.z0, w: c.w, d: c.d } : null,
-  };
+/* o que o bunker herda do lote (plan/site.json): limites, córrego e itens (a casa não prende mais o bunker: 18/11) */
+export function contextoLote(P, S, { semMundo = false } = {}) {
+  return { lote: S.lote, corregoX: S.corrego.x1, itens: S.itens, semMundo };
+}
+
+/* O bunker pode estar girado 90° no lote (mundo.giro = 1, sentido horário na planta, z para baixo): as salas
+   continuam em u, v da planta e só o mundo gira (Mestre, arranjo M de 22/11). */
+export const girado = (P) => (P.mundo.giro || 0) % 2 === 1;
+
+/* pegada da planta (w, d) vista do mundo */
+export const pegadaMundo = (P, F) => (girado(P) ? { w: F.d, d: F.w } : { w: F.w, d: F.d });
+
+/* retângulo da planta (u, v, w, d) no mundo (x, z, w, d) */
+export function paraMundo(P, F, r) {
+  const { x0, z0 } = P.mundo;
+  return girado(P)
+    ? { x: x0 + F.d - (r.v + r.d), z: z0 + r.u, w: r.d, d: r.w }
+    : { x: x0 + r.u, z: z0 + r.v, w: r.w, d: r.d };
 }
 
 /* ---------- o próprio plano: ids e valores das regras ---------- */
@@ -67,7 +76,8 @@ export function conferirPlano(P) {
   const T = P.tolerancia;
   if (T) {
     (T.nao_encolhem || []).forEach((id) => existe('tolerancia.nao_encolhem', id));
-    if (!(T.area_min > 0 && T.area_min <= 1)) erros.push('tolerancia.area_min deve estar entre 0 e 1');
+    if (!(T.area_min > 0 && T.area_min <= 1))
+      erros.push('tolerancia.area_min deve estar entre 0 e 1');
     const vistos = new Set();
     for (const c of T.cenarios || []) {
       if (vistos.has(c.id)) erros.push(`tolerancia.cenarios: id repetido "${c.id}"`);
@@ -79,7 +89,8 @@ export function conferirPlano(P) {
       erros.push('tolerancia.lado_min precisa de ambiente e circulacao');
     if (!T.pegada_max || !num(T.pegada_max.w) || !num(T.pegada_max.d))
       erros.push('tolerancia.pegada_max precisa de w e d');
-    if (P.extras && Object.keys(P.extras).length && !T.ramal) erros.push('tolerancia.ramal ausente');
+    if (P.extras && Object.keys(P.extras).length && !T.ramal)
+      erros.push('tolerancia.ramal ausente');
   }
   if (!num(P.mundo.distancia_corrego)) erros.push('mundo.distancia_corrego ausente');
   return erros;
@@ -113,10 +124,12 @@ function conferirMedidasBase(P, salas) {
   for (const [id, [w, d]] of Object.entries(P.extras || {})) {
     const s = byId.get(id);
     if (!s) erros.push('falta o extra ' + id);
-    else if (s.w !== w || s.d !== d) erros.push(`extra ${id} mede ${s.w}×${s.d}, esperado ${w}×${d}`);
+    else if (s.w !== w || s.d !== d)
+      erros.push(`extra ${id} mede ${s.w}×${s.d}, esperado ${w}×${d}`);
   }
   for (const id of byId.keys())
-    if (!(id in P.medidas) && !(id in (P.extras || {}))) erros.push('ambiente fora do plano: ' + id);
+    if (!(id in P.medidas) && !(id in (P.extras || {})))
+      erros.push('ambiente fora do plano: ' + id);
   for (const id of Object.keys(P.areas)) if (!byId.has(id)) erros.push('nome sem ambiente: ' + id);
   return { erros, total };
 }
@@ -125,7 +138,13 @@ function conferirMedidasBase(P, salas) {
 function medidaFlexivel(P, s, lado) {
   const T = P.tolerancia;
   const [w0, d0] = P.medidas[s.id];
-  const orientacoes = T.giro === false ? [[w0, d0]] : [[w0, d0], [d0, w0]];
+  const orientacoes =
+    T.giro === false
+      ? [[w0, d0]]
+      : [
+          [w0, d0],
+          [d0, w0],
+        ];
   let cand = orientacoes.filter(
     ([a, b]) => Math.abs(s.w - a) <= lado + EPS && Math.abs(s.d - b) <= lado + EPS,
   );
@@ -175,7 +194,8 @@ function conferirMedidasOpcao(P, salas, lado) {
     if (e) erros.push(e);
   }
   for (const id of byId.keys())
-    if (!(id in P.medidas) && !(id in (P.extras || {}))) erros.push('ambiente fora do plano: ' + id);
+    if (!(id in P.medidas) && !(id in (P.extras || {})))
+      erros.push('ambiente fora do plano: ' + id);
   return erros;
 }
 
@@ -197,10 +217,11 @@ function conferirGeometria(F, salas) {
 
 function conferirMundo(P, F, ctx) {
   const erros = [];
+  const G = pegadaMundo(P, F);
   const x1 = P.mundo.x0;
-  const x2 = x1 + F.w;
+  const x2 = x1 + G.w;
   const z1 = P.mundo.z0;
-  const z2 = z1 + F.d;
+  const z2 = z1 + G.d;
   const L = ctx.lote;
   if (x1 < L.x1 - EPS || x2 > L.x2 + EPS || z1 < L.z1 - EPS || z2 > L.z2 + EPS)
     erros.push('sai do lote');
@@ -277,26 +298,33 @@ function conferirSaidas(P, salas) {
 
 /* regras.escotilha: o poço da escada de emergência sobe até uma escotilha que não pode ficar sob/ao lado
    da Casa Grande (sombra de queda) nem dentro dos outros itens do lote */
-function conferirEscotilha(P, salas, ctx) {
+function conferirEscotilha(P, F, salas, ctx) {
   const R = P.regras && P.regras.escotilha;
   const e = R && salas.find((s) => s.id === R.ambiente);
   if (!e) return [];
   const erros = [];
-  const c = { x: P.mundo.x0 + e.u, z: P.mundo.z0 + e.v, w: e.w, d: e.d };
+  const c = paraMundo(P, F, e);
   for (const it of ctx.itens) {
     const m = it.id === 'casa' ? R.fora_da_casa_m : R.fora_de_itens_m;
     const fora =
-      c.x + c.w <= it.x - m + EPS || c.x >= it.x + it.w + m - EPS || c.z + c.d <= it.z - m + EPS || c.z >= it.z + it.d + m - EPS;
-    if (!fora) erros.push(`a escotilha (x ${c.x}–${c.x + c.w}, z ${c.z}–${c.z + c.d}) fica a menos de ${m} m de ${it.id}`);
+      c.x + c.w <= it.x - m + EPS ||
+      c.x >= it.x + it.w + m - EPS ||
+      c.z + c.d <= it.z - m + EPS ||
+      c.z >= it.z + it.d + m - EPS;
+    if (!fora)
+      erros.push(
+        `a escotilha (x ${c.x}–${c.x + c.w}, z ${c.z}–${c.z + c.d}) fica a menos de ${m} m de ${it.id}`,
+      );
   }
   return erros;
 }
 
 function conferirRegras(P, F, salas, ctx) {
+  // semMundo: alternativa que não foi construída no lote (só vale a escolhida pelo Mestre)
   return [
     ...conferirGeometria(F, salas),
-    ...conferirEscotilha(P, salas, ctx),
-    ...conferirMundo(P, F, ctx),
+    ...(ctx.semMundo ? [] : conferirEscotilha(P, F, salas, ctx)),
+    ...(ctx.semMundo ? [] : conferirMundo(P, F, ctx)),
     ...conferirAcesso(P, salas),
     ...conferirSaidas(P, salas),
   ];
@@ -330,7 +358,12 @@ export function bolsoes(F, salas, G = 0.5) {
       v1 = Math.min(v1, j * G);
       u2 = Math.max(u2, (i + 1) * G);
       v2 = Math.max(v2, (j + 1) * G);
-      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (const [a, b] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
         const k = i + a + ',' + (j + b);
         if (cells.has(k) && !seen.has(k)) {
           seen.add(k);
@@ -412,9 +445,13 @@ export function medir(P, F, salas) {
 /* ---------- conferências completas ---------- */
 
 /* o plano atual (plan/bunker.json): medidas exatas. S = plan/site.json */
-export function conferirBase(P, S) {
+export function conferirBase(P, S, { semMundo = false } = {}) {
   const m = conferirMedidasBase(P, P.salas);
-  const erros = [...conferirPlano(P), ...m.erros, ...conferirRegras(P, P.pegada, P.salas, contextoLote(P, S))];
+  const erros = [
+    ...conferirPlano(P),
+    ...m.erros,
+    ...conferirRegras(P, P.pegada, P.salas, contextoLote(P, S, { semMundo })),
+  ];
   return { erros, metricas: { ...medir(P, P.pegada, P.salas), nominal: m.total } };
 }
 
@@ -423,14 +460,18 @@ function conferirEstrutura(opcao) {
   if (!opcao || typeof opcao !== 'object') return ['opção inválida'];
   const erros = [];
   const F = opcao.pegada;
-  if (!F || !num(F.w) || !num(F.d) || F.w <= 0 || F.d <= 0) erros.push('pegada sem w e d numéricos');
+  if (!F || !num(F.w) || !num(F.d) || F.w <= 0 || F.d <= 0)
+    erros.push('pegada sem w e d numéricos');
   if (!Array.isArray(opcao.salas)) return [...erros, 'salas ausente'];
   opcao.salas.forEach((s, i) => {
     if (!s || typeof s.id !== 'string') return erros.push(`sala ${i} sem id`);
     for (const k of ['u', 'v', 'w', 'd']) if (!num(s[k])) erros.push(`${s.id}.${k} não é número`);
     if (num(s.w) && s.w <= 0) erros.push(`${s.id}.w deve ser positivo`);
     if (num(s.d) && s.d <= 0) erros.push(`${s.id}.d deve ser positivo`);
-    if (s.acesso !== undefined && !(Array.isArray(s.acesso) && s.acesso.every((a) => typeof a === 'string')))
+    if (
+      s.acesso !== undefined &&
+      !(Array.isArray(s.acesso) && s.acesso.every((a) => typeof a === 'string'))
+    )
       erros.push(`${s.id}.acesso deve ser lista de ids`);
   });
   return erros;
@@ -438,7 +479,7 @@ function conferirEstrutura(opcao) {
 
 /* uma opção gerada ({ id, pegada, salas }): tolerância do cenário, pegada máxima e Casa Grande sobre o
    bunker. S = plan/site.json */
-export function conferirOpcao(P, opcao, S) {
+export function conferirOpcao(P, opcao, S, { semMundo = false } = {}) {
   const T = P.tolerancia;
   if (!T) return { erros: ['o plano não tem o bloco tolerancia'], metricas: null };
   const forma = conferirEstrutura(opcao);
@@ -448,13 +489,11 @@ export function conferirOpcao(P, opcao, S) {
   if (!cen) erros.push(`cenário ${opcao.id} não existe em tolerancia.cenarios`);
   const F = opcao.pegada;
   const salas = opcao.salas;
-  const ctx = contextoLote(P, S);
-  for (const k of ['w', 'd']) if (!half(F[k])) erros.push(`pegada.${k}=${F[k]} não termina em 0 ou 5`);
+  const ctx = contextoLote(P, S, { semMundo });
+  for (const k of ['w', 'd'])
+    if (!half(F[k])) erros.push(`pegada.${k}=${F[k]} não termina em 0 ou 5`);
   if (F.w > T.pegada_max.w + EPS || F.d > T.pegada_max.d + EPS)
     erros.push(`pegada ${F.w}×${F.d} maior que o máximo ${T.pegada_max.w}×${T.pegada_max.d}`);
-  const c = ctx.casa;
-  if (c && (c.u < -EPS || c.v < -EPS || c.u + c.w > F.w + EPS || c.v + c.d > F.d + EPS))
-    erros.push(`a Casa Grande (u ${c.u}–${c.u + c.w}, v ${c.v}–${c.v + c.d}) não cabe na pegada`);
   erros.push(...conferirMedidasOpcao(P, salas, cen ? cen.lado : 0));
   erros.push(...conferirRegras(P, F, salas, ctx));
   return { erros, metricas: medir(P, F, salas) };

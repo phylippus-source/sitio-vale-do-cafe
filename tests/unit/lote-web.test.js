@@ -2,13 +2,15 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { montarBundle } from '../../tools/build-web.mjs';
 import { avaliar, encaixar, girar } from '../../tools/lote-web.mjs';
+import { bunkerDoLote } from '../../tools/lote-lib.mjs';
 
 const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
 const B = JSON.parse(fs.readFileSync('plan/bunker.json', 'utf8'));
 const lote = JSON.parse(fs.readFileSync('plan/lote-opcoes.json', 'utf8'));
 const esc = JSON.parse(fs.readFileSync('plan/bunker-opcoes.json', 'utf8'));
 const pg = esc.opcoes.find((o) => o.id === esc.escolhida).pegada;
-const bunker = { x0: B.mundo.x0, z0: B.mundo.z0, w: pg.w, d: pg.d };
+const bu = bunkerDoLote(B, pg);
+const bunker = { x0: bu.u, z0: bu.v, w: bu.w, d: bu.d };
 const web = new Function(`${montarBundle()}; return LoteWeb;`)();
 const opcoes = [{ id: 'plano', itens: S.itens, estrada: S.estrada }, ...lote.opcoes];
 

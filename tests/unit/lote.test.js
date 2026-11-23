@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { sol, sombraDe, horasDeSombra, conferirLote } from '../../tools/lote-lib.mjs';
+import {
+  sol,
+  sombraDe,
+  horasDeSombra,
+  conferirLote,
+  bunkerDoLote,
+  AVISO_CASA,
+} from '../../tools/lote-lib.mjs';
 
 const LAT = -22.404;
 const DECL = 23.44; // solstício de junho: inverno no sul
@@ -56,7 +63,7 @@ describe('horas de sombra sobre um alvo', () => {
 
 describe('conferirLote (régua do lote)', () => {
   it('o puxadinho da piscina fica colado na casa, mas colado só com quem ele declara', () => {
-    const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
+    const S = JSON.parse(fs.readFileSync('tests/fixtures/site-b0.json', 'utf8'));
     const bunker = { u: -12, v: -73, w: 48, d: 32 };
     const pux = S.itens.find((i) => i.id === 'puxadinho');
     expect(pux).toMatchObject({ w: 20, d: 7 });
@@ -75,7 +82,8 @@ describe('conferirLote (régua do lote)', () => {
     ).toBe(true);
   });
 
-  const site = () => JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
+  // plano congelado de 22/11 (bunker sobre a casa): as regras são testadas contra ele, não contra o lote adotado
+  const site = () => JSON.parse(fs.readFileSync('tests/fixtures/site-b0.json', 'utf8'));
   const bunker = { u: -12, v: -73, w: 48, d: 32 }; // opção ±2,5 m escolhida
   const erros = (S, b = bunker) => conferirLote(S, b).erros;
   const tem = (lista, trecho) => lista.some((e) => e.includes(trecho));
@@ -184,14 +192,16 @@ describe('conferirLote (régua do lote)', () => {
 describe('opções do lote geradas pelo solver', () => {
   it('cada opção de plan/lote-opcoes.json passa na régua do lote, com o bunker escolhido', () => {
     const S = JSON.parse(fs.readFileSync('plan/site.json', 'utf8'));
+    const B = JSON.parse(fs.readFileSync('plan/bunker.json', 'utf8'));
     const oj = JSON.parse(fs.readFileSync('plan/bunker-opcoes.json', 'utf8'));
     const pg = oj.opcoes.find((o) => o.id === oj.escolhida).pegada;
     const lote = JSON.parse(fs.readFileSync('plan/lote-opcoes.json', 'utf8'));
     expect(lote.opcoes.length).toBeGreaterThan(0);
     for (const o of lote.opcoes) {
       const S2 = { ...S, itens: o.itens, estrada: o.estrada || S.estrada, bloco: o.bloco };
-      const bunker = { u: -12, v: -73 + (o.dz_bunker || 0), w: pg.w, d: pg.d };
-      expect(conferirLote(S2, bunker).erros).toEqual([]);
+      const b = bunkerDoLote(B, pg);
+      const bunker = { ...b, v: b.v + (o.dz_bunker || 0) };
+      expect(conferirLote(S2, bunker).erros.filter((e) => !AVISO_CASA.test(e))).toEqual([]);
     }
   });
 });

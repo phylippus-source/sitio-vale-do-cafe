@@ -1,0 +1,310 @@
+{
+  "titulo": "Implantação do lote 100×150 m",
+  "mundo": {
+    "nota": "x e z em metros, mesmas coordenadas do modelo; z cresce em direção à estrada e ao núcleo Sisteminha (norte, pela convenção do código)."
+  },
+  "lote": {
+    "x1": -50,
+    "x2": 50,
+    "z1": -75,
+    "z2": 75
+  },
+  "margem": 2,
+  "folga_itens": 0,
+  "corrego_dist": 4,
+  "estrada": {
+    "x1": -50,
+    "x2": 43,
+    "z1": 25.5,
+    "z2": 30.5
+  },
+  "corrego": {
+    "x1": 43,
+    "x2": 48
+  },
+  "total_itens": 7990,
+  "medidas": {
+    "casa": [
+      25,
+      25
+    ],
+    "engenho": [
+      20,
+      10
+    ],
+    "quadras": [
+      65,
+      55
+    ],
+    "nucleo": [
+      25,
+      30
+    ],
+    "estufa": [
+      20,
+      7.5
+    ],
+    "animais": [
+      15,
+      15
+    ],
+    "galpao": [
+      10,
+      15
+    ],
+    "puxadinho": [
+      20,
+      7
+    ],
+    "bambuzal": [
+      25,
+      25
+    ],
+    "silvicultura": [
+      25,
+      25
+    ],
+    "jazida": [
+      20,
+      25
+    ],
+    "pomar": [
+      25,
+      40
+    ]
+  },
+  "areas_plano": {
+    "casa": 625,
+    "engenho": 200,
+    "quadras": 3000,
+    "nucleo": 750,
+    "estufa": 150,
+    "animais": 225,
+    "galpao": 150,
+    "puxadinho": 140,
+    "bambuzal": 625,
+    "silvicultura": 625,
+    "jazida": 500,
+    "pomar": 1000
+  },
+  "nomes": {
+    "casa": "Casa Grande com varanda (25×20 + 25×5)",
+    "engenho": "Engenho",
+    "quadras": "4 quadras de rotação, 2×2 com vãos de 5 m (cada 30×25)",
+    "nucleo": "Núcleo Sisteminha",
+    "estufa": "Estufa",
+    "animais": "Zona de caprinos e suínos, 2 terraços",
+    "galpao": "Galpão técnico com laje-jardim",
+    "puxadinho": "Puxadinho da piscina coberta e aquecida (piscina 5×18 m + corredor de 2 m numa lateral e na frente), colado ao lado norte da Casa Grande",
+    "bambuzal": "Bambuzal",
+    "silvicultura": "Silvicultura (eucalipto 3×2 m)",
+    "jazida": "Jazida de argila",
+    "pomar": "Pomar"
+  },
+  "itens": [
+    {
+      "id": "casa",
+      "x": -11.5,
+      "z": -68,
+      "w": 25,
+      "d": 25,
+      "tipo": "predio",
+      "fixo": true
+    },
+    {
+      "id": "engenho",
+      "x": 23,
+      "z": -43,
+      "w": 20,
+      "d": 10,
+      "tipo": "predio",
+      "fixo": true,
+      "encosta": [
+        "corrego"
+      ]
+    },
+    {
+      "id": "quadras",
+      "x": -46,
+      "z": -33,
+      "w": 65,
+      "d": 55,
+      "tipo": "lavoura"
+    },
+    {
+      "id": "nucleo",
+      "x": -11.5,
+      "z": 32.5,
+      "w": 25,
+      "d": 30,
+      "tipo": "lavoura"
+    },
+    {
+      "id": "estufa",
+      "x": -36.5,
+      "z": 32.5,
+      "w": 20,
+      "d": 7.5,
+      "tipo": "predio"
+    },
+    {
+      "id": "pomar",
+      "x": 14,
+      "z": 32.5,
+      "w": 25,
+      "d": 40,
+      "tipo": "arvore"
+    },
+    {
+      "id": "silvicultura",
+      "x": -48,
+      "z": -73,
+      "w": 25,
+      "d": 25,
+      "tipo": "arvore"
+    },
+    {
+      "id": "bambuzal",
+      "x": -48,
+      "z": 42,
+      "w": 25,
+      "d": 25,
+      "tipo": "arvore"
+    },
+    {
+      "id": "animais",
+      "x": 22,
+      "z": 8.5,
+      "w": 15,
+      "d": 15,
+      "tipo": "predio"
+    },
+    {
+      "id": "puxadinho",
+      "x": -11.5,
+      "z": -43,
+      "w": 20,
+      "d": 7,
+      "tipo": "predio",
+      "fixo": true,
+      "colado": [
+        "casa"
+      ]
+    },
+    {
+      "id": "galpao",
+      "x": -28.5,
+      "z": -45,
+      "w": 15,
+      "d": 10,
+      "tipo": "predio"
+    },
+    {
+      "id": "jazida",
+      "x": 19,
+      "z": -31,
+      "w": 20,
+      "d": 25,
+      "tipo": "escavacao"
+    }
+  ],
+  "quadras_internas": {
+    "cada": [
+      30,
+      25
+    ],
+    "vao": 5
+  },
+  "regras": {
+    "animais_longe_da_casa": 20,
+    "pomar_perto_do_nucleo": null,
+    "estufa_perto_do_nucleo": null,
+    "animais_perto_do_nucleo": null,
+    "nota": "18/11: o Mestre liberou as regras de proximidade (eram chutes do Claude, null = desligada). animais_longe_da_casa = 20 m, referência IN 11/2025 IMA-SC (depósito de dejetos a 20 m de habitação rural; norma de SC, confirmar a local)."
+  },
+  "orientacao": {
+    "x_mais": "oeste",
+    "z_mais": "norte",
+    "latitude": -22.404,
+    "decl_inverno": 23.44,
+    "nota": "Convenção do modelo (an/ACHADOS_FASE1-2.md); solstício de junho."
+  },
+  "viagens": {
+    "nota": "[E] pesos propostos pelo Claude (viagens do dia a dia entre itens), a confirmar. O solver do lote minimiza a soma peso × distância entre centros.",
+    "pares": [
+      {
+        "a": "casa",
+        "b": "engenho",
+        "peso": 3
+      },
+      {
+        "a": "engenho",
+        "b": "jazida",
+        "peso": 3
+      },
+      {
+        "a": "casa",
+        "b": "galpao",
+        "peso": 2
+      },
+      {
+        "a": "casa",
+        "b": "nucleo",
+        "peso": 2
+      },
+      {
+        "a": "casa",
+        "b": "quadras",
+        "peso": 2
+      },
+      {
+        "a": "galpao",
+        "b": "quadras",
+        "peso": 2
+      },
+      {
+        "a": "nucleo",
+        "b": "animais",
+        "peso": 2
+      },
+      {
+        "a": "engenho",
+        "b": "quadras",
+        "peso": 1
+      },
+      {
+        "a": "engenho",
+        "b": "galpao",
+        "peso": 1
+      },
+      {
+        "a": "quadras",
+        "b": "nucleo",
+        "peso": 1
+      },
+      {
+        "a": "nucleo",
+        "b": "pomar",
+        "peso": 1
+      }
+    ]
+  },
+  "alturas": {
+    "nota": "[E] estimativas do Claude, a confirmar: topo de cada item, em metros.",
+    "casa": 9,
+    "engenho": 8,
+    "galpao": 6,
+    "puxadinho": 5,
+    "estufa": 4,
+    "bambuzal": 12,
+    "silvicultura": 15,
+    "pomar": 5,
+    "animais": 4
+  },
+  "notas": [
+    "Puxadinho 7×20 m (pedido do Mestre, 14/11): lado longo de 20 m encostado na parede norte da Casa Grande; a piscina fica colada na parede lateral e na dos fundos; as paredes da casa podem tirar medida da piscina. Faixa de 2 m do puxadinho (z −43 a −41) cai sobre a projeção do bunker: conferir carga e impermeabilização.",
+    "Quadras giradas: 30 (x) × 25 (z) cada, para caber entre o pátio da casa e a estrada sem mover a estrada.",
+    "Árvores, bambu e escavação ficam fora da projeção do bunker (raízes e escavação sobre 7 m de terra).",
+    "Estimativa [E]: a terra do bunker rende cerca de 6.000 m³ de sobra, sem destino nas pranchas."
+  ]
+}

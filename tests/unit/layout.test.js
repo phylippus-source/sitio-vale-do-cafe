@@ -18,8 +18,10 @@ import {
 const lerJson = (rel) =>
   JSON.parse(fs.readFileSync(new URL('../../' + rel, import.meta.url), 'utf8'));
 const copia = (o) => JSON.parse(JSON.stringify(o));
-const P = lerJson('plan/bunker.json');
-const S = lerJson('plan/site.json');
+// regras testadas contra o plano de 14–22/11 (bunker sobre a Casa Grande, sem giro), congelado em tests/fixtures;
+// o plano adotado hoje (arranjo M) é conferido em tests/unit/plano.test.js
+const P = lerJson('tests/fixtures/bunker-b0.json');
+const S = lerJson('tests/fixtures/site-b0.json');
 
 /* o plano atual como opção, com ajustes por ambiente: { mestre: { v: 5, d: 10 } } */
 function opcao(id, ajustes = {}, resto = {}) {
@@ -320,8 +322,8 @@ describe('opções com tolerância', () => {
     expect(tem(e, 'a menos de 5 m do córrego')).toBe(true);
   });
 
-  it('a Casa Grande tem de caber na pegada', () => {
-    expect(tem(erros(opcao('exato', {}, { pegada: { w: 20, d: 40 } })), 'Casa Grande')).toBe(true);
+  it('a Casa Grande não prende mais o bunker (soltos desde 18/11): pegada menor que a casa não é erro de casa', () => {
+    expect(tem(erros(opcao('exato', {}, { pegada: { w: 20, d: 40 } })), 'Casa Grande')).toBe(false);
   });
 
   it('passagem só por ambiente previsto em acesso_por', () => {

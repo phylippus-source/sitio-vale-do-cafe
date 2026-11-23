@@ -2,11 +2,20 @@
 // sobreposicoes, limites, regra 0/5 e acesso de cada ambiente.
 // Uso: node tools/layout-check.mjs [--map] [--opcoes arquivo.json]
 // Sem --opcoes, confere plan/bunker-opcoes.json se ele existir. As regras ficam em tools/layout-lib.mjs.
-import { conferirLote } from './lote-lib.mjs';
+import { conferirLote, bunkerDoLote, AVISO_CASA } from './lote-lib.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { EPS, half, overlap, gap, conferirBase, conferirOpcao, mapa } from './layout-lib.mjs';
+import {
+  EPS,
+  half,
+  overlap,
+  gap,
+  conferirBase,
+  conferirOpcao,
+  mapa,
+  pegadaMundo,
+} from './layout-lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const showMap = process.argv.includes('--map');
@@ -26,7 +35,8 @@ function resumo(m) {
 }
 
 function checkBunker(P, S) {
-  const r = conferirBase(P, S);
+  // o plano nominal (B0-1) não foi construído no lote: só a opção escolhida é cobrada no mundo (escotilha, córrego, limites)
+  const r = conferirBase(P, S, { semMundo: true });
   r.erros.forEach((m) => err('bunker: ' + m));
   const m = r.metricas;
   const F = P.pegada;
@@ -38,13 +48,23 @@ function checkBunker(P, S) {
     `bunker: vazios ${m.vazio} m² em ${m.bolsoes.length} bolsões: ` +
       m.bolsoes.map((p) => `${p.area} m² (u ${p.u1}–${p.u2}, v ${p.v1}–${p.v2})`).join('; '),
   );
-  console.log(`bunker: mundo x ${W.x0}…${W.x0 + F.w}, z ${W.z0}…${W.z0 + F.d}, piso ${W.piso} m`);
+  const G = pegadaMundo(P, F);
+  console.log(
+    `bunker: mundo x ${W.x0}…${W.x0 + G.w}, z ${W.z0}…${W.z0 + G.d}, piso ${W.piso} m (giro ${W.giro || 0})`,
+  );
   console.log('bunker: ' + resumo(m));
   if (showMap) console.log(mapa(F, P.salas));
 }
 
 /* opções geradas pelo solver: cada uma confere com a tolerância do seu cenário */
 function checkOpcoes(P, S) {
+  const escolhidaId = (() => {
+    try {
+      return lerJson('plan/bunker-opcoes.json').escolhida;
+    } catch {
+      return null;
+    }
+  })();
   const i = process.argv.indexOf('--opcoes');
   const rel = i > 0 ? process.argv[i + 1] : 'plan/bunker-opcoes.json';
   if (!fs.existsSync(path.resolve(ROOT, rel))) {
@@ -55,7 +75,7 @@ function checkOpcoes(P, S) {
   if (!Array.isArray(lista)) return err('opções: o arquivo precisa ter a lista "opcoes"');
   lista.forEach((o, i) => {
     const nome = o && o.id ? o.id : '#' + (i + 1);
-    const r = conferirOpcao(P, o, S);
+    const r = conferirOpcao(P, o, S, { semMundo: nome !== escolhidaId });
     r.erros.forEach((m) => err(`opção ${nome}: ${m}`));
     if (!r.metricas) return;
     const m = r.metricas;
@@ -70,8 +90,10 @@ function checkOpcoes(P, S) {
 /* ---------- implantacao do lote ---------- */
 function checkSite(S, B, escolhida) {
   const pg = escolhida ? escolhida.pegada : B.pegada;
-  const bunker = { u: B.mundo.x0, v: B.mundo.z0, w: pg.w, d: pg.d };
-  const { erros, metricas: m } = conferirLote(S, bunker);
+  const bunker = bunkerDoLote(B, pg);
+  const { erros: todos, metricas: m } = conferirLote(S, bunker);
+  const erros = todos.filter((e) => !AVISO_CASA.test(e));
+  todos.filter((e) => AVISO_CASA.test(e)).forEach((e) => console.log('aviso: ' + e));
   erros.forEach(err);
   console.log(
     `lote: bunker ${pg.w}×${pg.d} m${escolhida ? ' (opção escolhida)' : ''}; ${S.itens.length} itens, áreas do plano ${m.total} m², envelopes ${m.env} m² de ${m.lotArea} m² (${((m.env / m.lotArea) * 100).toFixed(0)}%)`,
@@ -92,12 +114,13 @@ function checkOpcoesLote(S, B, escolhida) {
   const arq = path.resolve(ROOT, 'plan/lote-opcoes.json');
   if (!fs.existsSync(arq)) return;
   const pg = escolhida ? escolhida.pegada : B.pegada;
-  const bunker = { u: B.mundo.x0, v: B.mundo.z0, w: pg.w, d: pg.d };
+  const bunker = bunkerDoLote(B, pg);
   for (const o of JSON.parse(fs.readFileSync(arq, 'utf8')).opcoes) {
-    const { erros, metricas: m } = conferirLote(
+    const { erros: todos, metricas: m } = conferirLote(
       { ...S, itens: o.itens, estrada: o.estrada || S.estrada, bloco: o.bloco },
       { ...bunker, v: bunker.v + (o.dz_bunker || 0) },
     );
+    const erros = todos.filter((e) => !AVISO_CASA.test(e));
     erros.forEach((e) => err(`lote opção ${o.id}: ${e.replace(/^lote: /, '')}`));
     const sombra = m.sombra
       ? Object.entries(m.sombra)

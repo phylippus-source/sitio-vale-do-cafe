@@ -337,7 +337,8 @@ def main():
         S["estrada"] = dict(S["estrada"], z1=S["lote"]["z1"], z2=S["lote"]["z1"])
     oj = ler("plan/bunker-opcoes.json")
     esc = next(o for o in oj["opcoes"] if o["id"] == oj.get("escolhida"))
-    bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["w"], d=esc["pegada"]["d"])
+    g = (B["mundo"].get("giro", 0) % 2) == 1  # bunker girado 90° no lote (arranjo M)
+    bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["d" if g else "w"], d=esc["pegada"]["w" if g else "d"])
     if a.base:
         arr = json.loads(Path(a.base).read_text(encoding="utf8"))
         S["estrada"] = dict(arr["estrada"])

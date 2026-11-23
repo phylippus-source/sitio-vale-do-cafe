@@ -74,6 +74,15 @@ export function horasDeSombra(alvo, fontes, { lat, decl, horas }, passo = 1) {
   return total ? sombreado / total : 0;
 }
 
+/* A Casa Grande fora do bunker só avisa (o Mestre soltou o bunker da casa, 18/11). */
+export const AVISO_CASA = /Casa Grande não está sobre o bunker/;
+
+/* Projeção do bunker no lote {u, v, w, d}: origem em plan/bunker.json (mundo), pegada da opção escolhida e giro. */
+export function bunkerDoLote(B, pg) {
+  const g = (B.mundo.giro || 0) % 2 === 1;
+  return { u: B.mundo.x0, v: B.mundo.z0, w: g ? pg.d : pg.w, d: g ? pg.w : pg.d };
+}
+
 /* Confere a implantação do lote contra o plano. bunker = {u, v, w, d} em metros do mundo (projeção escolhida).
    Devolve { erros, metricas }; não imprime nada. */
 export function conferirLote(S, bunker) {

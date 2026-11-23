@@ -369,15 +369,24 @@ const gap = (a, b) =>
 const porId = (salas) => new Map(salas.map((s) => [s.id, s]));
 const num = (x) => typeof x === 'number' && Number.isFinite(x);
 
-/* o que o bunker herda do lote (plan/site.json): limites, córrego e a Casa Grande na grade do bunker */
-function contextoLote(P, S) {
-  const c = S.itens.find((i) => i.id === 'casa');
-  return {
-    lote: S.lote,
-    corregoX: S.corrego.x1,
-    itens: S.itens,
-    casa: c ? { u: c.x - P.mundo.x0, v: c.z - P.mundo.z0, w: c.w, d: c.d } : null,
-  };
+/* o que o bunker herda do lote (plan/site.json): limites, córrego e itens (a casa não prende mais o bunker: 18/11) */
+function contextoLote(P, S, { semMundo = false } = {}) {
+  return { lote: S.lote, corregoX: S.corrego.x1, itens: S.itens, semMundo };
+}
+
+/* O bunker pode estar girado 90° no lote (mundo.giro = 1, sentido horário na planta, z para baixo): as salas
+   continuam em u, v da planta e só o mundo gira (Mestre, arranjo M de 22/11). */
+const girado = (P) => (P.mundo.giro || 0) % 2 === 1;
+
+/* pegada da planta (w, d) vista do mundo */
+const pegadaMundo = (P, F) => (girado(P) ? { w: F.d, d: F.w } : { w: F.w, d: F.d });
+
+/* retângulo da planta (u, v, w, d) no mundo (x, z, w, d) */
+function paraMundo(P, F, r) {
+  const { x0, z0 } = P.mundo;
+  return girado(P)
+    ? { x: x0 + F.d - (r.v + r.d), z: z0 + r.u, w: r.d, d: r.w }
+    : { x: x0 + r.u, z: z0 + r.v, w: r.w, d: r.d };
 }
 
 /* ---------- o próprio plano: ids e valores das regras ---------- */
@@ -538,10 +547,11 @@ function conferirGeometria(F, salas) {
 
 function conferirMundo(P, F, ctx) {
   const erros = [];
+  const G = pegadaMundo(P, F);
   const x1 = P.mundo.x0;
-  const x2 = x1 + F.w;
+  const x2 = x1 + G.w;
   const z1 = P.mundo.z0;
-  const z2 = z1 + F.d;
+  const z2 = z1 + G.d;
   const L = ctx.lote;
   if (x1 < L.x1 - EPS || x2 > L.x2 + EPS || z1 < L.z1 - EPS || z2 > L.z2 + EPS)
     erros.push('sai do lote');
@@ -618,12 +628,12 @@ function conferirSaidas(P, salas) {
 
 /* regras.escotilha: o poço da escada de emergência sobe até uma escotilha que não pode ficar sob/ao lado
    da Casa Grande (sombra de queda) nem dentro dos outros itens do lote */
-function conferirEscotilha(P, salas, ctx) {
+function conferirEscotilha(P, F, salas, ctx) {
   const R = P.regras && P.regras.escotilha;
   const e = R && salas.find((s) => s.id === R.ambiente);
   if (!e) return [];
   const erros = [];
-  const c = { x: P.mundo.x0 + e.u, z: P.mundo.z0 + e.v, w: e.w, d: e.d };
+  const c = paraMundo(P, F, e);
   for (const it of ctx.itens) {
     const m = it.id === 'casa' ? R.fora_da_casa_m : R.fora_de_itens_m;
     const fora =
@@ -634,10 +644,11 @@ function conferirEscotilha(P, salas, ctx) {
 }
 
 function conferirRegras(P, F, salas, ctx) {
+  // semMundo: alternativa que não foi construída no lote (só vale a escolhida pelo Mestre)
   return [
     ...conferirGeometria(F, salas),
-    ...conferirEscotilha(P, salas, ctx),
-    ...conferirMundo(P, F, ctx),
+    ...(ctx.semMundo ? [] : conferirEscotilha(P, F, salas, ctx)),
+    ...(ctx.semMundo ? [] : conferirMundo(P, F, ctx)),
     ...conferirAcesso(P, salas),
     ...conferirSaidas(P, salas),
   ];
@@ -753,9 +764,9 @@ function medir(P, F, salas) {
 /* ---------- conferências completas ---------- */
 
 /* o plano atual (plan/bunker.json): medidas exatas. S = plan/site.json */
-function conferirBase(P, S) {
+function conferirBase(P, S, { semMundo = false } = {}) {
   const m = conferirMedidasBase(P, P.salas);
-  const erros = [...conferirPlano(P), ...m.erros, ...conferirRegras(P, P.pegada, P.salas, contextoLote(P, S))];
+  const erros = [...conferirPlano(P), ...m.erros, ...conferirRegras(P, P.pegada, P.salas, contextoLote(P, S, { semMundo }))];
   return { erros, metricas: { ...medir(P, P.pegada, P.salas), nominal: m.total } };
 }
 
@@ -779,7 +790,7 @@ function conferirEstrutura(opcao) {
 
 /* uma opção gerada ({ id, pegada, salas }): tolerância do cenário, pegada máxima e Casa Grande sobre o
    bunker. S = plan/site.json */
-function conferirOpcao(P, opcao, S) {
+function conferirOpcao(P, opcao, S, { semMundo = false } = {}) {
   const T = P.tolerancia;
   if (!T) return { erros: ['o plano não tem o bloco tolerancia'], metricas: null };
   const forma = conferirEstrutura(opcao);
@@ -789,13 +800,10 @@ function conferirOpcao(P, opcao, S) {
   if (!cen) erros.push(`cenário ${opcao.id} não existe em tolerancia.cenarios`);
   const F = opcao.pegada;
   const salas = opcao.salas;
-  const ctx = contextoLote(P, S);
+  const ctx = contextoLote(P, S, { semMundo });
   for (const k of ['w', 'd']) if (!half(F[k])) erros.push(`pegada.${k}=${F[k]} não termina em 0 ou 5`);
   if (F.w > T.pegada_max.w + EPS || F.d > T.pegada_max.d + EPS)
     erros.push(`pegada ${F.w}×${F.d} maior que o máximo ${T.pegada_max.w}×${T.pegada_max.d}`);
-  const c = ctx.casa;
-  if (c && (c.u < -EPS || c.v < -EPS || c.u + c.w > F.w + EPS || c.v + c.d > F.d + EPS))
-    erros.push(`a Casa Grande (u ${c.u}–${c.u + c.w}, v ${c.v}–${c.v + c.d}) não cabe na pegada`);
   erros.push(...conferirMedidasOpcao(P, salas, cen ? cen.lado : 0));
   erros.push(...conferirRegras(P, F, salas, ctx));
   return { erros, metricas: medir(P, F, salas) };
@@ -894,6 +902,15 @@ function horasDeSombra(alvo, fontes, { lat, decl, horas }, passo = 1) {
       }
     }
   return total ? sombreado / total : 0;
+}
+
+/* A Casa Grande fora do bunker só avisa (o Mestre soltou o bunker da casa, 18/11). */
+const AVISO_CASA = /Casa Grande não está sobre o bunker/;
+
+/* Projeção do bunker no lote {u, v, w, d}: origem em plan/bunker.json (mundo), pegada da opção escolhida e giro. */
+function bunkerDoLote(B, pg) {
+  const g = (B.mundo.giro || 0) % 2 === 1;
+  return { u: B.mundo.x0, v: B.mundo.z0, w: g ? pg.d : pg.w, d: g ? pg.w : pg.d };
 }
 
 /* Confere a implantação do lote contra o plano. bunker = {u, v, w, d} em metros do mundo (projeção escolhida).
@@ -1381,7 +1398,7 @@ function encaixar(it, x, z, S, outros, estrada, { ima = true } = {}) {
 return { conferirLote, tracarCaminhos, custoViagens, avaliar, girar, encaixar, barreiras, GRADE, CAPTURA };
 })();
 </script>
-<script>const DADOS = {"S":{"titulo":"Implantação do lote 100×150 m","mundo":{"nota":"x e z em metros, mesmas coordenadas do modelo; z cresce em direção à estrada e ao núcleo Sisteminha (norte, pela convenção do código)."},"lote":{"x1":-50,"x2":50,"z1":-75,"z2":75},"margem":2,"folga_itens":0,"corrego_dist":4,"estrada":{"x1":-50,"x2":43,"z1":25.5,"z2":30.5},"corrego":{"x1":43,"x2":48},"total_itens":7990,"medidas":{"casa":[25,25],"engenho":[20,10],"quadras":[65,55],"nucleo":[25,30],"estufa":[20,7.5],"animais":[15,15],"galpao":[10,15],"puxadinho":[20,7],"bambuzal":[25,25],"silvicultura":[25,25],"jazida":[20,25],"pomar":[25,40]},"areas_plano":{"casa":625,"engenho":200,"quadras":3000,"nucleo":750,"estufa":150,"animais":225,"galpao":150,"puxadinho":140,"bambuzal":625,"silvicultura":625,"jazida":500,"pomar":1000},"nomes":{"casa":"Casa Grande com varanda (25×20 + 25×5)","engenho":"Engenho","quadras":"4 quadras de rotação, 2×2 com vãos de 5 m (cada 30×25)","nucleo":"Núcleo Sisteminha","estufa":"Estufa","animais":"Zona de caprinos e suínos, 2 terraços","galpao":"Galpão técnico com laje-jardim","puxadinho":"Puxadinho da piscina coberta e aquecida (piscina 5×18 m + corredor de 2 m numa lateral e na frente), colado ao lado norte da Casa Grande","bambuzal":"Bambuzal","silvicultura":"Silvicultura (eucalipto 3×2 m)","jazida":"Jazida de argila","pomar":"Pomar"},"itens":[{"id":"casa","x":-11.5,"z":-68,"w":25,"d":25,"tipo":"predio","fixo":true},{"id":"engenho","x":23,"z":-43,"w":20,"d":10,"tipo":"predio","fixo":true,"encosta":["corrego"]},{"id":"quadras","x":-46,"z":-33,"w":65,"d":55,"tipo":"lavoura"},{"id":"nucleo","x":-11.5,"z":32.5,"w":25,"d":30,"tipo":"lavoura"},{"id":"estufa","x":-36.5,"z":32.5,"w":20,"d":7.5,"tipo":"predio"},{"id":"pomar","x":14,"z":32.5,"w":25,"d":40,"tipo":"arvore"},{"id":"silvicultura","x":-48,"z":-73,"w":25,"d":25,"tipo":"arvore"},{"id":"bambuzal","x":-48,"z":42,"w":25,"d":25,"tipo":"arvore"},{"id":"animais","x":22,"z":8.5,"w":15,"d":15,"tipo":"predio"},{"id":"puxadinho","x":-11.5,"z":-43,"w":20,"d":7,"tipo":"predio","fixo":true,"colado":["casa"]},{"id":"galpao","x":-28.5,"z":-45,"w":15,"d":10,"tipo":"predio"},{"id":"jazida","x":19,"z":-31,"w":20,"d":25,"tipo":"escavacao"}],"quadras_internas":{"cada":[30,25],"vao":5},"regras":{"animais_longe_da_casa":20,"pomar_perto_do_nucleo":null,"estufa_perto_do_nucleo":null,"animais_perto_do_nucleo":null,"nota":"18/11: o Mestre liberou as regras de proximidade (eram chutes do Claude, null = desligada). animais_longe_da_casa = 20 m, referência IN 11/2025 IMA-SC (depósito de dejetos a 20 m de habitação rural; norma de SC, confirmar a local)."},"orientacao":{"x_mais":"oeste","z_mais":"norte","latitude":-22.404,"decl_inverno":23.44,"nota":"Convenção do modelo (an/ACHADOS_FASE1-2.md); solstício de junho."},"viagens":{"nota":"[E] pesos propostos pelo Claude (viagens do dia a dia entre itens), a confirmar. O solver do lote minimiza a soma peso × distância entre centros.","pares":[{"a":"casa","b":"engenho","peso":3},{"a":"engenho","b":"jazida","peso":3},{"a":"casa","b":"galpao","peso":2},{"a":"casa","b":"nucleo","peso":2},{"a":"casa","b":"quadras","peso":2},{"a":"galpao","b":"quadras","peso":2},{"a":"nucleo","b":"animais","peso":2},{"a":"engenho","b":"quadras","peso":1},{"a":"engenho","b":"galpao","peso":1},{"a":"quadras","b":"nucleo","peso":1},{"a":"nucleo","b":"pomar","peso":1}]},"alturas":{"nota":"[E] estimativas do Claude, a confirmar: topo de cada item, em metros.","casa":9,"engenho":8,"galpao":6,"puxadinho":5,"estufa":4,"bambuzal":12,"silvicultura":15,"pomar":5,"animais":4},"notas":["Puxadinho 7×20 m (pedido do Mestre, 14/11): lado longo de 20 m encostado na parede norte da Casa Grande; a piscina fica colada na parede lateral e na dos fundos; as paredes da casa podem tirar medida da piscina. Faixa de 2 m do puxadinho (z −43 a −41) cai sobre a projeção do bunker: conferir carga e impermeabilização.","Quadras giradas: 30 (x) × 25 (z) cada, para caber entre o pátio da casa e a estrada sem mover a estrada.","Árvores, bambu e escavação ficam fora da projeção do bunker (raízes e escavação sobre 7 m de terra).","Estimativa [E]: a terra do bunker rende cerca de 6.000 m³ de sobra, sem destino nas pranchas."]},"bunker":{"x0":-12,"z0":-73,"w":48,"d":32,"dc":5},"opcoes":[{"id":"mestre-22-11","nome":"M · Seu arranjo de 22/11, encaixado (silvicultura encolhida para 20×27,5)","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","giro":0},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","encosta":["corrego"],"giro":0},{"id":"quadras","x":-48,"z":18,"w":65,"d":55,"tipo":"lavoura","giro":0},{"id":"nucleo","x":-11,"z":-73,"w":25,"d":30,"tipo":"lavoura","giro":0},{"id":"estufa","x":-11,"z":-41,"w":7.5,"d":20,"tipo":"predio","giro":1},{"id":"pomar","x":-38,"z":-73,"w":25,"d":40,"tipo":"arvore","giro":0},{"id":"silvicultura","x":19,"z":16.5,"w":20,"d":27.5,"tipo":"arvore","giro":0},{"id":"bambuzal","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"animais","x":-28,"z":-31,"w":15,"d":15,"tipo":"predio","giro":0},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","colado":["casa"],"giro":1},{"id":"galpao","x":6,"z":4.5,"w":15,"d":10,"tipo":"predio","giro":0},{"id":"jazida","x":19,"z":46,"w":20,"d":25,"tipo":"escavacao","giro":0}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"sobre":{"medidas":{"casa":[25,25],"engenho":[20,10],"quadras":[65,55],"nucleo":[25,30],"estufa":[20,7.5],"animais":[15,15],"galpao":[10,15],"puxadinho":[20,7],"bambuzal":[25,25],"silvicultura":[20,27.5],"jazida":[20,25],"pomar":[25,40]},"areas_plano":{"casa":625,"engenho":200,"quadras":3000,"nucleo":750,"estufa":150,"animais":225,"galpao":150,"puxadinho":140,"bambuzal":625,"silvicultura":550,"jazida":500,"pomar":1000},"total_itens":7915},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"giro":1}},{"id":"solver-viagens","nome":"S1 · Solver a partir do seu arranjo: menos viagens e sombra","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","giro":0},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","encosta":["corrego"],"giro":0},{"id":"quadras","x":-46,"z":14.5,"w":65,"d":55,"tipo":"lavoura","giro":0},{"id":"nucleo","x":-30,"z":-29.5,"w":30,"d":25,"tipo":"lavoura","giro":1},{"id":"estufa","x":-33,"z":4.5,"w":20,"d":7.5,"tipo":"predio","giro":0},{"id":"pomar","x":-36,"z":-69.5,"w":25,"d":40,"tipo":"arvore","giro":0},{"id":"silvicultura","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"bambuzal","x":-11,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"animais","x":-48,"z":-24.5,"w":15,"d":15,"tipo":"predio","giro":0},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","colado":["casa"],"giro":1},{"id":"galpao","x":8,"z":4.5,"w":15,"d":10,"tipo":"predio","giro":0},{"id":"jazida","x":19,"z":14.5,"w":20,"d":25,"tipo":"escavacao","giro":0}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"sobre":{},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"giro":1}},{"id":"solver-vazio","nome":"S2 · Solver a partir do seu arranjo: maior espaço livre","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","giro":0},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","encosta":["corrego"],"giro":0},{"id":"quadras","x":-26,"z":14.5,"w":65,"d":55,"tipo":"lavoura","giro":0},{"id":"nucleo","x":-26,"z":-29.5,"w":30,"d":25,"tipo":"lavoura","giro":1},{"id":"estufa","x":-48,"z":-73,"w":7.5,"d":20,"tipo":"predio","giro":1},{"id":"pomar","x":-36,"z":-69.5,"w":25,"d":40,"tipo":"arvore","giro":0},{"id":"silvicultura","x":-11,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"bambuzal","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"animais","x":-44,"z":4.5,"w":15,"d":15,"tipo":"predio","giro":0},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","colado":["casa"],"giro":1},{"id":"galpao","x":8,"z":4.5,"w":15,"d":10,"tipo":"predio","giro":0},{"id":"jazida","x":-46,"z":-29.5,"w":20,"d":25,"tipo":"escavacao","giro":0}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"sobre":{},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"giro":1},"bloco":{"x":-48,"z":21.5,"w":20,"d":50}},{"id":"plano","nome":"Plano atual (Equilíbrio, estrada no meio)","itens":[{"id":"casa","x":-11.5,"z":-68,"w":25,"d":25,"tipo":"predio","fixo":true},{"id":"engenho","x":23,"z":-43,"w":20,"d":10,"tipo":"predio","fixo":true,"encosta":["corrego"]},{"id":"quadras","x":-46,"z":-33,"w":65,"d":55,"tipo":"lavoura"},{"id":"nucleo","x":-11.5,"z":32.5,"w":25,"d":30,"tipo":"lavoura"},{"id":"estufa","x":-36.5,"z":32.5,"w":20,"d":7.5,"tipo":"predio"},{"id":"pomar","x":14,"z":32.5,"w":25,"d":40,"tipo":"arvore"},{"id":"silvicultura","x":-48,"z":-73,"w":25,"d":25,"tipo":"arvore"},{"id":"bambuzal","x":-48,"z":42,"w":25,"d":25,"tipo":"arvore"},{"id":"animais","x":22,"z":8.5,"w":15,"d":15,"tipo":"predio"},{"id":"puxadinho","x":-11.5,"z":-43,"w":20,"d":7,"tipo":"predio","fixo":true,"colado":["casa"]},{"id":"galpao","x":-28.5,"z":-45,"w":15,"d":10,"tipo":"predio"},{"id":"jazida","x":19,"z":-31,"w":20,"d":25,"tipo":"escavacao"}],"estrada":{"x1":-50,"x2":43,"z1":25.5,"z2":30.5}},{"id":"espinha-total","nome":"1 · Espinha até o córrego","itens":[{"id":"casa","x":-11.5,"z":-68,"w":25,"d":25,"tipo":"predio","fixo":true},{"id":"engenho","x":23,"z":-43,"w":20,"d":10,"tipo":"predio","fixo":true,"encosta":["corrego"]},{"id":"quadras","x":-46,"z":4.5,"w":65,"d":55,"tipo":"lavoura"},{"id":"nucleo","x":-18.5,"z":-29.5,"w":30,"d":25,"tipo":"lavoura"},{"id":"estufa","x":-21,"z":-54.5,"w":7.5,"d":20,"tipo":"predio"},{"id":"pomar","x":-48,"z":-44.5,"w":25,"d":40,"tipo":"arvore"},{"id":"silvicultura","x":-48,"z":-73,"w":25,"d":25,"tipo":"arvore"},{"id":"bambuzal","x":14,"z":-29.5,"w":25,"d":25,"tipo":"arvore"},{"id":"animais","x":22,"z":4.5,"w":15,"d":15,"tipo":"predio"},{"id":"puxadinho","x":-11.5,"z":-43,"w":20,"d":7,"tipo":"predio","fixo":true,"colado":["casa"]},{"id":"galpao","x":15.5,"z":-60,"w":10,"d":15,"tipo":"predio"},{"id":"jazida","x":19,"z":21.5,"w":20,"d":25,"tipo":"escavacao"}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5}}]};</script>
+<script>const DADOS = {"S":{"titulo":"Implantação do lote 100×150 m","mundo":{"nota":"x e z em metros, mesmas coordenadas do modelo; z cresce em direção à estrada e ao núcleo Sisteminha (norte, pela convenção do código)."},"lote":{"x1":-50,"x2":50,"z1":-75,"z2":75},"margem":2,"folga_itens":0,"corrego_dist":4,"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"corrego":{"x1":43,"x2":48},"total_itens":7915,"medidas":{"casa":[25,25],"engenho":[20,10],"quadras":[65,55],"nucleo":[25,30],"estufa":[20,7.5],"animais":[15,15],"galpao":[10,15],"puxadinho":[20,7],"bambuzal":[25,25],"silvicultura":[20,27.5],"jazida":[20,25],"pomar":[25,40]},"areas_plano":{"casa":625,"engenho":200,"quadras":3000,"nucleo":750,"estufa":150,"animais":225,"galpao":150,"puxadinho":140,"bambuzal":625,"silvicultura":550,"jazida":500,"pomar":1000},"nomes":{"casa":"Casa Grande com varanda (25×20 + 25×5)","engenho":"Engenho","quadras":"4 quadras de rotação, 2×2 com vãos de 5 m (cada 30×25)","nucleo":"Núcleo Sisteminha","estufa":"Estufa","animais":"Zona de caprinos e suínos, 2 terraços","galpao":"Galpão técnico com laje-jardim","puxadinho":"Puxadinho da piscina coberta e aquecida (piscina 5×18 m + corredor de 2 m numa lateral e na frente), colado ao lado norte da Casa Grande","bambuzal":"Bambuzal","silvicultura":"Silvicultura (eucalipto 3×2 m)","jazida":"Jazida de argila","pomar":"Pomar"},"itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","fixo":true},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","fixo":true,"encosta":["corrego"]},{"id":"quadras","x":-48,"z":18,"w":65,"d":55,"tipo":"lavoura"},{"id":"nucleo","x":-11,"z":-73,"w":25,"d":30,"tipo":"lavoura"},{"id":"estufa","x":-11,"z":-41,"w":7.5,"d":20,"tipo":"predio"},{"id":"pomar","x":-38,"z":-73,"w":25,"d":40,"tipo":"arvore"},{"id":"silvicultura","x":19,"z":16.5,"w":20,"d":27.5,"tipo":"arvore"},{"id":"bambuzal","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore"},{"id":"animais","x":-28,"z":-31,"w":15,"d":15,"tipo":"predio"},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","fixo":true,"colado":["casa"]},{"id":"galpao","x":6,"z":4.5,"w":15,"d":10,"tipo":"predio"},{"id":"jazida","x":19,"z":46,"w":20,"d":25,"tipo":"escavacao"}],"quadras_internas":{"cada":[30,25],"vao":5},"regras":{"animais_longe_da_casa":20,"pomar_perto_do_nucleo":null,"estufa_perto_do_nucleo":null,"animais_perto_do_nucleo":null,"nota":"18/11: o Mestre liberou as regras de proximidade (eram chutes do Claude, null = desligada). animais_longe_da_casa = 20 m, referência IN 11/2025 IMA-SC (depósito de dejetos a 20 m de habitação rural; norma de SC, confirmar a local)."},"orientacao":{"x_mais":"oeste","z_mais":"norte","latitude":-22.404,"decl_inverno":23.44,"nota":"Convenção do modelo (an/ACHADOS_FASE1-2.md); solstício de junho."},"viagens":{"nota":"[E] pesos propostos pelo Claude (viagens do dia a dia entre itens), a confirmar. O solver do lote minimiza a soma peso × distância entre centros.","pares":[{"a":"casa","b":"engenho","peso":3},{"a":"engenho","b":"jazida","peso":3},{"a":"casa","b":"galpao","peso":2},{"a":"casa","b":"nucleo","peso":2},{"a":"casa","b":"quadras","peso":2},{"a":"galpao","b":"quadras","peso":2},{"a":"nucleo","b":"animais","peso":2},{"a":"engenho","b":"quadras","peso":1},{"a":"engenho","b":"galpao","peso":1},{"a":"quadras","b":"nucleo","peso":1},{"a":"nucleo","b":"pomar","peso":1}]},"alturas":{"nota":"[E] estimativas do Claude, a confirmar: topo de cada item, em metros.","casa":9,"engenho":8,"galpao":6,"puxadinho":5,"estufa":4,"bambuzal":12,"silvicultura":15,"pomar":5,"animais":4},"notas":["Puxadinho 7×20 m (pedido do Mestre, 14/11): lado longo de 20 m encostado na parede norte da Casa Grande; a piscina fica colada na parede lateral e na dos fundos; as paredes da casa podem tirar medida da piscina. Faixa de 2 m do puxadinho (z −43 a −41) cai sobre a projeção do bunker: conferir carga e impermeabilização.","Quadras giradas: 30 (x) × 25 (z) cada, para caber entre o pátio da casa e a estrada sem mover a estrada.","Árvores, bambu e escavação ficam fora da projeção do bunker (raízes e escavação sobre 7 m de terra).","Estimativa [E]: a terra do bunker rende cerca de 6.000 m³ de sobra, sem destino nas pranchas."]},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"dc":5},"opcoes":[{"id":"mestre-22-11","nome":"M · Seu arranjo de 22/11, encaixado (silvicultura encolhida para 20×27,5)","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","giro":0},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","encosta":["corrego"],"giro":0},{"id":"quadras","x":-48,"z":18,"w":65,"d":55,"tipo":"lavoura","giro":0},{"id":"nucleo","x":-11,"z":-73,"w":25,"d":30,"tipo":"lavoura","giro":0},{"id":"estufa","x":-11,"z":-41,"w":7.5,"d":20,"tipo":"predio","giro":0},{"id":"pomar","x":-38,"z":-73,"w":25,"d":40,"tipo":"arvore","giro":0},{"id":"silvicultura","x":19,"z":16.5,"w":20,"d":27.5,"tipo":"arvore","giro":0},{"id":"bambuzal","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"animais","x":-28,"z":-31,"w":15,"d":15,"tipo":"predio","giro":0},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","colado":["casa"],"giro":0},{"id":"galpao","x":6,"z":4.5,"w":15,"d":10,"tipo":"predio","giro":0},{"id":"jazida","x":19,"z":46,"w":20,"d":25,"tipo":"escavacao","giro":0}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"sobre":{"medidas":{"casa":[25,25],"engenho":[20,10],"quadras":[65,55],"nucleo":[25,30],"estufa":[20,7.5],"animais":[15,15],"galpao":[10,15],"puxadinho":[20,7],"bambuzal":[25,25],"silvicultura":[20,27.5],"jazida":[20,25],"pomar":[25,40]},"areas_plano":{"casa":625,"engenho":200,"quadras":3000,"nucleo":750,"estufa":150,"animais":225,"galpao":150,"puxadinho":140,"bambuzal":625,"silvicultura":550,"jazida":500,"pomar":1000},"total_itens":7915},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"giro":1}},{"id":"solver-viagens","nome":"S1 · Solver a partir do seu arranjo: menos viagens e sombra","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","giro":0},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","encosta":["corrego"],"giro":0},{"id":"quadras","x":-46,"z":14.5,"w":65,"d":55,"tipo":"lavoura","giro":0},{"id":"nucleo","x":-30,"z":-29.5,"w":30,"d":25,"tipo":"lavoura","giro":1},{"id":"estufa","x":-33,"z":4.5,"w":20,"d":7.5,"tipo":"predio","giro":1},{"id":"pomar","x":-36,"z":-69.5,"w":25,"d":40,"tipo":"arvore","giro":0},{"id":"silvicultura","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":1},{"id":"bambuzal","x":-11,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"animais","x":-48,"z":-24.5,"w":15,"d":15,"tipo":"predio","giro":0},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","colado":["casa"],"giro":0},{"id":"galpao","x":8,"z":4.5,"w":15,"d":10,"tipo":"predio","giro":0},{"id":"jazida","x":19,"z":14.5,"w":20,"d":25,"tipo":"escavacao","giro":0}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"sobre":{},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"giro":1}},{"id":"solver-vazio","nome":"S2 · Solver a partir do seu arranjo: maior espaço livre","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","giro":0},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","encosta":["corrego"],"giro":0},{"id":"quadras","x":-26,"z":14.5,"w":65,"d":55,"tipo":"lavoura","giro":0},{"id":"nucleo","x":-26,"z":-29.5,"w":30,"d":25,"tipo":"lavoura","giro":1},{"id":"estufa","x":-48,"z":-73,"w":7.5,"d":20,"tipo":"predio","giro":0},{"id":"pomar","x":-36,"z":-69.5,"w":25,"d":40,"tipo":"arvore","giro":0},{"id":"silvicultura","x":-11,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":1},{"id":"bambuzal","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore","giro":0},{"id":"animais","x":-44,"z":4.5,"w":15,"d":15,"tipo":"predio","giro":0},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","colado":["casa"],"giro":0},{"id":"galpao","x":8,"z":4.5,"w":15,"d":10,"tipo":"predio","giro":0},{"id":"jazida","x":-46,"z":-29.5,"w":20,"d":25,"tipo":"escavacao","giro":0}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5},"sobre":{},"bunker":{"x0":-5,"z0":-35,"w":32,"d":48,"giro":1},"bloco":{"x":-48,"z":21.5,"w":20,"d":50}},{"id":"plano","nome":"Plano atual (Equilíbrio, estrada no meio)","itens":[{"id":"casa","x":7,"z":-29.5,"w":25,"d":25,"tipo":"predio","fixo":true},{"id":"engenho","x":23,"z":4.5,"w":20,"d":10,"tipo":"predio","fixo":true,"encosta":["corrego"]},{"id":"quadras","x":-48,"z":18,"w":65,"d":55,"tipo":"lavoura"},{"id":"nucleo","x":-11,"z":-73,"w":25,"d":30,"tipo":"lavoura"},{"id":"estufa","x":-11,"z":-41,"w":7.5,"d":20,"tipo":"predio"},{"id":"pomar","x":-38,"z":-73,"w":25,"d":40,"tipo":"arvore"},{"id":"silvicultura","x":19,"z":16.5,"w":20,"d":27.5,"tipo":"arvore"},{"id":"bambuzal","x":14,"z":-73,"w":25,"d":25,"tipo":"arvore"},{"id":"animais","x":-28,"z":-31,"w":15,"d":15,"tipo":"predio"},{"id":"puxadinho","x":32,"z":-29.5,"w":7,"d":20,"tipo":"predio","fixo":true,"colado":["casa"]},{"id":"galpao","x":6,"z":4.5,"w":15,"d":10,"tipo":"predio"},{"id":"jazida","x":19,"z":46,"w":20,"d":25,"tipo":"escavacao"}],"estrada":{"x1":-50,"x2":43,"z1":-2.5,"z2":2.5}}]};</script>
 <script>// Página interativa do lote: arrastar, grade de 5 m, ímã, girar 90°, setas, desfazer. Usa LoteWeb (régua) e DADOS (dados do projeto).
 (() => {
   const { S, bunker, opcoes } = DADOS;

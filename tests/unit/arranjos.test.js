@@ -21,9 +21,11 @@ describe('arranjos do lote (plan/arranjos)', () => {
     });
   }
 
-  it('o arranjo do Mestre só encolhe a silvicultura; os do solver usam as medidas do plano', () => {
-    expect(Object.keys(ler(ARQUIVOS[0]).medidas_alteradas)).toEqual(['silvicultura']);
-    for (const f of ARQUIVOS.slice(1)) expect(sobreMedidas(site, ler(f))).toEqual({});
+  it('só a silvicultura difere do plano original: M a encolheu (hoje é a medida do plano), os do solver a mantêm em 25×25', () => {
+    expect(ler(ARQUIVOS[0]).medidas_alteradas).toEqual({ silvicultura: [20, 27.5] });
+    for (const f of ARQUIVOS.slice(1))
+      expect(ler(f).medidas_alteradas).toEqual({ silvicultura: [25, 25] });
+    expect(sobreMedidas(site, ler(ARQUIVOS[0])).medidas.silvicultura).toEqual([20, 27.5]);
   });
 
   it('o solver parte das âncoras do Mestre: casa, puxadinho, engenho, bunker e estrada ficam no lugar', () => {

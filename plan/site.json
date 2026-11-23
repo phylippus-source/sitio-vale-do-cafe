@@ -12,17 +12,18 @@
   "margem": 2,
   "folga_itens": 0,
   "corrego_dist": 4,
+  "folga_reajuste": 2.5,
   "estrada": {
     "x1": -50,
     "x2": 43,
-    "z1": 25.5,
-    "z2": 30.5
+    "z1": -2.5,
+    "z2": 2.5
   },
   "corrego": {
     "x1": 43,
     "x2": 48
   },
-  "total_itens": 7990,
+  "total_itens": 7915.0,
   "medidas": {
     "casa": [
       25,
@@ -61,8 +62,8 @@
       25
     ],
     "silvicultura": [
-      25,
-      25
+      20,
+      27.5
     ],
     "jazida": [
       20,
@@ -83,7 +84,7 @@
     "galpao": 150,
     "puxadinho": 140,
     "bambuzal": 625,
-    "silvicultura": 625,
+    "silvicultura": 550.0,
     "jazida": 500,
     "pomar": 1000
   },
@@ -104,8 +105,8 @@
   "itens": [
     {
       "id": "casa",
-      "x": -11.5,
-      "z": -68,
+      "x": 7.0,
+      "z": -29.5,
       "w": 25,
       "d": 25,
       "tipo": "predio",
@@ -113,8 +114,8 @@
     },
     {
       "id": "engenho",
-      "x": 23,
-      "z": -43,
+      "x": 23.0,
+      "z": 4.5,
       "w": 20,
       "d": 10,
       "tipo": "predio",
@@ -125,66 +126,66 @@
     },
     {
       "id": "quadras",
-      "x": -46,
-      "z": -33,
+      "x": -48.0,
+      "z": 18.0,
       "w": 65,
       "d": 55,
       "tipo": "lavoura"
     },
     {
       "id": "nucleo",
-      "x": -11.5,
-      "z": 32.5,
+      "x": -11.0,
+      "z": -73.0,
       "w": 25,
       "d": 30,
       "tipo": "lavoura"
     },
     {
       "id": "estufa",
-      "x": -36.5,
-      "z": 32.5,
-      "w": 20,
-      "d": 7.5,
+      "x": -11.0,
+      "z": -41.0,
+      "w": 7.5,
+      "d": 20,
       "tipo": "predio"
     },
     {
       "id": "pomar",
-      "x": 14,
-      "z": 32.5,
+      "x": -38.0,
+      "z": -73.0,
       "w": 25,
       "d": 40,
       "tipo": "arvore"
     },
     {
       "id": "silvicultura",
-      "x": -48,
-      "z": -73,
-      "w": 25,
-      "d": 25,
+      "x": 19.0,
+      "z": 16.5,
+      "w": 20,
+      "d": 27.5,
       "tipo": "arvore"
     },
     {
       "id": "bambuzal",
-      "x": -48,
-      "z": 42,
+      "x": 14.0,
+      "z": -73.0,
       "w": 25,
       "d": 25,
       "tipo": "arvore"
     },
     {
       "id": "animais",
-      "x": 22,
-      "z": 8.5,
+      "x": -28.0,
+      "z": -31.0,
       "w": 15,
       "d": 15,
       "tipo": "predio"
     },
     {
       "id": "puxadinho",
-      "x": -11.5,
-      "z": -43,
-      "w": 20,
-      "d": 7,
+      "x": 32.0,
+      "z": -29.5,
+      "w": 7,
+      "d": 20,
       "tipo": "predio",
       "fixo": true,
       "colado": [
@@ -193,16 +194,16 @@
     },
     {
       "id": "galpao",
-      "x": -28.5,
-      "z": -45,
+      "x": 6.0,
+      "z": 4.5,
       "w": 15,
       "d": 10,
       "tipo": "predio"
     },
     {
       "id": "jazida",
-      "x": 19,
-      "z": -31,
+      "x": 19.0,
+      "z": 46.0,
       "w": 20,
       "d": 25,
       "tipo": "escavacao"

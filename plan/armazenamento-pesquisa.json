@@ -385,5 +385,11 @@
       "página Eos Energy (não achada)",
       "vazão do córrego (hidro reversível/micro-hidro)"
     ]
+  },
+  "meta": {
+    "consulta": "2026-11-23",
+    "revisar_em": "2027-05 (sugestão: a cada 6 meses)",
+    "fontes_com_datas": "plan/referencias/baterias-e-armazenamento-2026-11-23.md",
+    "aviso": "Tecnologia muda rápido: conferir data da fonte antes de reusar."
   }
 }

@@ -68,7 +68,8 @@ describe('conferirLote (régua do lote)', () => {
       conferirLote(S, bunker).erros.some((e) => e.includes('casa e puxadinho se sobrepõem')),
     ).toBe(true);
     pux.z = -43;
-    delete pux.colado; // sem a declaração, encostar é erro de margem
+    delete pux.colado; // sem a declaração, encostar só é erro se houver folga entre itens
+    S.folga_itens = 2;
     expect(
       conferirLote(S, bunker).erros.some((e) => e.includes('casa e puxadinho ficam a 0.0 m')),
     ).toBe(true);
@@ -94,7 +95,7 @@ describe('conferirLote (régua do lote)', () => {
     expect(m.total).toBe(7990);
     expect(m.lotArea).toBe(15000);
     expect(m.dist.animaisCasa).toBeCloseTo(52, 0);
-    expect(m.dist.pomarNucleo).toBe(2);
+    expect(m.dist.pomarNucleo).toBeGreaterThanOrEqual(0); // folga entre itens é 0 m (Mestre, 18/11)
   });
 
   it('item com medida diferente do plano', () => {
@@ -126,6 +127,7 @@ describe('conferirLote (régua do lote)', () => {
     mexe(T, 'galpao', { x: 25, z: -45 });
     expect(tem(erros(T), 'engenho e galpao se sobrepõem')).toBe(true);
     const U = site();
+    U.folga_itens = 2; // com folga de 2 m entre itens (hoje o plano usa 0)
     mexe(U, 'galpao', { x: 7.5 }); // termina em x 22,5, a 0,5 m do engenho (x 23)
     expect(tem(erros(U), 'engenho e galpao ficam a 0.5 m')).toBe(true);
   });

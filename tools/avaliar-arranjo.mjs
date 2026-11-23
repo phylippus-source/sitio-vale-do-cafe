@@ -1,7 +1,7 @@
 // Avalia um arranjo do lote feito à mão (JSON { estrada, bunker{x,z,w,d}, itens[] }): régua, regra do córrego do bunker,
 // viagens (diretas e pela rede de caminhos) e sombra. Uso: node tools/avaliar-arranjo.mjs arranjo.json [--json]
 import fs from 'node:fs';
-import { conferirLote } from './lote-lib.mjs';
+import { conferirLote, horasDeSombra } from './lote-lib.mjs';
 import { tracarCaminhos } from './caminhos-lib.mjs';
 import { custoViagens } from './lote-web.mjs';
 
@@ -31,18 +31,40 @@ export function avaliarArranjo(a) {
   const avisos = r.erros.filter((e) => /Casa Grande não está sobre o bunker/.test(e));
   const L = S.lote;
   const dc = B.mundo.distancia_corrego;
-  if (bk.x < L.x1 + S.margem || bk.x + bk.w > S.corrego.x1 - dc || bk.z < L.z1 + S.margem || bk.z + bk.d > L.z2 - S.margem)
-    erros.push(`bunker: sai do lote ou fica a menos de ${dc} m do córrego (x máx ${S.corrego.x1 - dc})`);
+  if (
+    bk.x < L.x1 + S.margem ||
+    bk.x + bk.w > S.corrego.x1 - dc ||
+    bk.z < L.z1 + S.margem ||
+    bk.z + bk.d > L.z2 - S.margem
+  )
+    erros.push(
+      `bunker: sai do lote ou fica a menos de ${dc} m do córrego (x máx ${S.corrego.x1 - dc})`,
+    );
   const cam = tracarCaminhos(S, { itens: a.itens, estrada: a.estrada });
   // maior retângulo vazio (grade de 1 m): fora de itens, estrada e córrego; o bunker é subterrâneo e não conta
-  const nx = L.x2 - L.x1, nz = L.z2 - L.z1;
+  const nx = L.x2 - L.x1,
+    nz = L.z2 - L.z1;
   const ocup = Array.from({ length: nz }, () => new Uint8Array(nx));
   const marca = (r) => {
-    for (let z = Math.max(0, Math.floor(r.z - L.z1)); z < Math.min(nz, Math.ceil(r.z + r.d - L.z1)); z++)
-      for (let x = Math.max(0, Math.floor(r.x - L.x1)); x < Math.min(nx, Math.ceil(r.x + r.w - L.x1)); x++) ocup[z][x] = 1;
+    for (
+      let z = Math.max(0, Math.floor(r.z - L.z1));
+      z < Math.min(nz, Math.ceil(r.z + r.d - L.z1));
+      z++
+    )
+      for (
+        let x = Math.max(0, Math.floor(r.x - L.x1));
+        x < Math.min(nx, Math.ceil(r.x + r.w - L.x1));
+        x++
+      )
+        ocup[z][x] = 1;
   };
   a.itens.forEach(marca);
-  marca({ x: a.estrada.x1, z: a.estrada.z1, w: a.estrada.x2 - a.estrada.x1, d: a.estrada.z2 - a.estrada.z1 });
+  marca({
+    x: a.estrada.x1,
+    z: a.estrada.z1,
+    w: a.estrada.x2 - a.estrada.x1,
+    d: a.estrada.z2 - a.estrada.z1,
+  });
   marca({ x: S.corrego.x1, z: L.z1, w: S.corrego.x2 - S.corrego.x1, d: nz });
   let vazio = { area: 0 };
   const h = new Array(nx).fill(0);
@@ -52,10 +74,35 @@ export function avaliarArranjo(a) {
       let mn = Infinity;
       for (let j = i; j < nx && h[j]; j++) {
         mn = Math.min(mn, h[j]);
-        if (mn * (j - i + 1) > vazio.area) vazio = { area: mn * (j - i + 1), w: j - i + 1, d: mn, x: L.x1 + i, z: L.z1 + z - mn + 1 };
+        if (mn * (j - i + 1) > vazio.area)
+          vazio = {
+            area: mn * (j - i + 1),
+            w: j - i + 1,
+            d: mn,
+            x: L.x1 + i,
+            z: L.z1 + z - mn + 1,
+          };
       }
     }
   }
+  // horas de sombra (solstício de inverno, 9–15 h, média sobre a área de cada item) e quem as causa
+  const cfg = {
+    lat: S.orientacao.latitude,
+    decl: S.orientacao.decl_inverno,
+    horas: [9, 10, 11, 12, 13, 14, 15],
+  };
+  const fontes = a.itens
+    .filter((i) => S.alturas[i.id])
+    .map((i) => ({ caixa: i, h: S.alturas[i.id] }));
+  const sombraItens = Object.fromEntries(
+    a.itens.map((i) => {
+      const outras = fontes.filter((f) => f.caixa !== i);
+      const quem = outras
+        .filter((f) => horasDeSombra(i, [f], cfg, 1) > 0.05)
+        .map((f) => f.caixa.id);
+      return [i.id, { horas: horasDeSombra(i, outras, cfg, 1), quem }];
+    }),
+  );
   const livreTotal = nx * nz - ocup.reduce((t, l) => t + l.reduce((a, b) => a + b, 0), 0);
   return {
     vazio,
@@ -67,6 +114,7 @@ export function avaliarArranjo(a) {
     caminhoM: cam.comprimento,
     semRota: cam.semRota,
     sombra: r.metricas.sombra,
+    sombraItens,
   };
 }
 
@@ -78,8 +126,26 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${a.nome || process.argv[2]}\nerros: ${r.erros.length}`);
     r.erros.forEach((e) => console.log(' -', e));
     r.avisos.forEach((e) => console.log(' (aviso)', e));
-    console.log(`maior vazio ${r.vazio.w}×${r.vazio.d} m = ${r.vazio.area} m² (x ${r.vazio.x}, z ${r.vazio.z}) · livre total ${r.livreTotal} m²`);
-    console.log(`viagens diretas ${r.viagens.toFixed(0)} · pela rede ${r.viagemRede.toFixed(0)} · caminhos ${r.caminhoM} m · sem rota: ${r.semRota.join(',') || '—'}`);
-    console.log('sombra (h/dia médias por lavoura):', JSON.stringify(Object.fromEntries(Object.entries(r.sombra || {}).map(([k, v]) => [k, +v.toFixed(2)]))));
+    console.log(
+      `maior vazio ${r.vazio.w}×${r.vazio.d} m = ${r.vazio.area} m² (x ${r.vazio.x}, z ${r.vazio.z}) · livre total ${r.livreTotal} m²`,
+    );
+    console.log(
+      `viagens diretas ${r.viagens.toFixed(0)} · pela rede ${r.viagemRede.toFixed(0)} · caminhos ${r.caminhoM} m · sem rota: ${r.semRota.join(',') || '—'}`,
+    );
+    console.log(
+      'sombra por item (h de 7, inverno): ' +
+        Object.entries(r.sombraItens)
+          .map(
+            ([k, v]) =>
+              `${k} ${v.horas.toFixed(1)}${v.quem.length ? '(' + v.quem.join(',') + ')' : ''}`,
+          )
+          .join(' · '),
+    );
+    console.log(
+      'sombra (h/dia médias por lavoura):',
+      JSON.stringify(
+        Object.fromEntries(Object.entries(r.sombra || {}).map(([k, v]) => [k, +v.toFixed(2)])),
+      ),
+    );
   }
 }

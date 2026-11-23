@@ -1,0 +1,124 @@
+{
+ "nome": "S1 · Solver, viagens + sombra (a partir do seu arranjo)",
+ "estrada": {
+  "x1": -50,
+  "x2": 43,
+  "z1": -2.5,
+  "z2": 2.5
+ },
+ "bunker": {
+  "x": -5.0,
+  "z": -35.0,
+  "w": 32,
+  "d": 48
+ },
+ "itens": [
+  {
+   "id": "casa",
+   "x": 7.0,
+   "z": -29.5,
+   "w": 25,
+   "d": 25,
+   "tipo": "predio"
+  },
+  {
+   "id": "engenho",
+   "x": 23.0,
+   "z": 4.5,
+   "w": 20,
+   "d": 10,
+   "tipo": "predio",
+   "encosta": [
+    "corrego"
+   ]
+  },
+  {
+   "id": "quadras",
+   "x": -46.0,
+   "z": 14.5,
+   "w": 65.0,
+   "d": 55.0,
+   "tipo": "lavoura"
+  },
+  {
+   "id": "nucleo",
+   "x": -30.0,
+   "z": -29.5,
+   "w": 30.0,
+   "d": 25.0,
+   "tipo": "lavoura"
+  },
+  {
+   "id": "estufa",
+   "x": -33.0,
+   "z": 4.5,
+   "w": 20.0,
+   "d": 7.5,
+   "tipo": "predio"
+  },
+  {
+   "id": "pomar",
+   "x": -36.0,
+   "z": -69.5,
+   "w": 25.0,
+   "d": 40.0,
+   "tipo": "arvore"
+  },
+  {
+   "id": "silvicultura",
+   "x": 14.0,
+   "z": -73.0,
+   "w": 25.0,
+   "d": 25.0,
+   "tipo": "arvore"
+  },
+  {
+   "id": "bambuzal",
+   "x": -11.0,
+   "z": -73.0,
+   "w": 25.0,
+   "d": 25.0,
+   "tipo": "arvore"
+  },
+  {
+   "id": "animais",
+   "x": -48.0,
+   "z": -24.5,
+   "w": 15.0,
+   "d": 15.0,
+   "tipo": "predio"
+  },
+  {
+   "id": "puxadinho",
+   "x": 32.0,
+   "z": -29.5,
+   "w": 7,
+   "d": 20,
+   "tipo": "predio",
+   "colado": [
+    "casa"
+   ]
+  },
+  {
+   "id": "galpao",
+   "x": 8.0,
+   "z": 4.5,
+   "w": 15.0,
+   "d": 10.0,
+   "tipo": "predio"
+  },
+  {
+   "id": "jazida",
+   "x": 19.0,
+   "z": 14.5,
+   "w": 20.0,
+   "d": 25.0,
+   "tipo": "escavacao"
+  }
+ ],
+ "metricas_solver": {
+  "status": "OPTIMAL",
+  "custo_viagens": 870,
+  "segundos": 0.5
+ }
+}

@@ -130,7 +130,9 @@ export function conferirLote(S, bunker) {
       const enc = (it.encosta || []).includes(nome.replace('ó', 'o'));
       if (overlap(R(it), o)) err(`lote: ${it.id} invade a ${nome}`);
       else if (g < (nome === 'córrego' ? (S.corrego_dist ?? S.margem) : S.margem) - EPS && !enc)
-        err(`lote: ${it.id} fica a ${g.toFixed(1)} m da ${nome} (mínimo ${nome === 'córrego' ? (S.corrego_dist ?? S.margem) : S.margem} m)`);
+        err(
+          `lote: ${it.id} fica a ${g.toFixed(1)} m da ${nome} (mínimo ${nome === 'córrego' ? (S.corrego_dist ?? S.margem) : S.margem} m)`,
+        );
     }
     if (['arvore', 'escavacao'].includes(it.tipo) && overlap(R(it), bunker))
       err(`lote: ${it.id} (${it.tipo}) está sobre a projeção do bunker`);

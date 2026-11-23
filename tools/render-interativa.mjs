@@ -16,7 +16,8 @@ const nomes = {
   'espinha-meio-bloco': '4 · Espinha até o meio + bloco único',
   'espinha-curta-bloco': '5 · Espinha curta + bloco único (pista)',
 };
-// arranjos do Mestre (plan/arranjos): o esboço dele e as correções da régua, com bunker próprio
+// arranjos (plan/arranjos): o do Mestre e os regerados pelo solver a partir dele, com bunker próprio
+// (os de 18/11 saíram da página: não passam mais na régua de 22/11, folga 0 m e córrego a 4 m)
 const arr = (id, nome, f) => {
   const a = lerJson(`plan/arranjos/${f}`);
   return {
@@ -24,30 +25,31 @@ const arr = (id, nome, f) => {
     nome,
     itens: a.itens.map((i) => ({
       ...i,
-      giro: i.w !== (a.medidas_alteradas?.[i.id]?.[0] ?? S.itens.find((x) => x.id === i.id).w) ? 1 : 0,
+      giro:
+        i.w !== (a.medidas_alteradas?.[i.id]?.[0] ?? S.itens.find((x) => x.id === i.id).w) ? 1 : 0,
     })),
     estrada: a.estrada,
     sobre: sobreMedidas(S, a),
     bunker: { x0: a.bunker.x, z0: a.bunker.z, w: a.bunker.w, d: a.bunker.d, giro: 1 },
+    bloco: a.bloco,
   };
 };
 const opcoes = [
   arr(
     'mestre-22-11',
-    'M · Seu arranjo 22/11, encaixado (silvicultura e jazida encolhidas)',
+    'M · Seu arranjo de 22/11, encaixado (silvicultura encolhida para 20×27,5)',
     'mestre-22-11-ajustado.json',
   ),
   arr(
-    'corrigido-a',
-    'A · Seu esboço corrigido (mínimo de mudanças)',
-    'mestre-18-11-corrigido.json',
+    'solver-viagens',
+    'S1 · Solver a partir do seu arranjo: menos viagens e sombra',
+    'mestre-22-11-solver-viagens.json',
   ),
   arr(
-    'corrigido-b',
-    'B · Corrigido + engenho ao sul (mais vazio)',
-    'mestre-18-11-corrigido-vazio.json',
+    'solver-vazio',
+    'S2 · Solver a partir do seu arranjo: maior espaço livre',
+    'mestre-22-11-solver-vazio.json',
   ),
-  arr('esboco', 'Seu esboço original (com erros)', 'mestre-18-11.json'),
   {
     id: 'plano',
     nome: 'Plano atual (Equilíbrio, estrada no meio)',
@@ -64,7 +66,11 @@ const opcoes = [
       bloco: o.bloco,
     })),
 ];
-const dados = { S, bunker: { x0: B.mundo.x0, z0: B.mundo.z0, w: pg.w, d: pg.d }, opcoes };
+const dados = {
+  S,
+  bunker: { x0: B.mundo.x0, z0: B.mundo.z0, w: pg.w, d: pg.d, dc: B.mundo.distancia_corrego },
+  opcoes,
+};
 const json = JSON.stringify(dados).replace(/</g, '\\u003c');
 
 const css = fs.readFileSync(new URL('./interativa.css', import.meta.url), 'utf8');

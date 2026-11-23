@@ -68,7 +68,13 @@ export function barreiras(S, estrada) {
   const L = S.lote,
     E = estrada || S.estrada;
   return [
-    { x: S.corrego.x1, z: L.z1, w: S.corrego.x2 - S.corrego.x1, d: L.z2 - L.z1, m: S.corrego_dist ?? S.margem },
+    {
+      x: S.corrego.x1,
+      z: L.z1,
+      w: S.corrego.x2 - S.corrego.x1,
+      d: L.z2 - L.z1,
+      m: S.corrego_dist ?? S.margem,
+    },
     { x: E.x1, z: E.z1, w: E.x2 - E.x1, d: E.z2 - E.z1, m: S.margem },
   ];
 }
@@ -111,7 +117,8 @@ export function encaixar(it, x, z, S, outros, estrada, { ima = true } = {}) {
     return arred(Math.min(Math.max(c, minimo), maximo));
   };
   const fo = (o) => o.m ?? S.folga_itens ?? M;
-  const vizinhoZ = (zz) => (o) => zz < o.z + o.d + fo(o) + CAPTURA && zz + it.d > o.z - fo(o) - CAPTURA;
+  const vizinhoZ = (zz) => (o) =>
+    zz < o.z + o.d + fo(o) + CAPTURA && zz + it.d > o.z - fo(o) - CAPTURA;
   const nx = eixo(x, it.w, L.x1, L.x2, 'x', 'w', vizinhoZ(z));
   const vizinhoX = (o) => nx < o.x + o.w + fo(o) + CAPTURA && nx + it.w > o.x - fo(o) - CAPTURA;
   const nz = eixo(z, it.d, L.z1, L.z2, 'z', 'd', vizinhoX);

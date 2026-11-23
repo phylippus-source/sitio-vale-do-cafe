@@ -17,17 +17,17 @@ Phylippus, **"Mestre Philippe"**, carioca. Português do Brasil, **telegráfico,
 - **Arranjo do Lote** (Artifact interativo): o Mestre **arrasta os itens do lote** (grade de 5 m, ímã, girar 90°) e a régua mostra os erros na hora; depois o solver avalia e sugere correções mínimas. Existe porque ele quer pôr a mão na planta e comparar o arranjo **dele** com o do solver.
 - **Regras do Lote** (Claude Doc): lista as 24 regras da régua e do solver com a origem (Mestre, fonte ou chute) para ele alterar o que quiser.
 
-## 4. Estado atual (19/11/2026)
-- **Etapa B0** (implantação). Bunker **aprovado**: opção ±2,5 m, 48×32 m, piso −10 m. Lote ainda **sem escolha final**: o Mestre está montando o arranjo dele na Arranjo do Lote.
-- **Decisões de 18/11:** tudo é livre (casa, engenho, puxadinho e o próprio bunker, que ficou **solto da casa**; casa fora do bunker só dá aviso). Regras de proximidade (pomar/estufa/animais perto do núcleo) **desligadas**. Única regra de odor ligada: **animais ≥ 20 m da casa** (IN 11/2025 IMA-SC, referência). Respostas dele às 🧩: **folga 0 m entre canteiros, córrego a 4 m, bunker a 5 m do córrego**. **Ainda não aplicadas no código** (a régua usa `margem` 2 m para tudo e córrego 2 m).
+## 4. Estado atual (23/11/2026)
+- **Etapa B0** (implantação). Bunker **aprovado**: opção ±2,5 m, 48×32 m, piso −10 m. Lote ainda **sem escolha final**. O Mestre mandou uma captura da Arranjo do Lote (22/11); ela virou `plan/arranjos/mestre-22-11-ajustado.json` (opção **M**, silvicultura encolhida para 20×27,5 por ordem dele). A partir dele o solver regerou **S1** (menos viagens e sombra) e **S2** (maior espaço livre), ambos com as medidas do plano: `~/venv-sitio/bin/python -I tools/pack-lote.py --base plan/arranjos/mestre-22-11-ajustado.json [--bloco-unico --teto 0] --peso-sombra 5 --saida-arranjo plan/arranjos/X.json` (casa, puxadinho, engenho, bunker e estrada ficam como no arranjo; o resto é regerado).
+- **Decisões de 18/11:** tudo é livre (casa, engenho, puxadinho e o próprio bunker, que ficou **solto da casa**; casa fora do bunker só dá aviso). Regras de proximidade (pomar/estufa/animais perto do núcleo) **desligadas**. Única regra de odor ligada: **animais ≥ 20 m da casa** (IN 11/2025 IMA-SC, referência). Respostas dele às 🧩 (18/11), **aplicadas em 22–23/11**: **folga 0 m entre itens** (`folga_itens`; chute: li "canteiros" como todos os itens), **córrego a 4 m** (`corrego_dist`), **bunker a 5 m do córrego** (`bunker.json`, página e `avaliar-arranjo`). Divisa e estrada seguem a 2 m (`margem`). As 15 opções antigas de `plan/lote-opcoes.json` foram corrigidas pelo corretor; 6 (estrada-oeste, bloco-unico-oeste, espinha-meio, espinha-curta, espinha-meio-bloco, espinha-curta-bloco) **saíram** por não ter solução; o Mestre mandou esquecê-las e usar só o arranjo da captura. Os arranjos de 18/11 saíram da página (não passam na régua nova).
 - **Sol:** as fontes lidas não trazem horas por cultura; a única regra com base é horta/lavoura sem sombra. Estufa, pomar, galpão, casa e piscina só **medem** sombra.
 - **Quer ainda:** mover a estrada e **redimensionar lotes** para um nesting melhor (liberar no solver).
-- Arranjo dele **não foi salvo** (só existe na tela). Falta o botão **Exportar/Importar**.
+- A página não salva o arranjo (só a tela). Falta o botão **Exportar/Importar**. As setas na página mostram a fachada/entrada de serviço voltada para a Casa Grande (só desenho; a régua não cobra).
 - Último commit antes desta limpeza: `e01840d`.
 
 ## 5. Próximos passos (cada um = uma parte, espere o "segue")
 1. **F5** (Médio): botão Exportar/Importar arranjo (JSON) na página; o Mestre cola aqui; `node tools/avaliar-arranjo.mjs arq.json` e `~/venv-sitio/bin/python -I tools/corrigir-arranjo.py ent.json saida.json` (deslocamento mínimo).
-2. Parametrizar `margem` (itens 0 m, córrego 4 m, bunker 5 m) em `plan/site.json`, régua, solver e página; ajustar testes.
+2. (feito em 23/11) parametrização da folga, do córrego e do bunker. Resta decidir o Mestre entre M, S1 e S2.
 3. **F3**: placar ao vivo (viagens, sombra) e comparação com o solver.
 4. Solver com estrada livre e lotes redimensionáveis (nesting).
 5. Fechar B0 (suíte completa, Plano Mestre, memória). Depois **E2–E5** (energia), **B1–B8** (bunker no modelo 3D), **C0–C3** (cores, refino de código), **D1–D2** (desempenho). Plano completo: `plan/PLANO-MESTRE.md` (30 KB, leia por trechos).

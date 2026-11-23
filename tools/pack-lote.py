@@ -12,6 +12,7 @@ Modelo CP-SAT numa grade de 0,5 m:
   - objetivo: menor soma peso × distância entre centros (site.viagens) + peso-sombra × (fonte alta, lavoura, hora de 9 a 15 h do
     solstício de inverno) com sombra: a sombra de cada fonte é a caixa envolvente da pegada varrida pelo deslocamento do sol.
 Uso: venv/bin/python tools/pack-lote.py --tempo 60 --saida plan/lote-opcoes.json [--log]
+     venv/bin/python tools/pack-lote.py --base plan/arranjos/X.json --saida-arranjo plan/arranjos/Y.json  (regera a partir de um arranjo do Mestre)
 """
 import argparse
 import json
@@ -59,7 +60,7 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=
     ox, oz = L["x1"], L["z1"]  # origem do modelo: canto do lote
     W, D = u(L["x2"] - L["x1"]), u(L["z2"] - L["z1"])
     marg = u(S["margem"])
-    folga = u(S.get("folga_itens", S["margem"]))  # entre itens
+    folga_it = u(S.get("folga_itens", S["margem"]))  # folga entre itens (Mestre, 18/11: 0 m)
     dcorr = u(S.get("corrego_dist", S["margem"]))  # do córrego
     m = cp_model.CpModel()
     v = {}
@@ -109,7 +110,7 @@ def construir(S, B, bunker, peso_sombra=0.0, peso_bloco=0.0, mover=False, bloco=
         for b in ids[i + 1:]:
             if v[a]["fixo"] and v[b]["fixo"]:
                 continue  # fixos já estão onde estão; a régua os confere
-            separados(v[a], v[b], folga, f"sep_{a}_{b}")
+            separados(v[a], v[b], folga_it, f"sep_{a}_{b}")
     for nome, o in (("estrada", S["estrada"]), ("corrego", dict(x1=S["corrego"]["x1"], x2=S["corrego"]["x2"], z1=L["z1"], z2=L["z2"]))):
         r = fixa(nome, u(o["x1"] - ox), u(o["z1"] - oz), u(o["x2"] - o["x1"]), u(o["z2"] - o["z1"]))
         for a in ids:
@@ -318,6 +319,8 @@ def main():
     ap.add_argument("--sem-estrada", action="store_true", help="experimento: tira a estrada do meio do lote (para medir quanto ela custa em espaço livre)")
     ap.add_argument("--peso-bloco", type=float, default=0.0, help="pesos de viagem trocados por metro de bloco livre nas pontas (fundos + frente)")
     ap.add_argument("--peso-sombra", type=float, default=0.0, help="custo de cada par fonte×lavoura×hora com sombra, em peso·metro de viagem")
+    ap.add_argument("--base", help="arranjo do Mestre (plan/arranjos/*.json): casa, puxadinho e engenho (fixos), bunker e estrada ficam como nele; o resto é regerado com as medidas do plano")
+    ap.add_argument("--saida-arranjo", help="grava o resultado no formato de arranjo (página e tools/avaliar-arranjo.mjs)")
     a = ap.parse_args()
     S, B = ler("plan/site.json"), ler("plan/bunker.json")
     ESTRADAS = dict(
@@ -335,6 +338,19 @@ def main():
     oj = ler("plan/bunker-opcoes.json")
     esc = next(o for o in oj["opcoes"] if o["id"] == oj.get("escolhida"))
     bunker = dict(u=B["mundo"]["x0"], v=B["mundo"]["z0"], w=esc["pegada"]["w"], d=esc["pegada"]["d"])
+    if a.base:
+        arr = json.loads(Path(a.base).read_text(encoding="utf8"))
+        S["estrada"] = dict(arr["estrada"])
+        bk = arr["bunker"]
+        bunker = dict(u=bk["x"], v=bk["z"], w=bk["w"], d=bk["d"])
+        alt = arr.get("medidas_alteradas", {})
+        por = {i["id"]: i for i in arr["itens"]}
+        for it in S["itens"]:
+            b = por[it["id"]]
+            # posição e giro vêm do arranjo (também servem de dica); a medida é a do plano, salvo as que o arranjo encolheu
+            it["x"], it["z"] = b["x"], b["z"]
+            if it["id"] not in alt:
+                it["w"], it["d"] = b["w"], b["d"]
     itens, info = resolver(S, B, bunker, a.tempo, a.log, a.peso_sombra, a.peso_bloco, a.mover_fixos, a.bloco_unico, a.teto, a.cap_sombra, a.bloco_tam)
     if itens is None:
         print("sem solução:", info, file=sys.stderr)
@@ -347,6 +363,17 @@ def main():
     if "bloco" in info:
         print("bloco livre:", info["bloco"], f"= {info['bloco']['w'] * info['bloco']['d']:g} m²")
     print(f"lote: {info['status']} | custo de viagens {info['custo']:.0f} (plano atual {base:.0f}) | blocos livres: fundos {fundos:g} m, frente {frente:g} m | conjunto fixo andou {info['dz']:g} m | {info['segundos']} s")
+    if a.saida_arranjo:
+        saida = dict(
+            nome=a.nome or "Regerado pelo solver",
+            estrada=S["estrada"],
+            bunker=dict(x=bunker["u"], z=bunker["v"] + info["dz"], w=bunker["w"], d=bunker["d"]),
+            itens=[{k: val for k, val in i.items() if k != "fixo"} for i in itens],
+        )
+        if "bloco" in info:
+            saida["bloco"] = info["bloco"]
+        saida["metricas_solver"] = dict(status=info["status"], custo_viagens=round(info["custo"]), segundos=info["segundos"])
+        Path(a.saida_arranjo).write_text(json.dumps(saida, ensure_ascii=False, indent=1), encoding="utf8")
     if a.saida:
         op = dict(id=a.id or "viagens", nome=a.nome or "Menores viagens (sem sombra)", etapa=a.etapa or "5c-1: viagens", estrada=S["estrada"], dz_bunker=info["dz"], itens=itens)
         if "bloco" in info:

@@ -67,6 +67,24 @@
     desenhar();
   }
 
+  // o ímã do bunker segura 5 m do córrego (regra do Mestre, 18/11); os demais itens, 4 m
+  const Sima = (it) => (it.tipo === 'bunker' ? { ...S, corrego_dist: bunker.dc } : S);
+  // regras só do bunker (a régua do lote o trata como projeção): córrego a 5 m e margem da divisa
+  const regraBunker = (bk) => {
+    const e = [],
+      L = S.lote,
+      folga = S.corrego.x1 - (bk.x + bk.w);
+    if (folga < bunker.dc - 1e-9)
+      e.push(`bunker: a ${f(folga)} m do córrego (mínimo ${bunker.dc} m)`);
+    if (
+      bk.x < L.x1 + S.margem - 1e-9 ||
+      bk.z < L.z1 + S.margem - 1e-9 ||
+      bk.z + bk.d > L.z2 - S.margem + 1e-9
+    )
+      e.push(`bunker: sai do lote ou fica a menos de ${S.margem} m da divisa`);
+    return e;
+  };
+
   // só a régua (a rede de caminhos fica de fora: é cara e esta página ainda não a desenha)
   const AVISO_CASA = /Casa Grande não está sobre o bunker/;
   const avaliacao = () => {
@@ -77,7 +95,7 @@
     );
     // casa fora do bunker agora é escolha do Mestre: vira aviso, não erro
     return {
-      erros: r.erros.filter((e) => !AVISO_CASA.test(e)),
+      erros: [...r.erros.filter((e) => !AVISO_CASA.test(e)), ...regraBunker(bk)],
       avisos: r.erros.filter((e) => AVISO_CASA.test(e)),
     };
   };
@@ -260,7 +278,7 @@
       it,
       p.x - arrasto.dx,
       p.y - arrasto.dz,
-      S,
+      Sima(it),
       outros(it.id),
       estrada,
       {
@@ -312,7 +330,7 @@
     const it = get(sel);
     if (!it || it.fixo) return;
     const antes = foto();
-    const pos = LoteWeb.encaixar(it, it.x + dx, it.z + dz, S, outros(it.id), estrada, {
+    const pos = LoteWeb.encaixar(it, it.x + dx, it.z + dz, Sima(it), outros(it.id), estrada, {
       ima: false,
     });
     if (pos.x === it.x && pos.z === it.z) return;
@@ -328,7 +346,7 @@
     Object.assign(
       it,
       g,
-      LoteWeb.encaixar(g, g.x, g.z, S, outros(it.id), estrada, { ima: $('ima').checked }),
+      LoteWeb.encaixar(g, g.x, g.z, Sima(it), outros(it.id), estrada, { ima: $('ima').checked }),
     );
     empilha(antes);
     desenhar();

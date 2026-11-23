@@ -2,7 +2,7 @@
 
 Pedido (13:28): avaliar ar comprimido, salmoura, areia quente com espelhos solares, água+sais como eletrólito, terras raras, químicas instáveis com extintores. Qual é a mais barata para longo prazo e baixa manutenção, estilo apocalipse? Pesquisar Google Acadêmico e Inovação Tecnológica.
 
-Estado: limite de 5 h estourou ~13:35, reseta 18:10. Nada foi concluído além do que está em plan/armazenamento-pesquisa.json.
+Estado: CONCLUÍDA em 23/11 19:3x. Resultado em plan/armazenamento-pesquisa.json (seções fim_do_mundo, ar_comprimido_atualizacao, laboratorio_inovacao_tecnologica). Pendências listadas lá.
 
 Já testado:
 - Google Scholar: robots.txt proíbe, não lê. Semantic Scholar: erro. OpenAlex: limite de taxa (buscar 1 página por vez).

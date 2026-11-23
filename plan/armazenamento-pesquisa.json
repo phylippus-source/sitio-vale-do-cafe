@@ -173,5 +173,217 @@
       "baterias-captura-carbono-armazenam-energia-renovavel-ajudam-clima&id=010115240524"
     ],
     "base_url": "https://www.inovacaotecnologica.com.br/noticias/noticia.php?artigo="
+  },
+  "ar_comprimido_atualizacao": {
+    "dados": {
+      "RTE_caverna_PNNL": "52%, vida 60 anos",
+      "RTE_micro_simulada_MDPI": "61% (75 m³, 25 bar, ~100 kWh, 50 kW, com recuperação de calor; sem custo, só simulação ligada à rede)",
+      "RTE_medida_pequena": "21% medido a 3 kWh (Oak Ridge), 78% projetado (revisão MDPI Energies 16, 6653)",
+      "densidade": "~31 kWh/m³ a 200 bar se isotérmico (conta da revisão MDPI)",
+      "autodescarga": "praticamente zero na parte de pressão; perde calor se não isolar",
+      "custo_PNNL_rede": "US$ 295/kWh (4 h), 122 (10 h), 18 (100 h, 2030) em caverna"
+    },
+    "conta": "1333 kWh a 200 bar: no mínimo ~43 m³ de vasos (ideal isotérmico); real maior.",
+    "avaliacao": "Barato só com caverna. Em tanques pequenos a eficiência é incerta (21–61%) e vaso de pressão exige certificação: não serve de banco principal."
+  },
+  "fim_do_mundo": {
+    "pedido": "23/11 13:28: qual armazenamento é mais barato a longo prazo e de baixa manutenção para cenário apocalipse; ar comprimido, salmoura, areia quente com espelhos, água+sais, terras raras, químicas instáveis com extintores.",
+    "regra": "'dado' = fonte lida; 'conta' = minha aritmética; 'avaliacao' = julgamento meu (chute). Preços PNNL são de escala de rede (100 MW): em 1,3 MWh custam mais (fator não achado). Sem preço em R$.",
+    "custo_PNNL_2021_USD_kWh_rede": {
+      "fonte": "PNNL-33283 (ESGC 2022), https://www.pnnl.gov/sites/default/files/media/file/ESGC%20Cost%20Performance%20Report%202022%20PNNL-33283.pdf",
+      "chumbo_acido": {
+        "4h": 447,
+        "10h": 409,
+        "RTE_pct": 78,
+        "ciclos_80DoD": 1370,
+        "vida_anos": 12
+      },
+      "LFP": {
+        "4h": 385,
+        "10h": 356,
+        "2030_4h": 291,
+        "RTE_pct": 82.6,
+        "ciclos_80DoD": 2400,
+        "vida_anos": 16
+      },
+      "NMC": {
+        "4h": 435,
+        "10h": 405,
+        "RTE_pct": 82.6,
+        "ciclos_80DoD": 1520,
+        "vida_anos": 13
+      },
+      "fluxo_vanadio": {
+        "10h": 385,
+        "RTE_pct": 65,
+        "vida_pilha_anos": 12,
+        "eletrolito": "ilimitado"
+      },
+      "zinco": {
+        "10h_10MW": 449,
+        "faixa": "370–627",
+        "RTE_pct": "59–83",
+        "ciclos": "2000–12500",
+        "vida_anos": 25
+      },
+      "ar_comprimido_caverna": {
+        "4h": 295,
+        "10h": 122,
+        "100h_2030": 18,
+        "RTE_pct": 52,
+        "vida_anos": 60
+      },
+      "areia_calor_sensivel": {
+        "100h": 4.6,
+        "10h": "11,3 (suspeito de erro de leitura)",
+        "RTE_pct": "~50 (calor→eletricidade, rede)",
+        "vida_anos": 35
+      },
+      "sal_fundido_baixa_T": {
+        "10h": 256,
+        "100h": 96,
+        "RTE_pct": 51
+      },
+      "concreto": {
+        "10h": 254,
+        "100h": 52,
+        "RTE_pct": 41
+      },
+      "ar_liquido": {
+        "10h": 414,
+        "RTE_pct": "50–55"
+      }
+    },
+    "conta_capex_por_kWh_entregue": {
+      "metodo": "US$/kWh nominal (4 h) ÷ (ciclos a 80% DoD × 0,8). Só capex, ignora RTE, O&M, juros, ciclo diário contínuo.",
+      "LFP": 0.2,
+      "NMC": 0.36,
+      "chumbo_acido": 0.41,
+      "vida_com_1_ciclo_por_dia_anos": {
+        "LFP": 6.6,
+        "NMC": 4.2,
+        "chumbo_acido": 3.8
+      },
+      "obs": "Chumbo a 80% DoD dura ~3,8 anos com 1 ciclo/dia (PNNL diz 3–4). A 50% DoD dura mais ciclos (valor não lido: pendente)."
+    },
+    "termico_conta": {
+      "agua_dT50": "58 kWh/m³ (4,2 kJ/kg/K)",
+      "areia_dT300": "2–4 m³ para 423 kWh térmicos (3 dias de carga térmica) com cp 0,8–1,4 kJ/kg/K e 1600 kg/m³ (chute de cp/densidade)",
+      "espelhos": "Wikipedia CSP/Dish Stirling: Stirling de prato 30% pico (31,25% recorde Sandia), 12–25% anual em demonstrações, 25–60% abaixo do projetado em projetos reais; Stirling Energy Systems faliu em 2011; limpeza de espelhos usa água; aquecedor termossifão de água tem manutenção desprezível.",
+      "lagoa_solar_salmoura": "fundo até 90 °C, uso 70–80 °C, <2% do sol vira calor útil; precisa água doce contínua e remover sal; El Paso 3.200 m² supre 20% de uma indústria; ocupa terra: contra o critério do Mestre."
+    },
+    "licoes_fornecedor": {
+      "nota": "Tecnologias de fornecedor único somem; para fim do mundo vale peça comum e reparo local.",
+      "casos": [
+        "Aquion (água salgada com perclorato de sódio): falência 03/2017, produção foi para a China",
+        "ESS Tech (ferro, sal, água): encerrou operações e pediu Chapter 7 em 13/11/2026 (Wikipedia ESS Tech)",
+        "NGK sódio-enxofre: produção descontinuada em 2025",
+        "GE Durathon (sódio-níquel): cancelado em 2015",
+        "Stirling Energy Systems (prato Stirling): falência 2011"
+      ]
+    },
+    "quimicas_instaveis": {
+      "NaS": "330 °C; incêndio de 2 MW em Tsukuba 2011; standby até 14% da energia guardada só para manter quente (Wikipedia)",
+      "Zebra_NaNiCl": "~300 °C, esfriou leva até 2 dias para voltar; mais seguro que NaS; níquel importado; só FZSoNick e Innovenergy fabricam (Wikipedia)",
+      "Li_ion": "autodescarga 1,5–2%/mês; perde ~20% da carga cíclica em 3–5 anos a 25 °C (extrapolação com poucos dados); fumaça com HF; LFP é mais seguro que NMC (Wikipedia)",
+      "incendio_real": "Arizona 04/2019, 2,16 MWh Li-ion: gás Novec 1230 apagou a chama mas não evitou a deflagração; 4 bombeiros feridos ao abrir a porta; faltavam ventilação e alívio de explosão (NFPA 68/69); relatório não indica agente extintor nem água; recomenda distância, medir gás à distância e tratar o contêiner como acima do limite inferior de explosão (FSRI/UL).",
+      "NFPA_855": "site NFPA bloqueia robô (robots.txt): exigências de distância e supressão NÃO lidas. Pendente.",
+      "avaliacao": "Se usar Li-ion: LFP, contêiner separado FORA do bunker e das casas, com ventilação e alívio de explosão. Extintor comum não resolve; projeto com bombeiros."
+    },
+    "terras_raras": {
+      "NiMH": "eletrodo AB5 com lantânio, cério, neodímio, praseodímio; eficiência 66–92%; autodescarga padrão 14–71%/mês, LSD 0,08–2,9%/mês; 180–2000 ciclos (Wikipedia NiMH)",
+      "avaliacao": "Não serve para banco: caro, autodescarga alta, sem vantagem. Terras raras só importam em ímãs de gerador: preferir alternador/gerador sem ímã de neodímio (ferrite ou de indução) para reparo (avaliação, sem fonte)."
+    },
+    "chumbo_carregado_a_seco": {
+      "dado": "Rolls Battery: bateria seca carregada vem sem eletrólito; vida de prateleira 'vários anos em condições ideais'; placa positiva sem limite; negativa oxida se pegar água e ar (ativação leva mais tempo); ativar com eletrólito d=1,265, carga a 5% do regime de 8 ou 20 h, até 46 °C máx.",
+      "fonte": "https://support.rollsbattery.com/en/support/solutions/articles/427-activating-dry-charged-batteries-instructions",
+      "avaliacao": "Estoque de células secas é seguro barato de sobressalente para reposição em décadas, em local frio e seco."
+    },
+    "laboratorio_inovacao_tecnologica": [
+      {
+        "tec": "ferro-fluxo aquoso (Fe-NTMPA)",
+        "quem": "PNNL 2024",
+        "num": "98,7% após 1000 ciclos; ~87% RTE",
+        "ref": "Nat. Commun. 15, 2566",
+        "status": "lab"
+      },
+      {
+        "tec": "zinco-íon aquoso com ânodo protegido",
+        "quem": "TU Munique 2024",
+        "num": ">100 mil ciclos (relato)",
+        "ref": "Adv. Energy Mater. 2403030",
+        "status": "célula botão"
+      },
+      {
+        "tec": "zinco-lignina, eletrólito polímero-em-água",
+        "quem": "Linköping 2024",
+        "num": ">8000 ciclos a ~80%; carga por ~1 semana; densidade ~chumbo-ácido; sem lítio, cobalto, chumbo",
+        "ref": "Energy Environ. Mater., DOI 10.1002/eem2.12752",
+        "status": "lab"
+      },
+      {
+        "tec": "zinco-íon com hidrogel de celulose de bambu (separador/eletrólito)",
+        "quem": "Lang et al. 2026",
+        "num": "79,9% após 1000 ciclos; gel 12× mais barato que separador de vidro; cátodo V2O5",
+        "ref": "J. Bioresources Bioproducts, DOI 10.1016/j.jobab.2026.100232",
+        "status": "lab"
+      },
+      {
+        "tec": "'baterias de água' Mg/Zn com camada de bismuto",
+        "quem": "RMIT 2024",
+        "num": "75 Wh/kg (Mg); promessa de trocar chumbo em 1–3 anos (projeção)",
+        "ref": "Adv. Mater., DOI 10.1002/adma.202400237",
+        "status": "pesquisa inicial"
+      },
+      {
+        "tec": "lítio com eletrodo de óxido de ferro em esferogel de carbono (melhora com o uso)",
+        "quem": "Univ. Saarland 2026",
+        "num": "~300 ciclos para ativar",
+        "ref": "Chem. Mater., DOI 10.1021/acs.chemmater.5c02442",
+        "status": "lab"
+      },
+      {
+        "tec": "sódio-íon com vanadato (e dessalinização)",
+        "quem": "Surrey 2026",
+        "num": ">400 ciclos",
+        "ref": "J. Mater. Chem. A, DOI 10.1039/d5ta05128b",
+        "status": "lab"
+      },
+      {
+        "tec": "bateria térmica de zeólita (guarda calor sem isolamento)",
+        "quem": "Fraunhofer 2012",
+        "num": ">100 °C ao devolver; 750 L em contêiner; milhares de ciclos; sem custo",
+        "ref": "sem referência na notícia",
+        "status": "protótipo industrial"
+      }
+    ],
+    "academico": "Google Acadêmico: robots.txt proíbe robô (testado). Semantic Scholar: erro. Usei PNNL/DOE, MDPI, Nature Commun. e artigos citados pela Inovação Tecnológica. Revista Elsevier (ScienceDirect) também bloqueia.",
+    "recomendacao_provisoria": {
+      "aviso": "Avaliação minha para o Mestre decidir; não é decisão.",
+      "calor": "areia/água enterrada sob a laje, carregada por espelhos/coletores e por excedente FV (resistência)",
+      "eletrico": [
+        "banco A diário: LFP em contêiner fora do bunker",
+        "banco B reparável: chumbo tubular inundado em sala enterrada fria, mais células secas carregadas de reserva",
+        "banco C opcional de longuíssimo prazo: NiFe (importado; eficiência baixa)"
+      ],
+      "descartar": [
+        "lagoa de salmoura",
+        "ar comprimido como banco",
+        "NaS/Zebra",
+        "NMC no bunker",
+        "NiMH",
+        "água-sal de fornecedor único (Aquion, ESS)"
+      ],
+      "observar": [
+        "zinco aquoso e ferro-fluxo de laboratório"
+      ]
+    },
+    "pendente": [
+      "preço em R$ no Brasil",
+      "vida do chumbo a 50% DoD (ciclos)",
+      "NFPA 855 (distâncias, supressão)",
+      "página Eos Energy (não achada)",
+      "vazão do córrego (hidro reversível/micro-hidro)"
+    ]
   }
 }

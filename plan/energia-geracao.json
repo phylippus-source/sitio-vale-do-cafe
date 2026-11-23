@@ -1,0 +1,259 @@
+{
+  "nota": "E3 — geração com redundância (23/11/2026). 'fonte' = dado lido; 'conta' = minha aritmética; 'chute' = premissa minha a confirmar. Tudo sobre as cargas de plan/energia-cargas.json (dia de uso, pior dia).",
+  "fontes_datas": {
+    "Atlas Solar INPE/LABREN 2ª ed.": "2017, consultado 23/11/2026 (sol de Vassouras)",
+    "PNNL-33283": "2022, consultado 23/11/2026 (custos)",
+    "Marafon et al., Pesq. Agropec. Trop. 49:e55282": "29/04/2019, consultado 23/11/2026 (bambu: PCS ~4.500 kcal/kg, densidade 0,60 g/cm³, incremento 22–44 m³/ha/ano citando Murakami 2007)",
+    "Embrapa Florestas, Eucalipto (2021) cap. 26": "2021, consultado 23/11/2026 (35 m³/ha/ano, densidade 0,40)",
+    "Embrapa SDoc1961 (biogás suíno)": "ano não conferido, consultado 23/11/2026 (≈0,14 m³ biogás/animal/dia, medida em granja de 5000 suínos)"
+  },
+  "premissas": {
+    "HSP_pior_mes_kWh_m2_dia": {
+      "v": 4.34,
+      "origem": "fonte: Atlas INPE, plano inclinado na latitude, junho"
+    },
+    "HSP_media_anual": {
+      "v": 4.908,
+      "origem": "fonte: idem"
+    },
+    "PR_sistema_FV": {
+      "v": 0.75,
+      "origem": "chute"
+    },
+    "eficiencia_bateria": {
+      "v": 0.9,
+      "origem": "chute (LFP 95–99% na Wikipedia, chumbo 78% no PNNL; uso 0,9 médio)"
+    },
+    "densidade_painel_kWp_m2": {
+      "v": 0.2,
+      "origem": "chute (~200 W/m²)"
+    },
+    "fator_ocupacao_telhado": {
+      "v": 0.5,
+      "origem": "chute: só a água norte do telhado, ou fileiras com espaçamento em laje"
+    },
+    "PC_biogas_kWh_m3": {
+      "v": 6.0,
+      "origem": "conta: 60% metano (Embrapa) × 9,97 kWh/m³ de metano (conhecimento geral, não lido na fonte)"
+    },
+    "rendimento_motor_gerador": {
+      "v": 0.28,
+      "origem": "chute"
+    },
+    "eta_turbina_hidro": {
+      "v": 0.5,
+      "origem": "chute"
+    }
+  },
+  "classes_de_carga": {
+    "aviso": "Classificação MINHA em vital/produção/conforto; o Mestre ajusta.",
+    "T1_vital": {
+      "ids": [
+        "suporte-ar",
+        "suporte-o2",
+        "clima-bunker",
+        "agua",
+        "geladeiras",
+        "enfermaria",
+        "hidroponia-bombas",
+        "quartos",
+        "nucleo",
+        "animais",
+        "cozinha",
+        "montacarga"
+      ],
+      "kWh_dia": 136.5
+    },
+    "T2_vida_e_producao": {
+      "ids": [
+        "hidroponia-led",
+        "oficina",
+        "sala-limpa",
+        "luz-bunker",
+        "frio-adega",
+        "casa-grande",
+        "galpao",
+        "estufa",
+        "irrigacao",
+        "externa"
+      ],
+      "kWh_dia": 173.9
+    },
+    "T3_conforto_e_renda": {
+      "ids": [
+        "datacenter",
+        "labs",
+        "cinema",
+        "piscina-bomba",
+        "piscina-ar",
+        "engenho"
+      ],
+      "kWh_dia": 133.9
+    },
+    "total_kWh_dia": 444.3
+  },
+  "fv_pior_mes": {
+    "T1_vital": {
+      "kWh_dia": 136.5,
+      "kWp": 46.6,
+      "m2_painel": 233
+    },
+    "T1+T2_vida_e_producao": {
+      "kWh_dia": 310.4,
+      "kWp": 106.0,
+      "m2_painel": 530
+    },
+    "T1+T2+T3_tudo": {
+      "kWh_dia": 444.3,
+      "kWp": 151.7,
+      "m2_painel": 758
+    }
+  },
+  "fv_onde_cabe": {
+    "conta": {
+      "telhados_m2_painel": 482,
+      "toldo_estrada_m2_painel": 465,
+      "total_m2": 948,
+      "total_kWp": 189.5
+    },
+    "obs": "Telhados: casa 625 + puxadinho 140 + engenho 200 m² (galpão fica com laje-jardim). Toldo sobre a estrada (93×5 m) não ocupa terra de plantio. Sombra do conjunto e estética (colonial reformado) a conferir."
+  },
+  "redundancia_fv": {
+    "regra": "k arranjos independentes (inversores e fiação separados): perde 1 e sobra (k−1)/k.",
+    "k4": {
+      "sobra_pct": 75,
+      "kWp_para_atender_T1+T2_apos_perder_1": 141.3
+    },
+    "obs": "Com ~152 kWp (tudo) em 4 arranjos, perder um deixa ~114 kWp, acima dos ~106 kWp de T1+T2."
+  },
+  "recarga_apos_3_dias_sem_sol": {
+    "conta": "dias para recarregar = 3 / (f−1), f = geração do pior mês ÷ carga",
+    "f1.25": 12,
+    "f1.5": 6,
+    "obs": "Com f=1,0 o banco nunca recarrega depois de esgotar. O fator f decide o tamanho do FV (E4)."
+  },
+  "microhidro": {
+    "tabela_kWh_dia": [
+      {
+        "Q_L_s": 2,
+        "H_m": 5,
+        "kW": 0.05,
+        "kWh_dia": 1.2
+      },
+      {
+        "Q_L_s": 2,
+        "H_m": 10,
+        "kW": 0.1,
+        "kWh_dia": 2.4
+      },
+      {
+        "Q_L_s": 2,
+        "H_m": 20,
+        "kW": 0.2,
+        "kWh_dia": 4.7
+      },
+      {
+        "Q_L_s": 5,
+        "H_m": 5,
+        "kW": 0.12,
+        "kWh_dia": 2.9
+      },
+      {
+        "Q_L_s": 5,
+        "H_m": 10,
+        "kW": 0.25,
+        "kWh_dia": 5.9
+      },
+      {
+        "Q_L_s": 5,
+        "H_m": 20,
+        "kW": 0.49,
+        "kWh_dia": 11.8
+      },
+      {
+        "Q_L_s": 10,
+        "H_m": 5,
+        "kW": 0.25,
+        "kWh_dia": 5.9
+      },
+      {
+        "Q_L_s": 10,
+        "H_m": 10,
+        "kW": 0.49,
+        "kWh_dia": 11.8
+      },
+      {
+        "Q_L_s": 10,
+        "H_m": 20,
+        "kW": 0.98,
+        "kWh_dia": 23.5
+      }
+    ],
+    "formula": "P = 9,81 × Q(L/s) × H(m) × η (η=0,5 chute)",
+    "status": "SEM medida de vazão e queda: contar 0 até medir. Em geral só 6–24 kWh/dia nos casos acima; vazão cai na seca (chuva 31 mm/mês em jun–ago, Climatempo)."
+  },
+  "biogas": {
+    "tabela": [
+      {
+        "animais": 10,
+        "m3_biogas_dia": 1.4,
+        "kWh_termico_dia": 8.4,
+        "kWh_eletrico_dia": 2.4
+      },
+      {
+        "animais": 20,
+        "m3_biogas_dia": 2.8,
+        "kWh_termico_dia": 16.8,
+        "kWh_eletrico_dia": 4.7
+      },
+      {
+        "animais": 50,
+        "m3_biogas_dia": 7.0,
+        "kWh_termico_dia": 42.0,
+        "kWh_eletrico_dia": 11.8
+      },
+      {
+        "animais": 100,
+        "m3_biogas_dia": 14.0,
+        "kWh_termico_dia": 84.0,
+        "kWh_eletrico_dia": 23.5
+      }
+    ],
+    "obs": "Número de animais NÃO definido no plano (caprinos e suínos). 100 suínos dariam ~84 kWh térmicos/dia ou ~24 kWh elétricos/dia: serve para cozinha e calor, não para a carga elétrica."
+  },
+  "biomassa": {
+    "eucalipto_550m2_kWh_termico_dia": 8.9,
+    "bambuzal_625m2_kWh_termico_dia": [
+      9.4,
+      18.9
+    ],
+    "total_kWh_termico_dia": [
+      18.4,
+      27.8
+    ],
+    "contra_termico_141": "≈13–20% do térmico de 141 kWh/dia",
+    "origem": "conta com PCS eucalipto 19 MJ/kg seco (chute, não lido) e 0,8 de perda por umidade (chute); bambu PCS 18,8 MJ/kg (fonte Marafon 2019)"
+  },
+  "termico": {
+    "coletores_ou_espelhos_m2": 65,
+    "origem": "conta: 141 kWh/dia ÷ (4,34 kWh/m²/dia × eficiência 0,5 chute) = ~65 m² no pior mês",
+    "armazenamento": "água ~7 m³ ou areia 2–4 m³ para 3 dias (plan/armazenamento-pesquisa.json)",
+    "reserva": "biomassa, biogás e excedente FV em resistência"
+  },
+  "proposta_de_arquitetura": {
+    "aviso": "Proposta minha, para decidir.",
+    "principal": "FV ~150 kWp em 4 arranjos (telhados + toldo da estrada), inversores N+1",
+    "secundaria": [
+      "micro-hídrica 24 h SE medir (cobre noite e céu fechado)",
+      "gerador a biogás ou gasogênio de lenha/bambu como reserva de longa duração"
+    ],
+    "modo_sobrevivencia": "cortar T3 e T2: só T1 = 136.5 kWh/dia, FV mínimo 46.6 kWp",
+    "armazenamento_ligado": "3 dias de T1 = 410 kWh úteis (contra 1.333 kWh de tudo): ver E4"
+  },
+  "perguntas_ao_mestre": [
+    "Aceita a classe T1/T2/T3, ou muda algum item?",
+    "Quantos suínos e caprinos?",
+    "Painel em telhado e toldo da estrada combina com o estilo, ou prefere outro lugar?",
+    "Medir vazão e queda do córrego e vento: quando dá?"
+  ]
+}

@@ -325,7 +325,6 @@
     "pendente": [
       "preço de painel e banco no Brasil",
       "vazão e queda do córrego",
-      "série diária de nuvens (NASA bloqueada)",
       "topografia do sítio",
       "eficiência do gasogênio+motor"
     ]
@@ -335,7 +334,7 @@
     "moradores": "10 moradores na Casa Grande",
     "bunker": "projetado para no máximo 7 por tempo indefinido; aceita aumentar a área escavada para despensa e equipamentos de sobrevivência; quer que dure o máximo possível neste terreno",
     "telhado": "uma água a 22° norte, máxima eficiência: aprovado",
-    "serie_de_nuvens": "o Mestre baixa a série diária da NASA POWER (lat -22,404 lon -43,66)",
+    "serie_de_nuvens": "BAIXADA em 24/11 (NASA POWER diária 2005–2024, lat -22,404 lon -43,6628): ver plan/referencias/nasa-power-nuvens-vassouras.json",
     "rebanho": "APROVADO em 24/11: 8 matrizes Saanen (6 lactação + 2 secas) + 1 bode + 4 crias + 6 suínos + 55 aves (1,29 m³/dia de biogás; ver rebanho_e3b_10_moradores e src/data/bom.js)"
   }
 }

@@ -1,0 +1,409 @@
+{
+  "_meta": {
+    "fonte": "NASA POWER API (temporal/daily/point, community RE)",
+    "versao_api": "v2.10.5",
+    "titulo_nasa": "NASA/POWER Source Native Resolution Daily Data",
+    "url": "https://power.larc.nasa.gov/api/temporal/daily/point?parameters=ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,CLOUD_AMT&community=RE&longitude=-43.6628&latitude=-22.404&start=20050101&end=20241231&format=JSON",
+    "data_consulta": "2026-11-24",
+    "latitude": -22.404,
+    "longitude": -43.6628,
+    "coordenadas_grade_nasa": [-43.663, -22.404, 446.33],
+    "periodo": "2005-01-01 a 2024-12-31",
+    "total_dias_serie": 7305,
+    "dias_validos": 7305,
+    "dias_invalidos_filtrados": 0
+  },
+  "climatologia_mensal": [
+    {
+      "mes": 1,
+      "nome": "Jan",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 5.789,
+      "allsky_p10": 3.04,
+      "allsky_p25": 4.18,
+      "allsky_p50": 6.14,
+      "allsky_min": 1.23,
+      "clrsky_media_kWh_m2_dia": 8.183,
+      "cloud_amt_media_pct": 70,
+      "frac_dias_allsky_lt_2_5_pct": 4.8
+    },
+    {
+      "mes": 2,
+      "nome": "Fev",
+      "dias_validos": 565,
+      "allsky_media_kWh_m2_dia": 5.854,
+      "allsky_p10": 3.35,
+      "allsky_p25": 4.82,
+      "allsky_p50": 6.22,
+      "allsky_min": 1.32,
+      "clrsky_media_kWh_m2_dia": 7.738,
+      "cloud_amt_media_pct": 65.4,
+      "frac_dias_allsky_lt_2_5_pct": 3
+    },
+    {
+      "mes": 3,
+      "nome": "Mar",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 5.149,
+      "allsky_p10": 3.04,
+      "allsky_p25": 4.22,
+      "allsky_p50": 5.4,
+      "allsky_min": 1.3,
+      "clrsky_media_kWh_m2_dia": 6.869,
+      "cloud_amt_media_pct": 66.1,
+      "frac_dias_allsky_lt_2_5_pct": 4.7
+    },
+    {
+      "mes": 4,
+      "nome": "Abr",
+      "dias_validos": 600,
+      "allsky_media_kWh_m2_dia": 4.454,
+      "allsky_p10": 2.61,
+      "allsky_p25": 3.75,
+      "allsky_p50": 4.8,
+      "allsky_min": 1.37,
+      "clrsky_media_kWh_m2_dia": 5.789,
+      "cloud_amt_media_pct": 57,
+      "frac_dias_allsky_lt_2_5_pct": 8.8
+    },
+    {
+      "mes": 5,
+      "nome": "Mai",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 3.726,
+      "allsky_p10": 2.13,
+      "allsky_p25": 3.12,
+      "allsky_p50": 3.95,
+      "allsky_min": 0.5,
+      "clrsky_media_kWh_m2_dia": 4.82,
+      "cloud_amt_media_pct": 54.3,
+      "frac_dias_allsky_lt_2_5_pct": 14
+    },
+    {
+      "mes": 6,
+      "nome": "Jun",
+      "dias_validos": 600,
+      "allsky_media_kWh_m2_dia": 3.419,
+      "allsky_p10": 2.08,
+      "allsky_p25": 2.8,
+      "allsky_p50": 3.68,
+      "allsky_min": 0.69,
+      "clrsky_media_kWh_m2_dia": 4.331,
+      "cloud_amt_media_pct": 49.3,
+      "frac_dias_allsky_lt_2_5_pct": 19.2
+    },
+    {
+      "mes": 7,
+      "nome": "Jul",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 3.684,
+      "allsky_p10": 1.87,
+      "allsky_p25": 3.07,
+      "allsky_p50": 4.05,
+      "allsky_min": 0.62,
+      "clrsky_media_kWh_m2_dia": 4.58,
+      "cloud_amt_media_pct": 43.6,
+      "frac_dias_allsky_lt_2_5_pct": 16.1
+    },
+    {
+      "mes": 8,
+      "nome": "Ago",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 4.224,
+      "allsky_p10": 2.06,
+      "allsky_p25": 3.4,
+      "allsky_p50": 4.61,
+      "allsky_min": 0.68,
+      "clrsky_media_kWh_m2_dia": 5.395,
+      "cloud_amt_media_pct": 45.5,
+      "frac_dias_allsky_lt_2_5_pct": 15.2
+    },
+    {
+      "mes": 9,
+      "nome": "Set",
+      "dias_validos": 600,
+      "allsky_media_kWh_m2_dia": 4.631,
+      "allsky_p10": 1.98,
+      "allsky_p25": 3.32,
+      "allsky_p50": 5.06,
+      "allsky_min": 0.73,
+      "clrsky_media_kWh_m2_dia": 6.271,
+      "cloud_amt_media_pct": 56,
+      "frac_dias_allsky_lt_2_5_pct": 17.2
+    },
+    {
+      "mes": 10,
+      "nome": "Out",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 4.783,
+      "allsky_p10": 2.19,
+      "allsky_p25": 3.2,
+      "allsky_p50": 4.95,
+      "allsky_min": 0.93,
+      "clrsky_media_kWh_m2_dia": 7.265,
+      "cloud_amt_media_pct": 73.3,
+      "frac_dias_allsky_lt_2_5_pct": 14.7
+    },
+    {
+      "mes": 11,
+      "nome": "Nov",
+      "dias_validos": 600,
+      "allsky_media_kWh_m2_dia": 5.048,
+      "allsky_p10": 2.53,
+      "allsky_p25": 3.48,
+      "allsky_p50": 5.05,
+      "allsky_min": 1.2,
+      "clrsky_media_kWh_m2_dia": 7.992,
+      "cloud_amt_media_pct": 78.2,
+      "frac_dias_allsky_lt_2_5_pct": 9.8
+    },
+    {
+      "mes": 12,
+      "nome": "Dez",
+      "dias_validos": 620,
+      "allsky_media_kWh_m2_dia": 5.523,
+      "allsky_p10": 2.92,
+      "allsky_p25": 4.03,
+      "allsky_p50": 5.68,
+      "allsky_min": 1.39,
+      "clrsky_media_kWh_m2_dia": 8.226,
+      "cloud_amt_media_pct": 74.3,
+      "frac_dias_allsky_lt_2_5_pct": 5.6
+    }
+  ],
+  "sequencias_nubladas_20_anos": {
+    "allsky_lt_2_0_kWh_m2_dia": {
+      "total_episodios": 318,
+      "maior_duracao_dias": 4,
+      "top_3": [
+        {
+          "duracao_dias": 4,
+          "inicio": "2008-06-22",
+          "fim": "2008-06-25",
+          "allsky_media_kWh_m2_dia": 1.21,
+          "cloud_amt_media_pct": 96
+        },
+        {
+          "duracao_dias": 4,
+          "inicio": "2014-07-25",
+          "fim": "2014-07-28",
+          "allsky_media_kWh_m2_dia": 1.24,
+          "cloud_amt_media_pct": 99.7
+        },
+        {
+          "duracao_dias": 4,
+          "inicio": "2015-09-11",
+          "fim": "2015-09-14",
+          "allsky_media_kWh_m2_dia": 1.32,
+          "cloud_amt_media_pct": 99
+        }
+      ]
+    },
+    "allsky_lt_2_5_kWh_m2_dia": {
+      "total_episodios": 524,
+      "maior_duracao_dias": 10,
+      "top_3": [
+        {
+          "duracao_dias": 10,
+          "inicio": "2015-09-05",
+          "fim": "2015-09-14",
+          "allsky_media_kWh_m2_dia": 1.66,
+          "cloud_amt_media_pct": 97.8
+        },
+        {
+          "duracao_dias": 5,
+          "inicio": "2017-05-18",
+          "fim": "2017-05-22",
+          "allsky_media_kWh_m2_dia": 1.64,
+          "cloud_amt_media_pct": 98.5
+        },
+        {
+          "duracao_dias": 5,
+          "inicio": "2010-07-14",
+          "fim": "2010-07-18",
+          "allsky_media_kWh_m2_dia": 1.65,
+          "cloud_amt_media_pct": 95.5
+        }
+      ]
+    },
+    "allsky_lt_3_0_kWh_m2_dia": {
+      "total_episodios": 708,
+      "maior_duracao_dias": 10,
+      "top_3": [
+        {
+          "duracao_dias": 10,
+          "inicio": "2015-09-05",
+          "fim": "2015-09-14",
+          "allsky_media_kWh_m2_dia": 1.66,
+          "cloud_amt_media_pct": 97.8
+        },
+        {
+          "duracao_dias": 8,
+          "inicio": "2015-07-02",
+          "fim": "2015-07-09",
+          "allsky_media_kWh_m2_dia": 2.2,
+          "cloud_amt_media_pct": 92.6
+        },
+        {
+          "duracao_dias": 7,
+          "inicio": "2006-07-29",
+          "fim": "2006-08-04",
+          "allsky_media_kWh_m2_dia": 1.88,
+          "cloud_amt_media_pct": 91.5
+        }
+      ]
+    },
+    "cloud_amt_ge_80_pct": {
+      "total_episodios": 878,
+      "maior_duracao_dias": 22,
+      "top_3": [
+        {
+          "duracao_dias": 22,
+          "inicio": "2005-10-22",
+          "fim": "2005-11-12",
+          "allsky_media_kWh_m2_dia": 3.73,
+          "cloud_amt_media_pct": 95.7
+        },
+        {
+          "duracao_dias": 20,
+          "inicio": "2006-12-22",
+          "fim": "2007-01-10",
+          "allsky_media_kWh_m2_dia": 4.12,
+          "cloud_amt_media_pct": 94.3
+        },
+        {
+          "duracao_dias": 17,
+          "inicio": "2007-11-01",
+          "fim": "2007-11-17",
+          "allsky_media_kWh_m2_dia": 3.6,
+          "cloud_amt_media_pct": 96.2
+        }
+      ]
+    }
+  },
+  "simulacao_autonomia_20_anos": {
+    "nota": "Modelo conservador: GHI horizontal ALLSKY_SFC_SW_DWN × PR 0,75 sem ganho da inclinação de 22°N (que eleva a captação de inverno em ~15–22%). Começa com banco cheio.",
+    "cenarios": [
+      {
+        "nome": "FV 200 kWp vs T1 (136,5 kWh/dia)",
+        "fv_kWp": 200,
+        "carga_kWh_dia": 136.5,
+        "pr": 0.75,
+        "deficit_max_acumulado_kWh": 72.4,
+        "pior_episodio_janela": {
+          "inicio": "2024-06-30",
+          "fim": "2024-07-01"
+        },
+        "teste_banco_410_kWh": {
+          "dias_esgotados_em_20_anos": 0,
+          "episodios_esgotamento": 0,
+          "excesso_unico_dia_max_kWh": 0,
+          "amostra_episodios": []
+        }
+      },
+      {
+        "nome": "FV 200 kWp vs T1+T2 (310,4 kWh/dia)",
+        "fv_kWp": 200,
+        "carga_kWh_dia": 310.4,
+        "pr": 0.75,
+        "deficit_max_acumulado_kWh": 612.8,
+        "pior_episodio_janela": {
+          "inicio": "2015-09-05",
+          "fim": "2015-09-14"
+        },
+        "teste_banco_410_kWh": {
+          "dias_esgotados_em_20_anos": 11,
+          "episodios_esgotamento": 9,
+          "excesso_unico_dia_max_kWh": 107.8,
+          "amostra_episodios": [
+            {
+              "inicio": "2005-05-25",
+              "fim": "2005-05-25",
+              "deficit_adicional_max_kWh": 46.8
+            },
+            {
+              "inicio": "2005-09-27",
+              "fim": "2005-09-27",
+              "deficit_adicional_max_kWh": 45.8
+            },
+            {
+              "inicio": "2008-06-25",
+              "fim": "2008-06-25",
+              "deficit_adicional_max_kWh": 103.5
+            },
+            {
+              "inicio": "2013-07-25",
+              "fim": "2013-07-25",
+              "deficit_adicional_max_kWh": 61.1
+            },
+            {
+              "inicio": "2014-07-27",
+              "fim": "2014-07-28",
+              "deficit_adicional_max_kWh": 67
+            }
+          ]
+        }
+      },
+      {
+        "nome": "FV 200 kWp vs T1+T2+T3 (444,3 kWh/dia)",
+        "fv_kWp": 200,
+        "carga_kWh_dia": 444.3,
+        "pr": 0.75,
+        "deficit_max_acumulado_kWh": 1951.8,
+        "pior_episodio_janela": {
+          "inicio": "2015-09-05",
+          "fim": "2015-09-14"
+        },
+        "teste_banco_410_kWh": {
+          "dias_esgotados_em_20_anos": 231,
+          "episodios_esgotamento": 121,
+          "excesso_unico_dia_max_kWh": 369.1,
+          "amostra_episodios": [
+            {
+              "inicio": "2005-04-30",
+              "fim": "2005-04-30",
+              "deficit_adicional_max_kWh": 45.8
+            },
+            {
+              "inicio": "2005-05-23",
+              "fim": "2005-05-25",
+              "deficit_adicional_max_kWh": 369.1
+            },
+            {
+              "inicio": "2005-06-22",
+              "fim": "2005-06-22",
+              "deficit_adicional_max_kWh": 83.5
+            },
+            {
+              "inicio": "2005-07-07",
+              "fim": "2005-07-07",
+              "deficit_adicional_max_kWh": 173.7
+            },
+            {
+              "inicio": "2005-07-19",
+              "fim": "2005-07-21",
+              "deficit_adicional_max_kWh": 265.3
+            }
+          ]
+        }
+      },
+      {
+        "nome": "FV 152 kWp vs T1 (136,5 kWh/dia)",
+        "fv_kWp": 152,
+        "carga_kWh_dia": 136.5,
+        "pr": 0.75,
+        "deficit_max_acumulado_kWh": 120.5,
+        "pior_episodio_janela": {
+          "inicio": "2024-06-30",
+          "fim": "2024-07-01"
+        },
+        "teste_banco_410_kWh": {
+          "dias_esgotados_em_20_anos": 0,
+          "episodios_esgotamento": 0,
+          "excesso_unico_dia_max_kWh": 0,
+          "amostra_episodios": []
+        }
+      }
+    ]
+  }
+}

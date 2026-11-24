@@ -12,7 +12,8 @@ Acompanhamento no GitHub: issue #1 (cada parte tem comentário).
 | F | Síntese | plan/energia-geracao.json (arquitetura_revisada_24_11) | ver pendências |
 
 Decisões de 24/11 05:35: 10 moradores na Casa Grande; bunker projetado para no máximo 7 por tempo indefinido e pode crescer (escavação maior para despensa e equipamentos); telhado de uma água aprovado; o Mestre baixa a série diária de nuvens da NASA; rebanho: ele não sabe, Claude propõe.
-Pendências: medir córrego e vento, série de nuvens, impacto de um bunker maior no plano (B0 fechada com 48×32).
+Pendências: medir córrego e vento, impacto de um bunker maior no plano (B0 fechada com 48×32).
 Referência de baterias com datas: plan/referencias/baterias-e-armazenamento-2026-11-23.md.
+Referência diária de sol e nuvens (2005–2024, pronta para E4): plan/referencias/nasa-power-nuvens-vassouras.json.
 Próximo: E4 dimensionar armazenamento (esforço Médio), depois E5 gases.
 Reconciliação E3-B (24/11): `rebanho_e3b_10_moradores` (8 matrizes Saanen + 1 bode + 4 crias + 6 suínos + 55 aves; 1,29 m³/dia de biogás) **aprovado** pelo Mestre em 24/11 e sincronizado em `src/data/bom.js`, `plan/energia-geracao.json` e `plan/energia-recursos.json`, junto com a conferência de sombra de inverno (`horasDeSombra`, 22/06) nos telhados FV.

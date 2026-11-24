@@ -139,3 +139,34 @@ describe('recursos de energia (E2)', () => {
     expect(ger.classes_de_carga.total_kWh_dia).toBeCloseTo(resumir(cargas).eletrico.kwhDia, 2);
   });
 });
+
+describe('armazenamento de energia (E4)', () => {
+  const ler = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
+  it('plan/energia-armazenamento.json fecha 3 dias de T1 e térmico sem reabrir a sala 10x10', () => {
+    const cargas = ler('plan/energia-cargas.json');
+    const ger = ler('plan/energia-geracao.json');
+    const arm = ler('plan/energia-armazenamento.json');
+    const porId = new Map(cargas.cargas.map((x) => [x.id, kwhDia(x)]));
+    const t1Dia = ger.classes_de_carga.T1_vital.ids.reduce((a, id) => a + porId.get(id), 0);
+
+    const el = arm.armazenamento_eletrico;
+    expect(el.banco_A_LFP.util_kWh + el.banco_B_OPzS.util_kWh).toBe(el.alvo_util_kWh);
+    expect(el.alvo_util_kWh).toBeGreaterThanOrEqual(3 * t1Dia);
+    expect(el.banco_A_LFP.nominal_kWh).toBeCloseTo(el.banco_A_LFP.util_kWh / el.banco_A_LFP.dod, 2);
+    expect(el.banco_B_OPzS.nominal_kWh).toBeCloseTo(
+      el.banco_B_OPzS.util_kWh / el.banco_B_OPzS.dod,
+      2,
+    );
+
+    expect(el.banco_A_LFP.area_bunker_m2).toBe(0);
+    const areaOcupada = el.banco_B_OPzS.area_bunker_m2 + el.reserva_prateleira_seca.area_bunker_m2;
+    expect(areaOcupada).toBe(el.veredito_sala_baterias_bunker.area_ocupada_m2);
+    expect(areaOcupada).toBeLessThanOrEqual(el.veredito_sala_baterias_bunker.area_planejada_b0_m2);
+    expect(el.veredito_sala_baterias_bunker.reabrir_solver_b0).toBe(false);
+
+    const agua = arm.armazenamento_termico.diario_baixa_T_agua;
+    expect(agua.volume_adotado_m3 * agua.densidade_kWh_m3_dT50).toBeGreaterThanOrEqual(
+      3 * resumir(cargas).termico.kwhDia,
+    );
+  });
+});

@@ -1,0 +1,104 @@
+{
+  "nota": "E4 (24/11/2026): dimensionamento do armazenamento elétrico e térmico com base em E1–E3, plan/armazenamento-pesquisa.json e série diária NASA POWER 2005–2024.",
+  "demanda_ref": {
+    "T1_vital_kWh_dia": 136.5,
+    "T1_3d_kWh": 409.5,
+    "T1_T2_kWh_dia": 310.4,
+    "total_eletrico_kWh_dia": 444.3,
+    "pico_eletrico_kW": 53.39,
+    "termico_kWh_dia": 140.92,
+    "termico_3d_kWh": 422.76,
+    "bunker_max_moradores": 7,
+    "fonte": "plan/energia-cargas.json + plan/energia-geracao.json (E1/E3)"
+  },
+  "validacao_nasa_20_anos": {
+    "fonte": "plan/referencias/nasa-power-nuvens-vassouras.json",
+    "periodo": "2005-01-01 a 2024-12-31 (7.305 dias válidos, GHI horizontal conservador, PR = 0,75)",
+    "fv_200kWp_T1_deficit_max_kWh": 72.4,
+    "fv_200kWp_T1_pior_episodio": "2024-06-30 a 2024-07-01",
+    "fv_200kWp_T1_dias_zerado_banco_410_kWh": 0,
+    "fv_152kWp_T1_deficit_max_kWh": 120.5,
+    "fv_152kWp_T1_dias_zerado_banco_410_kWh": 0,
+    "fv_200kWp_T1_T2_deficit_max_kWh": 612.8,
+    "fv_200kWp_T1_T2_pior_episodio": "2015-09-05 a 2015-09-14",
+    "fv_200kWp_T1_T2_dias_zerado_banco_410_kWh": 11,
+    "obs": "Em 20 anos reais (sem ganho de 22°N no inverno), 410 kWh úteis nunca zeram em T1 (déficit máx. 72,4 kWh com 200 kWp). Só em 11 dias de 20 anos (9 episódios) há corte pontual de T2 mantendo T1 intacto."
+  },
+  "armazenamento_eletrico": {
+    "alvo_util_kWh": 450,
+    "autonomia_T1_dias": 3.3,
+    "folga_sobre_pior_deficit_20a": "6,2x acima de 72,4 kWh (FV 200 kWp)",
+    "banco_A_LFP": {
+      "funcao": "Diário / principal (alta eficiência e baixo custo por ciclo)",
+      "util_kWh": 300,
+      "dod": 0.8,
+      "nominal_kWh": 375,
+      "arranjo": "4 racks independentes de ~94 kWh (1 por arranjo FV / inversor N+1)",
+      "taxa_pico_C": 0.14,
+      "rte_sistema_pct": 83,
+      "peso_estimado_kg": 2900,
+      "localizacao": "Contêiner/abrigo técnico externo ventilado (~15 m², 5×3 m), FORA do bunker e afastado da Casa Grande (FSRI/UL 2021; ventilação + alívio de explosão NFPA 68/69 — detalhar na E5)",
+      "area_bunker_m2": 0,
+      "custo_ref_PNNL_USD": "133.500–144.400 (escala rede EUA 2021, US$ 356–385/kWh; cotar no Brasil)"
+    },
+    "banco_B_OPzS": {
+      "funcao": "Reserva blindada reparável (fabricação/reciclagem nacional, longa vida no clima frio do bunker ~22 °C)",
+      "util_kWh": 150,
+      "dod": 0.5,
+      "nominal_kWh": 300,
+      "arranjo": "Elementos estacionários tubulares inundados 2 V em 2–3 strings independentes",
+      "rte_sistema_pct": 78,
+      "peso_estimado_kg": 8100,
+      "volume_elementos_m3": 3.53,
+      "localizacao": "Sala de baterias do bunker (−10 m, ~22 °C), em estantes com contenção ácida e exaustão dedicada de H₂ para a superfície (detalhar na E5)",
+      "area_bunker_m2": 32,
+      "custo_ref_PNNL_USD": "122.700–134.100 (escala rede EUA 2021, US$ 409–447/kWh; cotar Moura/Freedom/Enersys no Brasil)"
+    },
+    "reserva_prateleira_seca": {
+      "funcao": "Seguro de décadas: células chumbo carregadas a seco (sem eletrólito) + ácido d=1,265 em bombonas separadas (Rolls Battery)",
+      "nominal_kWh": 150,
+      "util_kWh_a_50DoD": 75,
+      "peso_estimado_kg": 4050,
+      "area_bunker_m2": 10
+    },
+    "veredito_sala_baterias_bunker": {
+      "area_planejada_b0_m2": 100,
+      "area_ocupada_m2": 42,
+      "folga_m2": 58,
+      "reabrir_solver_b0": false,
+      "nota": "A sala 10×10 m (100 m²) da B0 comporta o Banco B OPzS, inversores/quadros N+1 e o estoque seco com 58% de folga. O Banco A LFP fica obrigatoriamente em abrigo externo fora do bunker (segurança contra fuga térmica/HF)."
+    }
+  },
+  "armazenamento_termico": {
+    "diario_baixa_T_agua": {
+      "alvo_3d_kWh": 423,
+      "densidade_kWh_m3_dT50": 58,
+      "volume_min_m3": 7.3,
+      "volume_adotado_m3": 8,
+      "arranjo": "2 tanques isolados independentes de 4 m³ (redundância N+1)",
+      "energia_util_kWh": 464,
+      "autonomia_dias": 3.29,
+      "carregamento": "~65 m² coletores solares + excedente FV em resistência + biogás/biomassa",
+      "localizacao": "Galpão técnico ou aterro/laje isolada junto à Casa Grande e puxadinho da piscina (~12 m²)"
+    },
+    "emergencia_alta_T_areia_opcional": {
+      "volume_3d_calor_m3": 4,
+      "volume_emergencia_eletrica_m3": 15,
+      "nota": "~1.640 kWh térmicos (ΔT 300 K) → ~410 kWh elétricos a 25% em Stirling/vapor; opcional externo, fora do bunker"
+    }
+  },
+  "descartado": [
+    "NMC/LFP dentro do bunker",
+    "NaS/Zebra",
+    "NiMH",
+    "ar comprimido como banco principal",
+    "lagoa de salmoura",
+    "torre gravitacional como banco",
+    "fornecedor único falido/incerto (Aquion, ESS Tech)"
+  ],
+  "pendente_e5_e_cotacao": [
+    "Ventilação de H₂ da sala OPzS, alívio de explosão do abrigo LFP (NFPA 68/69/855) e estudo de hidrogênio em botijão (E5)",
+    "Cotação em R$ no Brasil: racks LFP, elementos OPzS 2V (Moura/Freedom/Enersys) e células secas",
+    "Medir vazão/queda do córrego e topografia (se houver desnível natural, micro-hidro/bombeamento complementar)"
+  ]
+}

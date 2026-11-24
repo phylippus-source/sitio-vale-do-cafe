@@ -48,5 +48,6 @@ Medidas terminam em 0 ou 5 (se der, aumente; senão reduza). Números em texto v
 - **Contador de tokens:** `logs/tokens-cota.txt` (100% = peso). Calibrações do Mestre divergem (2,05 M em 18/11 de madrugada, 0,43 M à tarde): **recalibre** (`--calibrar 90`, `--inicio HH:MM`) quando ele avisar; trate a % como piso após compactação.
 - **Contexto:** não leia arquivos grandes inteiros (use `grep`, `offset`/`limit`); não cole saídas longas; evite resultados de pesquisa extensos; pense curto. Chat longo + pausa de 5 min refaz o cache e gasta a janela.
 
-## E3 (24/11/2026)
-Geração com redundância feita em partes A–F; ver plan/E3-painel.md e a issue #1 do GitHub. Próxima: E4 (armazenamento).
+## E3 e E4 (24/11/2026)
+Geração com redundância feita em partes A–F (`plan/E3-painel.md`, issue #1); rebanho aprovado em `src/data/bom.js` e série diária NASA POWER 2005–2024 salva em `plan/referencias/nasa-power-nuvens-vassouras.json`.
+E4 armazenamento fechada (`plan/energia-armazenamento.json`, `plan/E4-painel.md`): `300 kWh` LFP externo + `150 kWh` OPzS no bunker + `8 m³` água (`464 kWh`); sala `10×10 m` mantida sem reabrir B0. Próxima: **E5 (gases)**.

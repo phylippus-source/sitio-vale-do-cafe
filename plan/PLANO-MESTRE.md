@@ -46,7 +46,7 @@ Em 23/11/2026 as etapas T1, A1, A2 e B0 estão concluídas: o Mestre escolheu o 
 - D1 — Qualidade final
 - D2 — Entrega da versão final v15 (Marco 3)
 
-Bloco E (energia, entre a B0 e a B1; seção 5): E1 feita em 14/11 (cargas e planilha; commits 565bf2b, 9d9123e e bc3eda2). E2 recursos (plan/energia-recursos.json) feita em 23/11 e E3 geração (partes A–F, plan/E3-painel.md) feita em 24/11; pesquisa de armazenamento em plan/armazenamento-pesquisa.json e plan/referencias/. Próximas: E4 dimensionar armazenamento, E5 gases. Em outra janela, abrir primeiro o LEIA-ME-RETOMADA.md do repositório.
+Bloco E (energia, entre a B0 e a B1; seção 5): E1 feita em 14/11 (cargas e planilha; commits 565bf2b, 9d9123e e bc3eda2). E2 recursos (`plan/energia-recursos.json`) feita em 23/11, E3 geração (`plan/E3-painel.md`, rebanho aprovado + NASA POWER diária 2005–2024) feita em 24/11 e E4 armazenamento (`plan/energia-armazenamento.json`, `plan/E4-painel.md`; sala 10×10 mantida sem reabrir B0) concluída em 24/11; pesquisa base em `plan/armazenamento-pesquisa.json` e `plan/referencias/`. Próxima: E5 gases. Em outra janela, abrir primeiro o LEIA-ME-RETOMADA.md do repositório.
 
 Fases antigas e etapas novas: Fases 0 a 4 = M0 · Fase 4.5 (medidas) = B0 a B8 · Fase 5 = A1 · Fase 6 = A2 · Fase 7 = C1 · Fase 8 = C2 · Fase 9 = C3 · Fase 10 = T1 e D1 · Fase 11 = D2.
 

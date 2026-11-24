@@ -192,7 +192,7 @@
     "formula": "P = 9,81 × Q(L/s) × H(m) × η (η=0,5 chute)",
     "status": "SEM medida de vazão e queda: contar 0 até medir. Em geral só 6–24 kWh/dia nos casos acima; vazão cai na seca (chuva 31 mm/mês em jun–ago, Climatempo).",
     "parte_B_24_11": {
-      "resumo": "córrego de cabeceira típico: 3–20 kWh/dia para bacia 0,25–2 km² e queda 5–10 m (conta, UHP III-c, η 0,5 chute); ver plan/corrego-tipico.md",
+      "resumo": "córrego de cabeceira típico: 0,5–40 kWh/dia (bacia 0,25–2 km², queda 5–10 m; na seca 0,8–12); conta com UHP III-c, η 0,5 chute; ver plan/corrego-tipico.md",
       "fonte_data": "INEA/CEIVAP RT-01 Rev02 fev/2014 (CPRM 2003)"
     }
   },

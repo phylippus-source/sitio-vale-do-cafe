@@ -3,7 +3,7 @@
 Pedido do Mestre (23/11 23:47): que tipo de córrego é mais comum nos terrenos de Vassouras e regiões próximas.
 
 ## Resposta curta
-Córrego **pequeno de cabeceira**, afluente da bacia do rio Paraíba do Sul (Médio Paraíba, RH-III), nascendo em morros. Vazão baixa e **cai na estiagem** (abr–set). Serve para micro-hidro **de 3 a 20 kWh/dia**, até ~5% da carga de 444 kWh/dia: complemento de 24 h, não fonte principal.
+Córrego **pequeno de cabeceira**, afluente da bacia do rio Paraíba do Sul (Médio Paraíba, RH-III), nascendo em morros. Vazão baixa e **cai na estiagem** (abr–set). Serve para micro-hidro de **0,5 a 40 kWh/dia** conforme a bacia (0,25–2 km²) e a queda (5–10 m); na seca (Q95) 0,8–12 kWh/dia. Até ~9% da carga de 444 kWh/dia: complemento de 24 h, não fonte principal.
 
 ## Fontes (data da fonte; consulta 24/11/2026)
 1. Plano de saneamento de Vassouras, dados de 2018–2019 (documento sem data de emissão, RJ consulta pública): córregos citados são pequenos: Córrego Cananéia (captação 5 L/s), afluente do Rio Alegre (5 L/s), Rio Preto, Rio Bonito, Córrego Santo Antônio; lago com 4 L/s. O documento não dá regime nem estiagem dos pequenos cursos. https://www.rj.gov.br/consultapublica/sites/default/files/grupo4/Planejamento_Universalizacao_-_Vassouras.pdf

@@ -255,9 +255,8 @@
     "armazenamento_ligado": "3 dias de T1 = 410 kWh úteis (contra 1.333 kWh de tudo): ver E4"
   },
   "perguntas_ao_mestre": [
-    "Confirma carga para 10 pessoas no bunker (T1 sobe ~+24 kWh/dia)?",
-    "Rebanho: quantas cabras em lactação e que animais de corte (suínos?) para proteína de 10 pessoas?",
-    "Medir vazão e queda do córrego: quando dá? (parte B traz o tipo comum)"
+    "Rebanho: Claude propõe número de cabras e suínos (pendente).",
+    "Quanto o bunker pode crescer? (despensa e equipamentos; B0 fechada com 48×32)"
   ],
   "decisoes_mestre_23_11_noite": {
     "data": "2026-11-23 23:47",
@@ -281,22 +280,13 @@
     "riscos": "puxadinho fica ao norte da casa: sombra no inverno a conferir (avaliarArranjo, sol de 22/06). Estrutura do telhado de 22° muda o desenho da casa. Galpão fica de fora (laje-jardim)."
   },
   "impacto_10_pessoas_estimado": {
-    "aviso": "NÃO apliquei em plan/energia-cargas.json: esperar o Mestre confirmar. Escala linear 10/7 (chute) em cargas que dependem de gente.",
-    "cargas_escaladas": {
-      "suporte-ar": 24.0,
-      "suporte-o2": 14.4,
-      "agua": 6.0,
-      "cozinha": 6.0,
-      "quartos": 8.0
-    },
-    "delta_T1_kWh_dia_aprox": 25.0,
-    "delta_termico_agua_quente": "14 → 20 kWh/dia (50 L × 10 pessoas × 35 K)"
+    "status": "REVOGADO em 24/11: o bunker continua com 7; as cargas do bunker em plan/energia-cargas.json NÃO mudam. Os 10 moradores usam a Casa Grande (9,6 kWh/dia no E1, sem número de moradores): reavaliar na E4 se necessário."
   },
   "arquitetura_revisada_24_11": {
     "aviso": "Síntese minha das partes A–E; o Mestre decide.",
     "fv": "~200 kWp nos telhados de uma água a 22° norte (208 kWp disponíveis), 4 arranjos independentes, inversores N+1. Cobre elétrico 444 + térmico 141 kWh/dia no pior mês (junho).",
-    "armazenamento_eletrico": "~485 kWh úteis (3 dias de T1 com 10 moradores); T2 e T3 cortam em nublado seguido. Tecnologia a fechar na E4 (LFP fora do bunker + chumbo tubular + células secas).",
-    "armazenamento_termico": "água ~7 m³ ou areia 2–4 m³ para 3 dias de calor; + areia 300–500 °C (~18 m³) opcional como 'bateria térmica' de emergência com Stirling ou vapor.",
+    "armazenamento_eletrico": "~410 kWh úteis (3 dias de T1, bunker para 7); T2 e T3 cortam em nublado seguido. Tecnologia a fechar na E4 (LFP fora do bunker + chumbo tubular + células secas).",
+    "armazenamento_termico": "água ~7 m³ ou areia 2–4 m³ para 3 dias de calor; + areia 300–500 °C (~15 m³) opcional como 'bateria térmica' de emergência com Stirling ou vapor.",
     "alternativas": "micro-hidro 0,5–40 kWh/dia (medir), biogás (rebanho sem número), gasogênio de silvicultura e bambu 3–7 kWh/dia: somam 12–43 kWh elétricos/dia (3–10%).",
     "descartado": [
       "torre gravitacional como banco",
@@ -312,5 +302,13 @@
       "topografia do sítio",
       "eficiência do gasogênio+motor"
     ]
+  },
+  "decisoes_mestre_24_11": {
+    "data": "2026-11-24 05:35",
+    "moradores": "10 moradores na Casa Grande",
+    "bunker": "projetado para no máximo 7 por tempo indefinido; aceita aumentar a área escavada para despensa e equipamentos de sobrevivência; quer que dure o máximo possível neste terreno",
+    "telhado": "uma água a 22° norte, máxima eficiência: aprovado",
+    "serie_de_nuvens": "o Mestre baixa a série diária da NASA POWER (lat -22,404 lon -43,66)",
+    "rebanho": "ele não sabe: Claude propõe (cabras de leite, suínos)"
   }
 }

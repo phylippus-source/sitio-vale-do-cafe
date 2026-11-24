@@ -16,7 +16,7 @@ Eficiência real assumida = 40–50% do Carnot (chute; conhecimento geral, a con
 Leitura: com água a 90 °C só ~7% vira eletricidade; com areia a 300–500 °C, 20–25%. **Quanto mais quente o reservatório, melhor; calor baixo rende pouco.**
 
 ## Peso do calor no sítio (conta)
-- 485 kWh elétricos (3 dias de T1) a 25% pedem ~1.940 kWh térmicos: ~18 m³ de areia com ΔT 300 K (107 kWh/m³ com cp 0,8, chute) — ver armazenamento-pesquisa.json.
+- 410 kWh elétricos (3 dias de T1) a 25% pedem ~1.640 kWh térmicos: ~15 m³ de areia com ΔT 300 K (107 kWh/m³ com cp 0,8, chute) — ver armazenamento-pesquisa.json.
 - Biomassa + biogás do sítio dão ~35–110 kWh térmicos/dia (partes anteriores): a 10–25% rendem **3–25 kWh elétricos/dia**.
 
 ## Métodos a avaliar (lista de trabalho)
@@ -40,7 +40,7 @@ JTEC (Lonnie Johnson, criador da Super Soaker); ciclo Rankine orgânico (ORC); m
 **Calor baixo (<100 °C) NÃO vale como eletricidade**: ~5–8% de rendimento (conta de Carnot) e ORC de custo alto. Use direto como calor.
 Ranking para "fim do mundo" (reservatório quente, de preferência 300–500 °C):
 1. **Gasogênio + motor a gasolina/etanol adaptado**: peças comuns e história de 500 mil veículos; consome silvicultura e bambu (~3–7 kWh elétricos/dia no sítio, conta anterior). Exige limpeza de alcatrão. Eficiência: não achei fonte.
-2. **Stirling ou vapor com areia quente (300–500 °C)** como "bateria térmica" de emergência: 20–30% (Carnot × 40–50%, chute). 485 kWh elétricos a 25% = ~1.940 kWh térmicos ≈ 18 m³ de areia com ΔT 300 K.
+2. **Stirling ou vapor com areia quente (300–500 °C)** como "bateria térmica" de emergência: 20–30% (Carnot × 40–50%, chute). 410 kWh elétricos a 25% = ~1.640 kWh térmicos ≈ 15 m³ de areia com ΔT 300 K.
 3. **ORC**: só com fonte ≥120–150 °C e 1–10 kW; 1.500–3.500 €/kW: caro para o que rende.
 4. **JTEC**: promessa, sem eficiência pública, primeira unidade comercial só em 2026. **Observar** e reavaliar no meio de 2027.
 5. Calor do datacenter (~60 kWh térmicos/dia a ~45 °C): Carnot ~7% × 40% ≈ 3%: ~2 kWh elétricos/dia. **Não compensa.** Use esse calor em água quente.

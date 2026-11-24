@@ -95,7 +95,7 @@ export const BOM = [
   },
   {
     t: '05 · Zootecnia de ciclo fechado',
-    tag: '4 adultos',
+    tag: '10 moradores',
     items: [
       [
         'Galinhas poedeiras',
@@ -104,11 +104,11 @@ export const BOM = [
       ['Frangos de corte', 'Lote rotativo de 20 aves caipira pesado, 25 kg de carne por mês.'],
       [
         'Suínos Moura',
-        '1 macho e 2 matrizes em 90 m² de piso ripado. Um abate de 80 kg a cada 4 meses.',
+        '1 reprodutor, 2 matrizes e 3 em terminação (6 cabeças) em ~30 m² de piso ripado.',
       ],
       [
-        'Cabras Anglo-Nubiana',
-        '4 em lactação, 1 bode e 4 crias em 300 m². De 180 a 240 L de leite por mês.',
+        'Cabras Saanen (leite)',
+        '8 matrizes (6 em lactação + 2 secas), 1 bode e 4 crias em ~46 m² (aprisco suspenso + solário na zona de 225 m²). Cerca de 9,6 L/dia (~288 L/mês) para consumo, iogurte, queijo e doce de leite.',
       ],
       [
         'Piscicultura',

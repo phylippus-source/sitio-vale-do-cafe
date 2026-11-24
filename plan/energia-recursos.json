@@ -166,11 +166,11 @@
       "area_estimada_zona_animais_m2": 101,
       "provisorio": false,
       "foco_caprinos": "produção leiteira para 10 moradores (~5 L/dia fluido/iogurte) + derivados (~4–5 L/dia para queijo fresco 10–14 L/kg e doce de leite 3,5–3,7 L/kg)",
-      "fonte": "Dimensionado na E3-B para 10 moradores (Embrapa Caprinos e Ovinos; Embrapa Suínos)"
+      "fonte": "Aprovado pelo Mestre em 24/11 (E3-B, 10 moradores; Embrapa Caprinos e Ovinos; Embrapa Suínos; sincronizado com src/data/bom.js)"
     },
     "rendimento_termico": 0.75,
     "rendimento_eletrico": 0.28,
-    "pendente": "Confirmar o rebanho dimensionado na E3-B com o Mestre antes de atualizar src/data/bom.js"
+    "pendente": "Nenhum — rebanho aprovado em 24/11 e sincronizado em src/data/bom.js (1,29 m³/dia de biogás)."
   },
   "biomassa": {
     "eucalipto": {

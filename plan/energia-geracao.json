@@ -242,7 +242,6 @@
     "armazenamento_ligado": "3 dias de T1 = 410 kWh úteis (contra 1.333 kWh de tudo): ver E4"
   },
   "perguntas_ao_mestre": [
-    "Rebanho: proposta dimensionada em rebanho_e3b_10_moradores (8 matrizes Saanen + 1 bode + 4 crias + 6 suínos + 55 aves; 1,29 m³/dia biogás) — confirmar antes de atualizar src/data/bom.js.",
     "Quanto o bunker pode crescer? (despensa e equipamentos; B0 fechada com 48×32)"
   ],
   "decisoes_mestre_23_11_noite": {
@@ -268,6 +267,7 @@
   },
   "rebanho_e3b_10_moradores": {
     "data": "2026-11-24",
+    "status": "APROVADO pelo Mestre em 24/11 (sincronizado com src/data/bom.js)",
     "caprinos": {
       "raca_recomendada": "Saanen (1,3–2,0 L/dia em 240–300 dias de lactação; alternativa Anglo-Nubiana: 1,0–1,5 L/dia com mais sólidos)",
       "composicao": "8 matrizes (6 em lactação + 2 secas) + 1 bode + 4 crias = 13 cabeças",
@@ -323,7 +323,6 @@
       "datacenter→ORC"
     ],
     "pendente": [
-      "confirmar rebanho proposto (rebanho_e3b_10_moradores) para bom.js",
       "preço de painel e banco no Brasil",
       "vazão e queda do córrego",
       "série diária de nuvens (NASA bloqueada)",
@@ -337,6 +336,6 @@
     "bunker": "projetado para no máximo 7 por tempo indefinido; aceita aumentar a área escavada para despensa e equipamentos de sobrevivência; quer que dure o máximo possível neste terreno",
     "telhado": "uma água a 22° norte, máxima eficiência: aprovado",
     "serie_de_nuvens": "o Mestre baixa a série diária da NASA POWER (lat -22,404 lon -43,66)",
-    "rebanho": "ele não sabe: Claude propõe (cabras de leite, suínos)"
+    "rebanho": "APROVADO em 24/11: 8 matrizes Saanen (6 lactação + 2 secas) + 1 bode + 4 crias + 6 suínos + 55 aves (1,29 m³/dia de biogás; ver rebanho_e3b_10_moradores e src/data/bom.js)"
   }
 }

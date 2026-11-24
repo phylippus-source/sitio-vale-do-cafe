@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { kwhDia, somar, resumir, conferirCargas } from '../../tools/energia-lib.mjs';
+import {
+  kwhDia,
+  somar,
+  resumir,
+  conferirCargas,
+  conferirRecursos,
+  potencialRecursos,
+} from '../../tools/energia-lib.mjs';
 
 const c = (o) => ({
   id: 'x',
@@ -64,5 +71,57 @@ describe('cargas de energia', () => {
     expect(r.eletrico.kwhDia).toBeGreaterThan(300);
     expect(r.eletrico.kwhDia).toBeLessThan(800);
     expect(r.maiores[0].id).toBe('hidroponia-led');
+  });
+});
+
+describe('recursos de energia (E2)', () => {
+  const ler = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
+
+  it('plan/energia-recursos.json passa em conferirRecursos coerente com site e cargas', () => {
+    const rec = ler('plan/energia-recursos.json');
+    const site = ler('plan/site.json');
+    const cargas = ler('plan/energia-cargas.json');
+    expect(conferirRecursos(rec, site, cargas)).toEqual([]);
+  });
+
+  it('conferirRecursos rejeita área divergente, pior mês > média e PCI inválido', () => {
+    const rec = ler('plan/energia-recursos.json');
+    const site = ler('plan/site.json');
+    const cargas = ler('plan/energia-cargas.json');
+    const ruim = structuredClone(rec);
+    ruim.biomassa.area_bambuzal_m2 = 999;
+    ruim.solar.irradiacao_pior_mes_kWh_m2_dia = 6.0;
+    ruim.biogas.poder_calorifico_biogas.pci_kWh_m3 = 0;
+    const e = conferirRecursos(ruim, site, cargas);
+    expect(e.some((m) => m.includes('bambuzal'))).toBe(true);
+    expect(e.some((m) => m.includes('pior mês'))).toBe(true);
+    expect(e.some((m) => m.includes('PCI do biogás'))).toBe(true);
+  });
+
+  it('potencialRecursos calcula solar, vento, biomassa, biogás e micro-hídrica (null vs medido)', () => {
+    const rec = ler('plan/energia-recursos.json');
+    const site = ler('plan/site.json');
+    const p = potencialRecursos(rec, site);
+
+    expect(p.solar.kWpPiorMes).toBeGreaterThan(100);
+    expect(p.solar.areaFvPiorMesM2).toBeGreaterThan(500);
+    expect(p.solar.areaTelhadosUteisM2).toBe(965);
+    expect(p.solar.areaColetorPiorMesM2).toBeCloseTo(65, 0);
+    expect(p.vento.classe).toBe('marginal');
+    expect(p.vento.densidadeWm2_10m).toBeCloseTo(4.75, 1);
+    expect(p.biogas.m3DiaTotal).toBeCloseTo(0.67, 2);
+    expect(p.biomassa.totalKwhTermDiaUtil).toBeGreaterThan(10);
+    expect(p.biomassa.coberturaTermicaPct).toBeLessThan(25);
+    expect(p.corrego.pendente).toBe(true);
+    expect(p.corrego.potenciaKW).toBe(0);
+    expect(p.corrego.kwhDia).toBe(0);
+
+    const comRio = structuredClone(rec);
+    comRio.corrego.vazao_L_s = 20;
+    comRio.corrego.queda_m = 10;
+    const pRio = potencialRecursos(comRio, site);
+    expect(pRio.corrego.pendente).toBe(false);
+    expect(pRio.corrego.potenciaKW).toBeCloseTo(9.81 * 0.02 * 10 * 0.5, 2);
+    expect(pRio.corrego.kwhDia).toBeCloseTo(pRio.corrego.potenciaKW * 24, 1);
   });
 });

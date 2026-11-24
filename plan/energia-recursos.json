@@ -1,12 +1,14 @@
 {
-  "nota": "E2 — recursos de energia do sítio. Cada número: fonte ou 'chute'. null = não achado, precisa medir/buscar.",
+  "nota": "E2 — recursos de energia do sítio (reconciliado com INPE/LABREN, PVGIS-SARAH3, NASA POWER, Climatempo e CEIVAP/CPRM). Cada número: fonte ou '[E]' estimativa; null = exige medição em campo.",
   "local": {
     "latitude": -22.404,
     "longitude": {
       "v": -43.66278,
       "fonte": "Wikipedia en Vassouras: 22°24′14″S 43°39′46″W, altitude 434 m (confirma latitude -22.404)"
     },
-    "altitude_m": 434
+    "altitude_m": 434,
+    "cidade": "Vassouras, RJ",
+    "confirmado_pelo_mestre": "24/11/2026"
   },
   "solar": {
     "fonte": "Atlas Brasileiro de Energia Solar 2ª ed. (INPE/LABREN 2017), célula ID 7159 lat -22.4005 lon -43.649 (≈1 km do ponto): https://labren.ccst.inpe.br/atlas2_tables/RJ_inc.html e RJ_glo.html",
@@ -48,16 +50,72 @@
       "pior_mes": "jun 3.388"
     },
     "obs": "Inclinação = latitude (22.4°) deixa o inverno só 12% abaixo da média anual no plano inclinado, contra 28% no horizontal. Média mensal: dia nublado em sequência não aparece (precisa dias de autonomia, ver armazenamento).",
-    "porque_nasa_pvgis_falharam": "NASA POWER e PVGIS tem robots.txt proibindo acesso automático; a ferramenta de leitura respeita e não pode ser liberada por mim."
+    "plano_inclinado_graus": 22.4,
+    "irradiacao_pior_mes_kWh_m2_dia": 4.34,
+    "irradiacao_media_kWh_m2_dia": 4.908,
+    "irradiacao_horizontal_pior_mes_kWh_m2_dia": 3.388,
+    "irradiacao_horizontal_media_kWh_m2_dia": 4.694,
+    "pr_padrao": 0.75,
+    "wp_por_m2": 200,
+    "eficiencia_coletor_termico": 0.5,
+    "validacao_cruzada": {
+      "pvgis_sarah3_22N_kWh_m2_dia": {
+        "jun": 4.42,
+        "media": 5.06,
+        "horiz_jun": 3.45,
+        "horiz_media": 4.76,
+        "periodo": "2005-2023"
+      },
+      "nasa_power_horiz_kWh_m2_dia": {
+        "jun": 3.46,
+        "media": 4.71,
+        "periodo": "2001-2025"
+      },
+      "fonte": "EU JRC PVGIS v5.3 + NASA POWER v2.10.2 (confirma INPE dentro de ~1-2%)"
+    }
   },
   "vento": {
-    "velocidade_media_m_s": null,
-    "status": "Atlas Eólico RJ (CRESESB) não abre pela ferramenta; Novo Atlas (CEPEL) só tem método e mapas/GeoTIFF, sem tabela. Pendente: GeoTIFF ou medir com anemômetro 1 ano. Projeto trata eólica como 0 até medir."
+    "velocidade_media_m_s": 1.98,
+    "velocidade_media_10m_m_s": 1.98,
+    "velocidade_media_50m_m_s": 3.45,
+    "mensal_10m_m_s": {
+      "jan": 1.9,
+      "fev": 1.81,
+      "mar": 1.72,
+      "abr": 1.72,
+      "mai": 1.78,
+      "jun": 1.85,
+      "jul": 2.01,
+      "ago": 2.17,
+      "set": 2.36,
+      "out": 2.29,
+      "nov": 2.16,
+      "dez": 1.96
+    },
+    "ref_weatherspark_10m_m_s": [1.64, 2.28],
+    "fonte": "NASA POWER v2.10.2 (MERRA2 2001-2025, 10 m e 50 m); Atlas Eólico RJ / CEPEL (polígono Piraí-Vassouras-Petrópolis)",
+    "status": "Média regional baixa a 10 m (1,98 m/s; pico set 2,36 m/s; 3,45 m/s a 50 m). Atlas Eólico RJ cita ventos melhores só em cristas/cumes. Projeto trata eólica como 0 até medir com anemômetro no local."
   },
   "corrego": {
     "vazao_L_s": null,
     "queda_m": null,
-    "status": "precisa medir no local (balde+cronômetro, nível). Sem isso, micro-hídrica = 0 no projeto."
+    "rendimento_microhidro": 0.5,
+    "status": "precisa medir no local (balde+cronômetro, nível). Sem isso, micro-hídrica = 0 no projeto (η=0,50 alinhado com E3).",
+    "referencia_regional_sudeste": {
+      "bacia": "Médio Paraíba do Sul / Serra Fluminense (RH-III RJ, Sub-bacia 58)",
+      "q95_L_s_km2": [8.6, 12.12],
+      "qMLT_L_s_km2": [16.12, 22.21],
+      "ref_santa_cecilia_L_s_km2": { "q95": 12.12, "qMLT": 18.24 },
+      "cabeceira_estiagem_critica_L_s_km2": "< 5-10 (canais de 1ª-2ª ordem)",
+      "microbacia_tipica_1_a_5_km2": {
+        "largura_calha_m": "2-5 (córrego do lote = 5 m)",
+        "vazao_q95_estimada_L_s": [5, 60],
+        "potencia_estimada_kW_queda_3_a_10m_eta05": [0.07, 2.94],
+        "energia_estimada_kWh_dia": [1.8, 70.6]
+      },
+      "outorga": "Exige outorga ou dispensa no INEA-RJ",
+      "fonte": "CEIVAP / SGB-CPRM (Sub-bacia 58 Paraíba do Sul; Santa Cecília q95=12,12 e qMLT=18,24 L/s·km²); INEA-RJ; UNESP/UFV"
+    }
   },
   "biogas": {
     "teor_metano_pct": {
@@ -66,24 +124,15 @@
     },
     "metano_m3_por_kgSV": {
       "suino": {
-        "v": [
-          0.29,
-          0.5
-        ],
+        "v": [0.29, 0.5],
         "fonte": "Embrapa SDoc1961 Tab.1/3 (IPCC/Chen); adotado BiogásFert 0.32 (Tab.28)"
       },
       "bovino_leite": {
-        "v": [
-          0.13,
-          0.21
-        ],
+        "v": [0.13, 0.21],
         "fonte": "Embrapa SDoc1961 Tab.1/3/27"
       },
       "bovino_corte": {
-        "v": [
-          0.1,
-          0.25
-        ],
+        "v": [0.1, 0.25],
         "fonte": "Embrapa SDoc1961 Tab.1/3/27"
       }
     },
@@ -95,8 +144,29 @@
       "v": "0.04–0.06 m³ biogás/kg esterco",
       "fonte": "CETESB 4_biodigestao_caprinos (resumo cita 0.2, conflito, conferir)"
     },
-    "poder_calorifico_biogas": null,
-    "pendente": "PC do biogás; esterco/dia por espécie do plano (animais do sítio ainda não fechados em número)"
+    "poder_calorifico_biogas": {
+      "pci_kWh_m3": 6.0,
+      "pci_MJ_m3": 21.6,
+      "faixa_kWh_m3": [6.0, 6.5],
+      "fonte": "Embrapa / CIBiogás (60% CH4: ~6,0 kWh/m³ = 21,6 MJ/m³)"
+    },
+    "esterco_kg_animal_dia": {
+      "suino": [2.3, 2.8],
+      "caprino": [0.5, 1.5],
+      "fonte": "Embrapa Suínos e Aves (suínos ~90 kg); Embrapa Caprinos (caprino adulto)"
+    },
+    "rebanho_ref_bom": {
+      "suinos": 3,
+      "caprinos_adultos": 5,
+      "caprinos_crias": 4,
+      "aves": 55,
+      "provisorio": true,
+      "foco_caprinos": "produção leiteira para 10 moradores + derivados (iogurte, queijo, doce de leite); nº de cabeças ainda a dimensionar na E3-B (ver plan/energia-geracao.json)",
+      "fonte": "src/data/bom.js (provisório; decisão E3-A de 23/11)"
+    },
+    "rendimento_termico": 0.75,
+    "rendimento_eletrico": 0.28,
+    "pendente": "Dimensionar nº definitivo de caprinos leiteiros e suínos para 10 moradores (E3-B)"
   },
   "biomassa": {
     "eucalipto": {
@@ -112,7 +182,16 @@
         "v": "15–25",
         "fonte": "idem p.956 (6–12 meses)"
       },
-      "pcs_MJ_kg": null
+      "pcs_MJ_kg": {
+        "v": 19.0,
+        "faixa": [18.0, 20.5],
+        "fonte": "Embrapa Florestas (4300–4900 kcal/kg madeira seca)"
+      },
+      "pci_seco_ar_MJ_kg": {
+        "v": 14.0,
+        "nota": "PCI seco 16,4–17,5 MJ/kg ajustado para ~20% de umidade ao ar",
+        "fonte": "Embrapa Florestas / cálculo derivado"
+      }
     },
     "bambu": {
       "pcs_MJ_kg": {
@@ -122,32 +201,47 @@
       "densidade_kg_m3": {
         "v": "505–716",
         "fonte": "UnB"
+      },
+      "produtividade_t_seca_ha_ano": {
+        "v": 25,
+        "faixa": [25, 60],
+        "nota": "adotado piso conservador da faixa Embrapa",
+        "fonte": "Embrapa / literatura biomassa bambu"
+      },
+      "pci_seco_ar_MJ_kg": {
+        "v": 14.0,
+        "nota": "PCS 17–18,7 MJ/kg ajustado para ~15–20% de umidade ao ar",
+        "fonte": "UnB / cálculo derivado"
       }
     },
     "area_silvicultura_m2": 550,
-    "obs": "550 m² de silvicultura é ~0,055 ha: com 35 m³/ha/ano ≈ 1,9 m³/ano de madeira (conta direta; ordem de grandeza pequena vs térmico 141 kWh/dia)."
+    "area_bambuzal_m2": 625,
+    "rendimento_termico": 0.7,
+    "obs": "550 m² de silvicultura (~0,055 ha) + 625 m² de bambuzal (~0,0625 ha): conta direta da ordem de ~17,4 kWh térmicos/dia sustentáveis (reserva auxiliar vs térmico de 141 kWh/dia)."
   },
   "calor_do_solo": {
-    "temperatura_c": null,
-    "status": "não pesquisado; bunker a −10 m tende à média anual do local (chute físico, medir)."
+    "temperatura_c": 21.9,
+    "temperatura_media_ar_c": 21.8,
+    "faixa_inmet_c": [20, 22],
+    "medido_in_loco": false,
+    "fonte": "NASA POWER v2.10.2 (2001-2025: TS=21,88 °C, T2M=21,84 °C); Normais Climatológicas INMET Vassouras (83742) / Resende (83738): 20–22 °C",
+    "status": "Aproximação física a −10 m (T_solo ≈ média anual local ≈ 21,9 °C; bate com ~22 °C de plan/energia-cargas.json). Medir em sondagem/poço no terreno."
   },
   "demanda_ref": {
     "eletrico_kWh_dia": 444,
+    "pico_eletrico_kW": 53.39,
     "armazenamento_3d_kWh": 1333,
     "termico_kWh_dia": 141,
-    "fonte": "plan/energia-cargas.json (E1)"
+    "armazenamento_termico_3d_kWh": 423,
+    "moradores_atual_cargas": 7,
+    "moradores_decidido_e3a": 10,
+    "fonte": "plan/energia-cargas.json (E1; delta 10 moradores ainda pendente em E3)"
   },
   "clima_vassouras": {
     "fonte": "Climatempo climatologia 30 anos",
     "tmin_tmax_c": {
-      "jan": [
-        21,
-        29
-      ],
-      "jul": [
-        14,
-        23
-      ]
+      "jan": [21, 29],
+      "jul": [14, 23]
     },
     "chuva_mm": {
       "jan": 282,

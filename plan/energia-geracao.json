@@ -251,9 +251,41 @@
     "armazenamento_ligado": "3 dias de T1 = 410 kWh úteis (contra 1.333 kWh de tudo): ver E4"
   },
   "perguntas_ao_mestre": [
-    "Aceita a classe T1/T2/T3, ou muda algum item?",
-    "Quantos suínos e caprinos?",
-    "Painel em telhado e toldo da estrada combina com o estilo, ou prefere outro lugar?",
-    "Medir vazão e queda do córrego e vento: quando dá?"
-  ]
+    "Confirma carga para 10 pessoas no bunker (T1 sobe ~+24 kWh/dia)?",
+    "Rebanho: quantas cabras em lactação e que animais de corte (suínos?) para proteína de 10 pessoas?",
+    "Medir vazão e queda do córrego: quando dá? (parte B traz o tipo comum)"
+  ],
+  "decisoes_mestre_23_11_noite": {
+    "data": "2026-11-23 23:47",
+    "T1_T2_T3": "aceitas como propostas",
+    "pessoas_moradoras": "10 (antes o plano usava 7 no bunker; 12 só em visitas). Produção deve alimentar 10 sem racionar proteína animal.",
+    "caprinos": "para leite humano, no lugar de vacas",
+    "rebanho": "número NÃO definido; dimensionar a partir de proteína e leite para 10 pessoas (fonte a pesquisar: Embrapa Caprinos/Sisteminha). Chute de ordem: poucas cabras em lactação para ~3–5 L/dia de leite (sem fonte).",
+    "telhado": "gerar o máximo de energia, mesmo sacrificando o visual antigo da Casa Grande (estética fora do critério)",
+    "corrego": "pedido de pesquisa: tipo de córrego comum em Vassouras e Sudeste (parte B)"
+  },
+  "fv_telhado_maximo": {
+    "ideia": "telhados de uma água só, inclinados 22° para o norte (como o painel): toda a pegada vira painel, sem espaçamento de fileiras.",
+    "conta_m2_painel": {
+      "casa": 674,
+      "puxadinho": 151,
+      "engenho": 216
+    },
+    "total_m2": 1041,
+    "total_kWp_a_200W_m2": 208.2,
+    "cobre": "tudo (152 kWp) com folga de ~37% só nos telhados; 228 kWp (folga 50%) pede ~1.140 m²: telhados + ~100 m² de toldo.",
+    "riscos": "puxadinho fica ao norte da casa: sombra no inverno a conferir (avaliarArranjo, sol de 22/06). Estrutura do telhado de 22° muda o desenho da casa. Galpão fica de fora (laje-jardim)."
+  },
+  "impacto_10_pessoas_estimado": {
+    "aviso": "NÃO apliquei em plan/energia-cargas.json: esperar o Mestre confirmar. Escala linear 10/7 (chute) em cargas que dependem de gente.",
+    "cargas_escaladas": {
+      "suporte-ar": 24.0,
+      "suporte-o2": 14.4,
+      "agua": 6.0,
+      "cozinha": 6.0,
+      "quartos": 8.0
+    },
+    "delta_T1_kWh_dia_aprox": 25.0,
+    "delta_termico_agua_quente": "14 → 20 kWh/dia (50 L × 10 pessoas × 35 K)"
+  }
 }

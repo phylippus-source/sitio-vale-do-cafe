@@ -109,7 +109,7 @@ describe('recursos de energia (E2)', () => {
     expect(p.solar.areaColetorPiorMesM2).toBeCloseTo(65, 0);
     expect(p.vento.classe).toBe('marginal');
     expect(p.vento.densidadeWm2_10m).toBeCloseTo(4.75, 1);
-    expect(p.biogas.m3DiaTotal).toBeCloseTo(0.67, 2);
+    expect(p.biogas.m3DiaTotal).toBeCloseTo(1.29, 2);
     expect(p.biomassa.totalKwhTermDiaUtil).toBeGreaterThan(10);
     expect(p.biomassa.coberturaTermicaPct).toBeLessThan(25);
     expect(p.corrego.pendente).toBe(true);
@@ -123,5 +123,19 @@ describe('recursos de energia (E2)', () => {
     expect(pRio.corrego.pendente).toBe(false);
     expect(pRio.corrego.potenciaKW).toBeCloseTo(9.81 * 0.02 * 10 * 0.5, 2);
     expect(pRio.corrego.kwhDia).toBeCloseTo(pRio.corrego.potenciaKW * 24, 1);
+  });
+
+  it('plan/energia-geracao.json bate com os totais T1+T2+T3 de plan/energia-cargas.json', () => {
+    const cargas = ler('plan/energia-cargas.json');
+    const ger = ler('plan/energia-geracao.json');
+    const porId = new Map(cargas.cargas.map((x) => [x.id, kwhDia(x)]));
+    const soma = (ids) => ids.reduce((a, id) => a + porId.get(id), 0);
+    const t1 = soma(ger.classes_de_carga.T1_vital.ids);
+    const t2 = soma(ger.classes_de_carga.T2_vida_e_producao.ids);
+    const t3 = soma(ger.classes_de_carga.T3_conforto_e_renda.ids);
+    expect(ger.classes_de_carga.T1_vital.kWh_dia).toBeCloseTo(t1, 2);
+    expect(ger.classes_de_carga.T2_vida_e_producao.kWh_dia).toBeCloseTo(t2, 2);
+    expect(ger.classes_de_carga.T3_conforto_e_renda.kWh_dia).toBeCloseTo(t3, 2);
+    expect(ger.classes_de_carga.total_kWh_dia).toBeCloseTo(resumir(cargas).eletrico.kwhDia, 2);
   });
 });

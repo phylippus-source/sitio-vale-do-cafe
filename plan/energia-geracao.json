@@ -80,14 +80,7 @@
       "kWh_dia": 173.9
     },
     "T3_conforto_e_renda": {
-      "ids": [
-        "datacenter",
-        "labs",
-        "cinema",
-        "piscina-bomba",
-        "piscina-ar",
-        "engenho"
-      ],
+      "ids": ["datacenter", "labs", "cinema", "piscina-bomba", "piscina-ar", "engenho"],
       "kWh_dia": 133.9
     },
     "total_kWh_dia": 444.3
@@ -227,14 +220,8 @@
   },
   "biomassa": {
     "eucalipto_550m2_kWh_termico_dia": 8.9,
-    "bambuzal_625m2_kWh_termico_dia": [
-      9.4,
-      18.9
-    ],
-    "total_kWh_termico_dia": [
-      18.4,
-      27.8
-    ],
+    "bambuzal_625m2_kWh_termico_dia": [9.4, 18.9],
+    "total_kWh_termico_dia": [18.4, 27.8],
     "contra_termico_141": "≈13–20% do térmico de 141 kWh/dia",
     "origem": "conta com PCS eucalipto 19 MJ/kg seco (chute, não lido) e 0,8 de perda por umidade (chute); bambu PCS 18,8 MJ/kg (fonte Marafon 2019)"
   },
@@ -255,7 +242,7 @@
     "armazenamento_ligado": "3 dias de T1 = 410 kWh úteis (contra 1.333 kWh de tudo): ver E4"
   },
   "perguntas_ao_mestre": [
-    "Rebanho: Claude propõe número de cabras e suínos (pendente).",
+    "Rebanho: proposta dimensionada em rebanho_e3b_10_moradores (8 matrizes Saanen + 1 bode + 4 crias + 6 suínos + 55 aves; 1,29 m³/dia biogás) — confirmar antes de atualizar src/data/bom.js.",
     "Quanto o bunker pode crescer? (despensa e equipamentos; B0 fechada com 48×32)"
   ],
   "decisoes_mestre_23_11_noite": {
@@ -277,17 +264,58 @@
     "total_m2": 1041,
     "total_kWp_a_200W_m2": 208.2,
     "cobre": "tudo (152 kWp) com folga de ~37% só nos telhados; 228 kWp (folga 50%) pede ~1.140 m²: telhados + ~100 m² de toldo.",
-    "riscos": "puxadinho fica ao norte da casa: sombra no inverno a conferir (avaliarArranjo, sol de 22/06). Estrutura do telhado de 22° muda o desenho da casa. Galpão fica de fora (laje-jardim)."
+    "riscos": "Conferência geométrica (horasDeSombra, inverno 22/06, 9h–15h): no arranjo M, puxadinho (x 32..39, h 5 m) fica a oeste da casa (x 7..32, h 9 m) e projeta apenas 0,36 h no solo da casa à tarde (0 h na cobertura de 9 m); já a casa projeta 2,34 h sobre o puxadinho pela manhã. Estrutura de 22° muda o desenho da casa. Galpão fica de fora (laje-jardim)."
+  },
+  "rebanho_e3b_10_moradores": {
+    "data": "2026-11-24",
+    "caprinos": {
+      "raca_recomendada": "Saanen (1,3–2,0 L/dia em 240–300 dias de lactação; alternativa Anglo-Nubiana: 1,0–1,5 L/dia com mais sólidos)",
+      "composicao": "8 matrizes (6 em lactação + 2 secas) + 1 bode + 4 crias = 13 cabeças",
+      "producao_leite_L_dia": 9.6,
+      "destino_leite": "~5 L/dia consumo fluido + iogurte (~1:1 em massa c/ sólidos); ~4,6 L/dia excedente para queijo fresco (10–14 L/kg) e doce de leite (3,5–3,7 L/kg)",
+      "area_embrapa_m2": 46.2,
+      "area_nota": "Aprisco suspenso ripado (1,0 m²/matriz, 3,0 m²/bode, 0,5 m²/cria = 13 m² coberto) + solário (2,5–6,0 m²/cabeça = ~33 m² descoberto), fonte Embrapa Caprinos"
+    },
+    "suinos": {
+      "composicao": "1 reprodutor + 2 matrizes + 3 em terminação = 6 cabeças",
+      "area_m2": 30
+    },
+    "zona_animais_lote_m2": {
+      "disponivel": 225,
+      "ocupado_estimado": 101,
+      "folga_m2": 124,
+      "nota": "~46 m² caprinos + ~30 m² suínos + ~25 m² biodigestor/manejo cabem com folga nos 15×15 m (225 m²) do lote"
+    },
+    "biogas_gerado": {
+      "m3_dia": 1.29,
+      "detalhe": "6 suínos × 0,14 + 9 caprinos adultos × 1,0 kg × 0,05 m³/kg = 0,84 + 0,45 m³/dia",
+      "kWh_termico_dia": 5.81,
+      "kWh_eletrico_dia": 2.17
+    }
   },
   "impacto_10_pessoas_estimado": {
-    "status": "REVOGADO em 24/11: o bunker continua com 7; as cargas do bunker em plan/energia-cargas.json NÃO mudam. Os 10 moradores usam a Casa Grande (9,6 kWh/dia no E1, sem número de moradores): reavaliar na E4 se necessário."
+    "status": "REVOGADO em 24/11: o bunker continua com 7; as cargas do bunker em plan/energia-cargas.json NÃO mudam. Os 10 moradores usam a Casa Grande (9,6 kWh/dia no E1, sem número de moradores): reavaliar na E4 se necessário.",
+    "referencia_se_bunker_subir_para_10": {
+      "nota": "Cálculo preservado da E3-B (escala linear 10/7) caso o bunker seja ampliado para 10 pessoas no futuro.",
+      "cargas_escaladas_kWh_dia": {
+        "suporte-ar": 34.32,
+        "suporte-o2": 20.64,
+        "agua": 8.6,
+        "cozinha": 8.55,
+        "quartos": 11.44
+      },
+      "T1_kWh_dia": 161.65,
+      "delta_T1_kWh_dia": 25.15,
+      "total_eletrico_kWh_dia": 469.45,
+      "total_termico_kWh_dia": 146.92
+    }
   },
   "arquitetura_revisada_24_11": {
     "aviso": "Síntese minha das partes A–E; o Mestre decide.",
     "fv": "~200 kWp nos telhados de uma água a 22° norte (208 kWp disponíveis), 4 arranjos independentes, inversores N+1. Cobre elétrico 444 + térmico 141 kWh/dia no pior mês (junho).",
     "armazenamento_eletrico": "~410 kWh úteis (3 dias de T1, bunker para 7); T2 e T3 cortam em nublado seguido. Tecnologia a fechar na E4 (LFP fora do bunker + chumbo tubular + células secas).",
     "armazenamento_termico": "água ~7 m³ ou areia 2–4 m³ para 3 dias de calor; + areia 300–500 °C (~15 m³) opcional como 'bateria térmica' de emergência com Stirling ou vapor.",
-    "alternativas": "micro-hidro 0,5–40 kWh/dia (medir), biogás (rebanho sem número), gasogênio de silvicultura e bambu 3–7 kWh/dia: somam 12–43 kWh elétricos/dia (3–10%).",
+    "alternativas": "micro-hidro 0,5–40 kWh/dia (medir), biogás 1,29 m³/dia (2,17 kWh elétricos / 5,81 kWh térmicos/dia; ver rebanho_e3b_10_moradores), gasogênio de silvicultura e bambu 3–7 kWh/dia: somam 12–43 kWh elétricos/dia (3–10%).",
     "descartado": [
       "torre gravitacional como banco",
       "JTEC (observar 2027)",
@@ -295,7 +323,7 @@
       "datacenter→ORC"
     ],
     "pendente": [
-      "número de suínos e cabras",
+      "confirmar rebanho proposto (rebanho_e3b_10_moradores) para bom.js",
       "preço de painel e banco no Brasil",
       "vazão e queda do córrego",
       "série diária de nuvens (NASA bloqueada)",

@@ -47,3 +47,6 @@ Medidas terminam em 0 ou 5 (se der, aumente; senão reduza). Números em texto v
 - Artifact: `read` uma vez antes de republicar; republicar o **mesmo arquivo** com `url`; ícone só na 1ª publicação; teste em celular com `node tools/teste-interativa-toque.cjs`. Páginas: `node tools/render-interativa.mjs` (gera `plan/interativa.html`), `node tools/render-boards.mjs` (pranchas).
 - **Contador de tokens:** `logs/tokens-cota.txt` (100% = peso). Calibrações do Mestre divergem (2,05 M em 18/11 de madrugada, 0,43 M à tarde): **recalibre** (`--calibrar 90`, `--inicio HH:MM`) quando ele avisar; trate a % como piso após compactação.
 - **Contexto:** não leia arquivos grandes inteiros (use `grep`, `offset`/`limit`); não cole saídas longas; evite resultados de pesquisa extensos; pense curto. Chat longo + pausa de 5 min refaz o cache e gasta a janela.
+
+## E3 (24/11/2026)
+Geração com redundância feita em partes A–F; ver plan/E3-painel.md e a issue #1 do GitHub. Próxima: E4 (armazenamento).

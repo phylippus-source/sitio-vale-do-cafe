@@ -291,5 +291,26 @@
     },
     "delta_T1_kWh_dia_aprox": 25.0,
     "delta_termico_agua_quente": "14 → 20 kWh/dia (50 L × 10 pessoas × 35 K)"
+  },
+  "arquitetura_revisada_24_11": {
+    "aviso": "Síntese minha das partes A–E; o Mestre decide.",
+    "fv": "~200 kWp nos telhados de uma água a 22° norte (208 kWp disponíveis), 4 arranjos independentes, inversores N+1. Cobre elétrico 444 + térmico 141 kWh/dia no pior mês (junho).",
+    "armazenamento_eletrico": "~485 kWh úteis (3 dias de T1 com 10 moradores); T2 e T3 cortam em nublado seguido. Tecnologia a fechar na E4 (LFP fora do bunker + chumbo tubular + células secas).",
+    "armazenamento_termico": "água ~7 m³ ou areia 2–4 m³ para 3 dias de calor; + areia 300–500 °C (~18 m³) opcional como 'bateria térmica' de emergência com Stirling ou vapor.",
+    "alternativas": "micro-hidro 0,5–40 kWh/dia (medir), biogás (rebanho sem número), gasogênio de silvicultura e bambu 3–7 kWh/dia: somam 12–43 kWh elétricos/dia (3–10%).",
+    "descartado": [
+      "torre gravitacional como banco",
+      "JTEC (observar 2027)",
+      "ORC abaixo de 100 °C",
+      "datacenter→ORC"
+    ],
+    "pendente": [
+      "número de suínos e cabras",
+      "preço de painel e banco no Brasil",
+      "vazão e queda do córrego",
+      "série diária de nuvens (NASA bloqueada)",
+      "topografia do sítio",
+      "eficiência do gasogênio+motor"
+    ]
   }
 }

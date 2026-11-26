@@ -1,0 +1,55 @@
+{
+  "etapa": "E5a",
+  "data": "2026-11-25",
+  "decisao_mestre": "bunker +20±5% de área, medidas terminando em 0 ou 5; candidatas 45x40, 60x30, 55x35, 50x35",
+  "premissas_chute": [
+    "CH4 60%",
+    "pe-direito 3 m",
+    "volume bruto",
+    "piso O2 19,5%",
+    "carregador C/20",
+    "cilindro 50 L 200 bar"
+  ],
+  "calculos": {
+    "o2": {
+      "kg_dia_7": 5.4,
+      "m3_dia_7": 4.05,
+      "m3_dia_7_exercicio": 5.7,
+      "m3_3d": 12.2,
+      "m3_30d": 122,
+      "m3_90d": 365,
+      "cilindros_50L_200bar_90d": 36.5
+    },
+    "co2": {
+      "m3_dia_7": 2.45,
+      "48x32x3": {
+        "volume_m3": 4608,
+        "dias_ate_3mmHg": 6.6
+      },
+      "45x40x3": {
+        "volume_m3": 5400,
+        "dias_ate_3mmHg": 7.8
+      }
+    },
+    "biogas": {
+      "m3_dia": 1.29,
+      "H2S_g_dia_100ppm": 0.2,
+      "H2S_g_dia_10000ppm": 19.9
+    },
+    "h2_opzs": {
+      "n_x_I_A_celulas": 3750.0,
+      "H2_m3_h_pior_caso": 1.69,
+      "ventilacao_m3_h_2pct": 81,
+      "trocas_por_h_sala_300m3": 0.27
+    }
+  },
+  "fontes": {
+    "NASA OCHMO-TB-002 RevA": "2023-04-20, consulta 2026-11-25",
+    "industrialmonitordirect": "2026-05-04, consulta 2026-11-25, confianca C",
+    "Embrapa Cap-IV": "ano nao informado (refs ate 2016), consulta 2026-11-25"
+  },
+  "pendente": [
+    "E5b hidrogenio e biodigestor, gases de falha LFP",
+    "E5c dimensionar depurador CO2, exaustao, volumes"
+  ]
+}

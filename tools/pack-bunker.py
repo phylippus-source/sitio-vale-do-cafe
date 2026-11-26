@@ -185,17 +185,53 @@ def conforto(m, v, t, DIR, P):
     return PESO_AFINIDADE * af + PESO_ACESSO_DIRETO * sum(DIR.values()) + PESO_RUIDO * nmin, nmin
 
 
-def construir(P, S, lado_m):
+def caminhada(m, v, P):
+    """Soma das distâncias (Manhattan, centro a centro, em unidades de 0,25 m) do monta-carga a cada ambiente
+    que não é circulação. Mede o 'labirinto': quanto menor, mais perto do acesso principal."""
+    ref = v["montacarga"]
+    total = []
+    for id_, r in v.items():
+        if id_ in P["circulacao"]:
+            continue
+        dx = m.new_int_var(0, 4000, f"cdx_{id_}")
+        dy = m.new_int_var(0, 4000, f"cdy_{id_}")
+        ex = (2 * r["x"] + r["w"]) - (2 * ref["x"] + ref["w"])  # centros dobrados
+        ey = (2 * r["y"] + r["d"]) - (2 * ref["y"] + ref["d"])
+        m.add(dx >= ex)
+        m.add(dx >= -ex)
+        m.add(dy >= ey)
+        m.add(dy >= -ey)
+        total.append(dx + dy)
+    return sum(total)
+
+
+def no_plano(P, it, D_m):
+    """Retângulo de um item do lote no referencial da planta (u, v), em metros: (u1, u2, v1, v2).
+    Com giro=1 usa x = x0 + (D − v − d_sala), z = z0 + u (ver plan/bunker.json, mundo.nota)."""
+    x0, z0 = P["mundo"]["x0"], P["mundo"]["z0"]
+    x1, x2, z1, z2 = it["x"], it["x"] + it["w"], it["z"], it["z"] + it["d"]
+    if (P["mundo"].get("giro", 0) % 2) == 1:
+        return z1 - z0, z2 - z0, D_m - (x2 - x0), D_m - (x1 - x0)
+    return x1 - x0, x2 - x0, z1 - z0, z2 - z0
+
+
+def construir(P, S, lado_m, fixa=None):
+    """fixa = (W, D) em metros: pegada FIXA (modo B0-6a). Sem ela, a pegada é variável (modo antigo)."""
     T = P["tolerancia"]
     lado = u(lado_m)
     m = cp_model.CpModel()
-    Wmax, Dmax = u(T["pegada_max"]["w"]), u(T["pegada_max"]["d"])
-    W = m.new_int_var(0, Wmax, "W")
-    D = m.new_int_var(0, Dmax, "D")
-    casa = next(i for i in S["itens"] if i["id"] == "casa")
-    cu, cv = casa["x"] - P["mundo"]["x0"], casa["z"] - P["mundo"]["z0"]
-    m.add(W >= u(cu + casa["w"]))
-    m.add(D >= u(cv + casa["d"]))
+    if fixa:
+        Wmax, Dmax = u(fixa[0]), u(fixa[1])
+        W = m.new_int_var(Wmax, Wmax, "W")
+        D = m.new_int_var(Dmax, Dmax, "D")
+    else:
+        Wmax, Dmax = u(T["pegada_max"]["w"]), u(T["pegada_max"]["d"])
+        W = m.new_int_var(0, Wmax, "W")
+        D = m.new_int_var(0, Dmax, "D")
+        casa = next(i for i in S["itens"] if i["id"] == "casa")
+        cu, cv = casa["x"] - P["mundo"]["x0"], casa["z"] - P["mundo"]["z0"]
+        m.add(W >= u(cu + casa["w"]))
+        m.add(D >= u(cv + casa["d"]))
 
     base = {s["id"]: s for s in P["salas"]}
     ids = list(P["medidas"]) + list(P.get("extras", {}))
@@ -251,8 +287,12 @@ def construir(P, S, lado_m):
         e = v[R["ambiente"]]
         for it in S["itens"]:
             marg = u(R["fora_da_casa_m"] if it["id"] == "casa" else R["fora_de_itens_m"])
-            x1, x2 = u(it["x"] - P["mundo"]["x0"]) - marg, u(it["x"] + it["w"] - P["mundo"]["x0"]) + marg
-            y1, y2 = u(it["z"] - P["mundo"]["z0"]) - marg, u(it["z"] + it["d"] - P["mundo"]["z0"]) + marg
+            if fixa:  # modo B0-6a: item convertido para o referencial da planta (considera o giro)
+                a1, a2, b1, b2 = no_plano(P, it, fixa[1])
+                x1, x2, y1, y2 = u(a1) - marg, u(a2) + marg, u(b1) - marg, u(b2) + marg
+            else:
+                x1, x2 = u(it["x"] - P["mundo"]["x0"]) - marg, u(it["x"] + it["w"] - P["mundo"]["x0"]) + marg
+                y1, y2 = u(it["z"] - P["mundo"]["z0"]) - marg, u(it["z"] + it["d"] - P["mundo"]["z0"]) + marg
             lits = [m.new_bool_var(f"esc_{it['id']}_{k}") for k in range(4)]
             m.add(e["ex"] <= x1).only_enforce_if(lits[0])
             m.add(e["x"] >= x2).only_enforce_if(lits[1])
@@ -270,6 +310,9 @@ def construir(P, S, lado_m):
         desvio=desvio_de_area(m, v, P, ids),
         conforto=conforto(m, v, t, DIR, P),
     )
+    if fixa:
+        objetivos["sobra"] = A - sum(areas)
+        objetivos["caminhada"] = caminhada(m, v, P)
     return m, dict(W=W, D=D, A=A, v=v, base=base, t=t, DIR=DIR, **objetivos)
 
 
@@ -373,15 +416,91 @@ def resolver(P, S, cenario, tempo, log=False, partida=None):
     return opcao, info
 
 
+def metricas(P, salas, A_m2):
+    """Números para comparar plantas: sobra, caminhada do monta-carga (centro a centro, Manhattan, em m),
+    maior lado de ambiente, passagens por outro ambiente e crescimento por ambiente."""
+    por = {s["id"]: s for s in salas}
+    mc = por["montacarga"]
+    cx, cy = mc["u"] + mc["w"] / 2, mc["v"] + mc["d"] / 2
+    circ = set(P["circulacao"])
+    dist = {i: abs(s["u"] + s["w"] / 2 - cx) + abs(s["v"] + s["d"] / 2 - cy) for i, s in por.items() if i not in circ}
+    usada = sum(s["w"] * s["d"] for s in salas)
+    cresc = {i: round(por[i]["w"] * por[i]["d"] - P["medidas"][i][0] * P["medidas"][i][1], 1)
+             for i in P["medidas"] if i in por}
+    return dict(
+        area_pegada=A_m2, area_ocupada=round(usada, 1), sobra=round(A_m2 - usada, 1),
+        caminhada_media=round(sum(dist.values()) / len(dist), 1), caminhada_max=round(max(dist.values()), 1),
+        ambiente_mais_longe=max(dist, key=dist.get),
+        maior_lado=max(max(s["w"], s["d"]) for i, s in por.items() if i not in circ),
+        passagens=sum(1 for s in salas if s.get("acesso")),
+        galeria=[por["galeria"]["w"], por["galeria"]["d"]],
+        crescimento_m2=cresc)
+
+
+def resolver_fixa(P, S, fixa, lado_m, tempo, log=False):
+    """Modo B0-6a, pegada FIXA W×D (m). Etapas: 1 menor sobra (espaço vazio); 2 conforto; 3 menor caminhada
+    do monta-carga. O desvio de área não entra (a área extra é para crescer despensa, equipamentos etc.)."""
+    m, ctx = construir(P, S, lado_m, fixa)
+    dica(m, ctx, P, None)
+    t0 = time.time()
+    fatias = (0.3, 0.35, 0.35)
+    m.minimize(ctx["sobra"])
+    s, st = resolver_etapa(m, tempo * fatias[0], log)
+    if st not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return None, dict(status=s.status_name(st), segundos=round(time.time() - t0, 1))
+    m.add(ctx["sobra"] <= round(s.objective_value))
+    dica_da_solucao(m, s)
+    expr, nmin = ctx["conforto"]
+    m.maximize(expr)
+    s, st = resolver_etapa(m, tempo * fatias[1], log)
+    m.add(expr >= round(s.objective_value))
+    dica_da_solucao(m, s)
+    m.minimize(ctx["caminhada"])
+    s, st = resolver_etapa(m, tempo * fatias[2], log)
+    salas = []
+    for id_, r in ctx["v"].items():
+        w, d = s.value(r["w"]), s.value(r["d"])
+        if w == 0:
+            continue
+        sala = dict(id=id_, u=s.value(r["x"]) / U, v=s.value(r["y"]) / U, w=w / U, d=d / U)
+        if ctx["base"].get(id_, {}).get("grupo"):
+            sala["grupo"] = ctx["base"][id_]["grupo"]
+        salas.append(sala)
+    anotar_acesso(P, salas)
+    Wm, Dm = fixa
+    nome = f"fixa-{Wm:g}x{Dm:g}"
+    opcao = dict(id=nome, nome=f"Pegada fixa {Wm:g}×{Dm:g} (±{lado_m:g} m por ambiente)",
+                 etapa="B0-6a: pegada fixa, menor sobra, conforto, menor caminhada",
+                 pegada=dict(w=Wm, d=Dm), salas=salas, metricas=metricas(P, salas, Wm * Dm))
+    return opcao, dict(status=s.status_name(st), segundos=round(time.time() - t0, 1))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("--cenario", required=True)
+    ap.add_argument("--cenario", help="cenário de tolerância (modo pegada variável)")
+    ap.add_argument("--pegada", help="modo B0-6a, pegada FIXA 'WxD' em m na planta (ex.: 55x35)")
+    ap.add_argument("--lado", type=float, default=2.5, help="modo pegada fixa: variação ± de cada lado (m)")
     ap.add_argument("--tempo", type=float, default=60)
     ap.add_argument("--saida", help="arquivo .json da opção")
     ap.add_argument("--log", action="store_true")
     ap.add_argument("--partir", help="arquivo .json de uma opção já resolvida, usada como ponto de partida")
     a = ap.parse_args()
     P, S = ler("plan/bunker.json"), ler("plan/site.json")
+    if a.pegada:
+        fixa = tuple(float(x) for x in a.pegada.lower().split("x"))
+        opcao, info = resolver_fixa(P, S, fixa, a.lado, a.tempo, a.log)
+        if opcao is None:
+            print("sem solução:", info, file=sys.stderr)
+            sys.exit(1)
+        mt = opcao["metricas"]
+        print(f"{opcao['id']}: {info['status']} | sobra {mt['sobra']} m² | caminhada média {mt['caminhada_media']} m, "
+              f"máx {mt['caminhada_max']} m ({mt['ambiente_mais_longe']}) | maior lado {mt['maior_lado']} m "
+              f"| passagens {mt['passagens']} | {info['segundos']} s")
+        if a.saida:
+            Path(a.saida).write_text(json.dumps({"opcoes": [opcao]}, ensure_ascii=False, indent=1), encoding="utf8")
+        return
+    if not a.cenario:
+        ap.error("informe --cenario ou --pegada")
     opcao, info = resolver(P, S, a.cenario, a.tempo, a.log,
                             json.loads(Path(a.partir).read_text(encoding="utf8"))["opcoes"][0] if a.partir else None)
     if opcao is None:

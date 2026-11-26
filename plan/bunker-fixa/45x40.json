@@ -1,0 +1,249 @@
+{
+ "opcoes": [
+  {
+   "id": "fixa-45x40",
+   "nome": "Pegada fixa 45×40 (±2.5 m por ambiente)",
+   "etapa": "B0-6a: pegada fixa, menor sobra, conforto, menor caminhada",
+   "pegada": {
+    "w": 45.0,
+    "d": 40.0
+   },
+   "salas": [
+    {
+     "id": "mestre",
+     "u": 32.5,
+     "v": 0.0,
+     "w": 12.5,
+     "d": 9.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "pais",
+     "u": 9.5,
+     "v": 20.0,
+     "w": 10.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "irma",
+     "u": 32.5,
+     "v": 9.0,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "sobrinha",
+     "u": 12.5,
+     "v": 15.0,
+     "w": 3.5,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "convidado",
+     "u": 20.0,
+     "v": 20.0,
+     "w": 5.0,
+     "d": 5.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "estar",
+     "u": 32.5,
+     "v": 14.0,
+     "w": 12.5,
+     "d": 16.5,
+     "grupo": "convivência"
+    },
+    {
+     "id": "cinema",
+     "u": 32.5,
+     "v": 30.5,
+     "w": 12.5,
+     "d": 9.5,
+     "grupo": "convivência"
+    },
+    {
+     "id": "despensa",
+     "u": 8.5,
+     "v": 8.5,
+     "w": 4.0,
+     "d": 11.5,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "adega",
+     "u": 36.0,
+     "v": 9.0,
+     "w": 9.0,
+     "d": 5.0,
+     "grupo": "armazenagem",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "enfermaria",
+     "u": 17.0,
+     "v": 7.5,
+     "w": 3.0,
+     "d": 7.5,
+     "grupo": "convivência"
+    },
+    {
+     "id": "hidroponia",
+     "u": 0.0,
+     "v": 8.5,
+     "w": 8.5,
+     "d": 11.5,
+     "grupo": "produção",
+     "acesso": [
+      "despensa"
+     ]
+    },
+    {
+     "id": "oficina",
+     "u": 0.0,
+     "v": 0.0,
+     "w": 12.5,
+     "d": 8.5,
+     "grupo": "produção"
+    },
+    {
+     "id": "datacenter",
+     "u": 0.0,
+     "v": 29.5,
+     "w": 9.5,
+     "d": 10.5,
+     "grupo": "técnica",
+     "acesso": [
+      "baterias"
+     ]
+    },
+    {
+     "id": "labs",
+     "u": 20.0,
+     "v": 0.0,
+     "w": 5.0,
+     "d": 15.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "limpa",
+     "u": 12.5,
+     "v": 0.0,
+     "w": 7.5,
+     "d": 7.5,
+     "grupo": "produção"
+    },
+    {
+     "id": "suporte",
+     "u": 9.5,
+     "v": 32.5,
+     "w": 12.0,
+     "d": 7.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "baterias",
+     "u": 9.5,
+     "v": 25.0,
+     "w": 12.0,
+     "d": 7.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "agua",
+     "u": 0.0,
+     "v": 20.0,
+     "w": 9.5,
+     "d": 9.5,
+     "grupo": "técnica",
+     "acesso": [
+      "baterias"
+     ]
+    },
+    {
+     "id": "escada",
+     "u": 21.5,
+     "v": 38.0,
+     "w": 3.5,
+     "d": 2.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "montacarga",
+     "u": 12.5,
+     "v": 7.5,
+     "w": 4.5,
+     "d": 7.5,
+     "grupo": "circulação"
+    },
+    {
+     "id": "saida2",
+     "u": 16.0,
+     "v": 15.0,
+     "w": 9.0,
+     "d": 5.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "galeria",
+     "u": 25.0,
+     "v": 0.0,
+     "w": 7.5,
+     "d": 40.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "ramal",
+     "u": 21.5,
+     "v": 25.0,
+     "w": 3.5,
+     "d": 13.0,
+     "grupo": "circulação"
+    }
+   ],
+   "metricas": {
+    "area_pegada": 1800.0,
+    "area_ocupada": 1800.0,
+    "sobra": 0.0,
+    "caminhada_media": 19.9,
+    "caminhada_max": 48.0,
+    "ambiente_mais_longe": "cinema",
+    "maior_lado": 16.5,
+    "passagens": 4,
+    "galeria": [
+     7.5,
+     40.0
+    ],
+    "crescimento_m2": {
+     "mestre": 22.5,
+     "pais": 7.5,
+     "irma": 0.0,
+     "sobrinha": 0.0,
+     "convidado": 7.5,
+     "estar": -18.8,
+     "cinema": 18.8,
+     "despensa": -4.0,
+     "adega": -5.0,
+     "enfermaria": -2.5,
+     "hidroponia": -2.2,
+     "oficina": 6.2,
+     "datacenter": -0.2,
+     "labs": 0.0,
+     "limpa": 6.2,
+     "suporte": -10.0,
+     "baterias": -10.0,
+     "agua": -9.8,
+     "escada": 3.0,
+     "montacarga": 8.8,
+     "saida2": -5.0,
+     "galeria": 100.0
+    }
+   }
+  }
+ ]
+}

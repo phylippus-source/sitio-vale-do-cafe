@@ -54,3 +54,6 @@ E4 armazenamento fechada (`plan/energia-armazenamento.json`, `plan/E4-painel.md`
 
 ## E5a (25/11/2026)
 Lista de gases em plan/E5a-gases.md e plan/energia-gases.json. CO₂ limita o ar do bunker em ~7 dias. Bunker pode crescer +20±5% (medidas 0/5). Próxima: E5b (H₂ e biodigestor, falha LFP).
+
+## B0-6a (25/11/2026)
+`tools/pack-bunker.py --pegada 55x35 [--lado 2.5] --tempo 150 --saida X.json`: modo pegada FIXA (W×D na planta; com giro, W = extensão em z e D em x). Etapas: menor sobra, conforto, menor caminhada do monta-carga; trata o giro na escotilha; casa fora da pegada só aviso. Saídas em `plan/bunker-fixa/` (55x35 e 45x40, ambas 0 erros na régua com plano temporário; a régua oficial ainda não aceita pegada >50×40 nem cenário fixa-*). Próxima B0-6b: comparar e apresentar; B0-6c: régua do lote.

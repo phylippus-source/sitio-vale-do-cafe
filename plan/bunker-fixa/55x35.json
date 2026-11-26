@@ -1,0 +1,243 @@
+{
+ "opcoes": [
+  {
+   "id": "fixa-55x35",
+   "nome": "Pegada fixa 55×35 (±2.5 m por ambiente)",
+   "etapa": "B0-6a: pegada fixa, menor sobra, conforto, menor caminhada",
+   "pegada": {
+    "w": 55.0,
+    "d": 35.0
+   },
+   "salas": [
+    {
+     "id": "mestre",
+     "u": 30.5,
+     "v": 26.0,
+     "w": 12.5,
+     "d": 9.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "pais",
+     "u": 25.0,
+     "v": 26.0,
+     "w": 5.5,
+     "d": 9.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "irma",
+     "u": 28.0,
+     "v": 12.5,
+     "w": 3.5,
+     "d": 6.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "sobrinha",
+     "u": 31.5,
+     "v": 12.5,
+     "w": 3.5,
+     "d": 6.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "convidado",
+     "u": 12.5,
+     "v": 12.5,
+     "w": 4.0,
+     "d": 6.0,
+     "grupo": "privada"
+    },
+    {
+     "id": "estar",
+     "u": 17.5,
+     "v": 0.0,
+     "w": 16.5,
+     "d": 12.5,
+     "grupo": "convivência"
+    },
+    {
+     "id": "cinema",
+     "u": 45.0,
+     "v": 19.5,
+     "w": 10.0,
+     "d": 9.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "despensa",
+     "u": 16.5,
+     "v": 12.5,
+     "w": 7.5,
+     "d": 6.0,
+     "grupo": "armazenagem"
+    },
+    {
+     "id": "adega",
+     "u": 12.5,
+     "v": 0.0,
+     "w": 5.0,
+     "d": 12.5,
+     "grupo": "armazenagem",
+     "acesso": [
+      "estar"
+     ]
+    },
+    {
+     "id": "enfermaria",
+     "u": 35.0,
+     "v": 12.5,
+     "w": 7.5,
+     "d": 6.0,
+     "grupo": "convivência"
+    },
+    {
+     "id": "hidroponia",
+     "u": 0.0,
+     "v": 0.0,
+     "w": 12.5,
+     "d": 11.0,
+     "grupo": "produção",
+     "acesso": [
+      "agua"
+     ]
+    },
+    {
+     "id": "oficina",
+     "u": 15.0,
+     "v": 26.0,
+     "w": 10.0,
+     "d": 9.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "datacenter",
+     "u": 45.0,
+     "v": 10.5,
+     "w": 10.0,
+     "d": 9.0,
+     "grupo": "técnica"
+    },
+    {
+     "id": "labs",
+     "u": 0.0,
+     "v": 18.5,
+     "w": 7.5,
+     "d": 16.5,
+     "grupo": "produção"
+    },
+    {
+     "id": "limpa",
+     "u": 7.5,
+     "v": 26.0,
+     "w": 7.5,
+     "d": 9.0,
+     "grupo": "produção"
+    },
+    {
+     "id": "suporte",
+     "u": 34.0,
+     "v": 0.0,
+     "w": 8.5,
+     "d": 12.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "baterias",
+     "u": 42.5,
+     "v": 0.0,
+     "w": 12.5,
+     "d": 10.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "agua",
+     "u": 0.0,
+     "v": 11.0,
+     "w": 12.5,
+     "d": 7.5,
+     "grupo": "técnica"
+    },
+    {
+     "id": "escada",
+     "u": 43.0,
+     "v": 26.0,
+     "w": 2.0,
+     "d": 2.5,
+     "grupo": "circulação"
+    },
+    {
+     "id": "montacarga",
+     "u": 24.0,
+     "v": 12.5,
+     "w": 4.0,
+     "d": 6.0,
+     "grupo": "circulação"
+    },
+    {
+     "id": "saida2",
+     "u": 43.0,
+     "v": 28.5,
+     "w": 12.0,
+     "d": 6.5,
+     "grupo": "circulação"
+    },
+    {
+     "id": "galeria",
+     "u": 7.5,
+     "v": 18.5,
+     "w": 37.5,
+     "d": 7.5,
+     "grupo": "circulação"
+    },
+    {
+     "id": "ramal",
+     "u": 42.5,
+     "v": 10.5,
+     "w": 2.5,
+     "d": 8.0,
+     "grupo": "circulação"
+    }
+   ],
+   "metricas": {
+    "area_pegada": 1925.0,
+    "area_ocupada": 1925.0,
+    "sobra": 0.0,
+    "caminhada_media": 20.0,
+    "caminhada_max": 33.5,
+    "ambiente_mais_longe": "labs",
+    "maior_lado": 16.5,
+    "passagens": 2,
+    "galeria": [
+     37.5,
+     7.5
+    ],
+    "crescimento_m2": {
+     "mestre": 22.5,
+     "pais": 4.5,
+     "irma": 3.5,
+     "sobrinha": 3.5,
+     "convidado": 6.5,
+     "estar": -18.8,
+     "cinema": -10.0,
+     "despensa": -5.0,
+     "adega": 12.5,
+     "enfermaria": 20.0,
+     "hidroponia": 37.5,
+     "oficina": -10.0,
+     "datacenter": -10.0,
+     "labs": 48.8,
+     "limpa": 17.5,
+     "suporte": 6.2,
+     "baterias": 31.2,
+     "agua": -6.2,
+     "escada": 1.0,
+     "montacarga": -1.0,
+     "saida2": 28.0,
+     "galeria": 81.2
+    }
+   }
+  }
+ ]
+}
